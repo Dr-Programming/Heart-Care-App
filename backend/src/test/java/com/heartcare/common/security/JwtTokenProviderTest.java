@@ -37,4 +37,23 @@ class JwtTokenProviderTest {
 
         assertThat(expiredProvider.validateToken(token)).isFalse();
     }
+
+    @Test
+    void enforcesHs256EvenForLongSecret() {
+        // 68-byte secret: without explicit HS256 this would infer HS512
+        String longSecret = "abcdefghijklmnopqrstuvwxyz-abcdefghijklmnopqrstuvwxyz-0123456789-XYZ";
+        JwtTokenProvider longProvider = new JwtTokenProvider(longSecret, 604800000L);
+
+        String token = longProvider.generateToken(java.util.UUID.randomUUID(), "PATIENT");
+
+        String alg = io.jsonwebtoken.Jwts.parser()
+                .verifyWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                        longSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .build()
+                .parseSignedClaims(token)
+                .getHeader()
+                .getAlgorithm();
+
+        assertThat(alg).isEqualTo("HS256");
+    }
 }

@@ -33,7 +33,7 @@ public class JwtTokenProvider {
                 .claim("role", role)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMs)))
-                .signWith(key)
+                .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -46,10 +46,12 @@ public class JwtTokenProvider {
         }
     }
 
+    /** Precondition: token must be validated via {@link #validateToken} first; throws JwtException if invalid. */
     public String getUserId(String token) {
         return parse(token).getSubject();
     }
 
+    /** Precondition: token must be validated via {@link #validateToken} first; throws JwtException if invalid. */
     public String getRole(String token) {
         return parse(token).get("role", String.class);
     }
