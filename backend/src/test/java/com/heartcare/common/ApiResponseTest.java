@@ -22,6 +22,8 @@ class ApiResponseTest {
         ApiResponse<String> resp = ApiResponse.ok("payload", "Created");
 
         assertThat(resp.message()).isEqualTo("Created");
+        assertThat(resp.success()).isTrue();
+        assertThat(resp.data()).isEqualTo("payload");
     }
 
     @Test
