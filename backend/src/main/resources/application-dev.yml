@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/heartcare
+    username: ${POSTGRES_USER:heartcare}
+    password: ${POSTGRES_PASSWORD:heartcare}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32bytes-minimum}
