@@ -31,6 +31,4 @@ Heart-Care-App helps patients and clinicians track and manage CHD treatment plan
 
 Project is active and in development. Architecture and documentation are complete. Implementation is underway.
 
-## Getting Started
 
-See [CLAUDE.md](./CLAUDE.md) for build commands, architecture overview, and development setup.

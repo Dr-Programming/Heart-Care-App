@@ -48,6 +48,7 @@ docker-compose.local.yml
 # .env.example  → COMMITTED   (template with placeholder values — safe to commit)
 .env
 .env.*
+!.env.example
 *.env
 application-prod.yml          # Production DB/JWT secrets — use Railway env vars
 application-prod.properties   # Same as above but .properties format
