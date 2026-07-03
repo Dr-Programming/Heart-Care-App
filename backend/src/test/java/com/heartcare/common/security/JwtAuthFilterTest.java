@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.UUID;
@@ -42,6 +43,9 @@ class JwtAuthFilterTest {
         assertThat(auth).isNotNull();
         assertThat(auth.getPrincipal()).isInstanceOf(UserPrincipal.class);
         assertThat(((UserPrincipal) auth.getPrincipal()).userId()).isEqualTo(id);
+        assertThat(auth.getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactly("ROLE_PATIENT");
         verify(chain).doFilter(request, response);
     }
 
@@ -65,5 +69,6 @@ class JwtAuthFilterTest {
         filter.doFilter(request, new MockHttpServletResponse(), chain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(chain).doFilter(any(), any());
     }
 }
