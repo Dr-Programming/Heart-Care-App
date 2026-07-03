@@ -9,6 +9,7 @@ import com.heartcare.common.exception.ConflictException;
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.exception.UnauthorizedException;
 import com.heartcare.common.security.JwtTokenProvider;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,11 @@ public class AuthService {
                 request.email(),
                 passwordEncoder.encode(request.password()),
                 request.fullName());
-        userRepository.save(user);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ConflictException("Email already registered");
+        }
         String token = tokenProvider.generateToken(user.getId(), user.getRole());
         return new AuthResponse(token, user.getId().toString(), user.getRole());
     }
