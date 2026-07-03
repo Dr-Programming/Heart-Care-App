@@ -6,7 +6,9 @@ A cross-platform mobile application for managing coronary heart disease (CHD) pa
 
 ## About
 
-Heart-Care-App helps patients and clinicians track and manage CHD treatment plans. It supports offline-first usage for areas with limited connectivity and provides bilingual support in English and Amharic.
+Heart-Care-App helps patients track and manage their CHD treatment plans. It supports offline-first usage for areas with limited connectivity and provides bilingual support in English and Amharic.
+
+The current scope is **patient-only**. A clinician role, real-time alerting, and appointment scheduling are not part of this build.
 
 **Supervised by:** Dr. Elena Vlahu-Gjorgievska & Prof. Khin Than Win
 **Client:** Tesema Etefa Birhanu
@@ -14,7 +16,7 @@ Heart-Care-App helps patients and clinicians track and manage CHD treatment plan
 ## Tech Stack
 
 - **Mobile:** Flutter (Dart) — iOS & Android
-- **Backend:** Spring Boot (Java) — REST API + WebSocket
+- **Backend:** Spring Boot (Java) — REST API
 - **Database:** PostgreSQL (hosted on Railway)
 
 ## Key Features
@@ -22,15 +24,13 @@ Heart-Care-App helps patients and clinicians track and manage CHD treatment plan
 - Medication tracking with dose reminders
 - Vitals logging (blood pressure, glucose, heart rate, weight)
 - Symptom check-ins and activity logs
-- Appointment scheduling
-- Real-time clinical alerts for abnormal readings
+- On-device alerts for abnormal vitals and symptoms (evaluated offline)
 - Offline-first sync — works without internet connectivity
-- Role-based access: Patient and Clinician views
+- Bilingual UI (English & Amharic)
 
 ## Status
 
-Project is active and in development. Architecture and documentation are complete. Implementation is underway.
+Early development.
 
-## Getting Started
-
-See [CLAUDE.md](./CLAUDE.md) for build commands, architecture overview, and development setup.
+- **Backend:** the authentication foundation (Spring Boot 4.1 · PostgreSQL · Flyway · JWT — patient register/login/`me`) is implemented and tested. See [`backend/README.md`](./backend/README.md) for build/run instructions and slice-by-slice progress.
+- **Mobile:** the Flutter app has not been started yet.
