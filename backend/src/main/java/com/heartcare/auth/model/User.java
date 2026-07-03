@@ -31,7 +31,7 @@ public class User {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String role = "PATIENT";
 
     @Column(name = "created_at", nullable = false)
@@ -52,9 +52,6 @@ public class User {
     void onCreate() {
         if (createdAt == null) {
             createdAt = OffsetDateTime.now();
-        }
-        if (role == null) {
-            role = "PATIENT";
         }
     }
 

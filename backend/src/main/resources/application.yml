@@ -15,5 +15,5 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32bytes-minimum}
+    secret: ${JWT_SECRET}
     expiration-ms: 604800000  # 7 days

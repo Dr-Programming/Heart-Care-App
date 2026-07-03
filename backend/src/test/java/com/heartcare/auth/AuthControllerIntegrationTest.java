@@ -69,14 +69,16 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void meWithoutTokenReturns401() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
     void meWithInvalidTokenReturns401() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer not-a-real-token"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
