@@ -11,6 +11,8 @@ import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -23,6 +25,7 @@ public class User {
     private String email;
 
     @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false)
