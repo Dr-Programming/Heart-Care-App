@@ -27,7 +27,7 @@ mvn test
 | # | Slice | Status |
 |---|-------|--------|
 | 1 | Foundation + Auth (scaffold, Docker DB, JWT security, register/login/me) | ✅ Done |
-| 2 | Patient profile | ⬜ Not started |
+| 2 | Patient profile (GET/PUT /patients/me, profile + goals JSONB) | ✅ Done |
 | 3 | Medications & dose logs | ⬜ Not started |
 | 4 | Vitals | ⬜ Not started |
 | 5 | Symptoms | ⬜ Not started |
