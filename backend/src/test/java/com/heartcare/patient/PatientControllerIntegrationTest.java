@@ -147,4 +147,16 @@ class PatientControllerIntegrationTest extends AbstractIntegrationTest {
                         .content("{ \"heightCm\": 500 }"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void putWithNegativeGoalReturns400() throws Exception {
+        String token = registerAndGetToken();
+
+        mockMvc.perform(put("/api/v1/patients/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{ \"goals\": { \"bpSystolic\": -100 } }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 }
