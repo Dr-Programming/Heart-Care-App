@@ -1,6 +1,7 @@
 package com.heartcare.patient.dto;
 
 import com.heartcare.patient.model.Goals;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -29,5 +30,6 @@ public record PatientProfileRequest(
 
         String managementPlan,
 
+        @Valid
         Goals goals) {
 }
