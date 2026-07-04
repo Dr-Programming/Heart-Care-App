@@ -46,9 +46,9 @@ This slice implements the P1 personal-profile requirements plus the goals blob:
 ```sql
 CREATE TABLE patient_profiles (
     user_id            UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    birth_year         SMALLINT,
+    birth_year         INTEGER,
     preferred_language VARCHAR(5),
-    height_cm          SMALLINT,
+    height_cm          INTEGER,
     chd_stage          VARCHAR(50),
     disease_history    TEXT,
     comorbidities      JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -60,6 +60,7 @@ CREATE TABLE patient_profiles (
 ```
 
 - `ON DELETE CASCADE` — deleting a user removes their profile.
+- `birth_year` / `height_cm` use `INTEGER` (not `SMALLINT`) so they map cleanly to Java `Integer` under `spring.jpa.hibernate.ddl-auto=validate`.
 - `comorbidities` defaults to an empty JSON array so reads never return SQL `NULL` for the list.
 - All clinical fields are nullable; a patient may fill the profile incrementally.
 
@@ -99,7 +100,7 @@ CREATE TABLE patient_profiles (
 }
 ```
 
-The `PUT` request body is the same object minus `userId` (taken from the token). `goals` is its own DTO (`GoalsDto`); all its fields are optional.
+The `PUT` request body is the same object minus `userId` (taken from the token). `goals` is a small shared value object (`model/Goals`, a record) reused by the entity and both DTOs; all its fields are optional.
 
 ---
 
@@ -110,11 +111,12 @@ com.heartcare.patient
 ├── PatientController.java            GET/PUT /patients/me
 ├── PatientService.java               getProfile(userId) / upsertProfile(userId, req)
 ├── PatientProfileRepository.java     extends JpaRepository<PatientProfile, UUID>
-├── model/PatientProfile.java         @Entity; comorbidities/goals via @JdbcTypeCode(SqlTypes.JSON)
+├── model/
+│   ├── PatientProfile.java           @Entity; comorbidities/goals via @JdbcTypeCode(SqlTypes.JSON)
+│   └── Goals.java                    shared JSONB value object (record); reused by entity + DTOs
 └── dto/
     ├── PatientProfileRequest.java    inbound (Bean Validation constraints)
-    ├── PatientProfileResponse.java   outbound
-    └── GoalsDto.java                 nested goals object (shared by request & response)
+    └── PatientProfileResponse.java   outbound
 ```
 
 Follows Slice 1 conventions: Java `record` DTOs, constructor-based entity, service returns response DTOs, controller resolves `userId` from the `UserPrincipal`.
