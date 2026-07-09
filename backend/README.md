@@ -28,7 +28,7 @@ mvn test
 |---|-------|--------|
 | 1 | Foundation + Auth (scaffold, Docker DB, JWT security, register/login/me) | ✅ Done |
 | 2 | Patient profile (GET/PUT /patients/me, profile + goals JSONB) | ✅ Done |
-| 3 | Medications & dose logs | ⬜ Not started |
+| 3 | Medications & dose logs (CRUD + Taken/Missed/Skipped logging, JSONB schedule) | ✅ Done |
 | 4 | Vitals | ⬜ Not started |
 | 5 | Symptoms | ⬜ Not started |
 | 6 | Activity | ⬜ Not started |
