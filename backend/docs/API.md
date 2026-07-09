@@ -57,3 +57,48 @@ Creates or replaces the authenticated patient's profile (full-replace upsert). R
 Validation: `birthYear` 1900–2100 · `preferredLanguage` ∈ {`en`, `am`} · `heightCm` 50–250 · `chdStage` ≤ 50 chars.
 `data`: the saved profile (same shape as `GET /patients/me`).
 Errors: `400` validation · `401` missing/invalid/expired token.
+
+## Medications & Dose Logs
+
+All endpoints require `Authorization: Bearer <JWT>`. Base path `/api/v1`.
+Operations on another user's records return `404` (never `403` — existence is not revealed).
+`POST` creates are idempotent on `clientRecordId`: repeating a create with the same value
+returns the existing row instead of duplicating.
+
+### POST `/medications` — Bearer JWT
+Create a medication.
+Request: `{ name, doseMg, frequency, scheduleTimes[], active?, clientRecordId? }` where
+`frequency` ∈ {`ONCE_DAILY`, `BID`, `TID`, `CUSTOM`} and each `scheduleTimes` entry is `HH:mm` (24-hour).
+Validation: `name` required (≤ 255) · `doseMg` > 0 · `frequency` required · `scheduleTimes` entries `HH:mm`.
+`data`: the created medication.
+Errors: `400` validation/malformed body · `401` missing/invalid token.
+
+### GET `/medications?includeInactive=false` — Bearer JWT
+List the caller's medications, newest first. `includeInactive=true` also returns deactivated ones.
+`data`: array of medications.
+Errors: `401` missing/invalid token.
+
+### PUT `/medications/{id}` — Bearer JWT
+Full-replace of `name, doseMg, frequency, scheduleTimes, active`. `clientRecordId` is never changed.
+`data`: the updated medication.
+Errors: `400` validation · `401` missing/invalid token · `404` not owned.
+
+### DELETE `/medications/{id}` — Bearer JWT
+Soft-deactivate (sets `active: false`; dose history is preserved — never hard-deleted).
+`data`: the deactivated medication.
+Errors: `401` missing/invalid token · `404` not owned.
+
+### POST `/medications/{id}/doses` — Bearer JWT
+Log a dose against an owned medication.
+Request: `{ status, scheduledDate, scheduledTime?, loggedAt?, note?, clientRecordId? }` where
+`status` ∈ {`TAKEN`, `MISSED`, `SKIPPED`}. `scheduledDate` (`YYYY-MM-DD`) required; `loggedAt`
+defaults to now (UTC) when omitted; `note` ≤ 500 chars.
+`data`: the created dose log.
+Errors: `400` validation/malformed body · `401` missing/invalid token · `404` medication not owned.
+
+### GET `/dose-logs?from=&to=&medicationId=` — Bearer JWT
+Return the caller's dose history, newest first (by `scheduledDate`, then `loggedAt`).
+All filters optional: `from`/`to` bound `scheduledDate` inclusively (`YYYY-MM-DD`);
+`medicationId` narrows to a single medication.
+`data`: array of dose logs.
+Errors: `401` missing/invalid token.
