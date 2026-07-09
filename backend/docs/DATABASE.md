@@ -17,3 +17,20 @@ migration; add a new `V#__description.sql`.
 | full_name | VARCHAR(255) NOT NULL | |
 | role | VARCHAR(20) NOT NULL | default `PATIENT`; retained for forward-compat, only `PATIENT` written |
 | created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+### V2 — `create_patient_profiles`
+`patient_profiles` table: one row per patient (1:1 with `users`). `user_id` is both PK and FK to `users(id)` (`ON DELETE CASCADE`, so the profile is deleted with its user). JSONB columns: `comorbidities` (string array) and `goals` (BP/cholesterol/steps/weight/diet object).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| user_id | UUID PK | FK → `users(id)` `ON DELETE CASCADE` |
+| birth_year | INTEGER | year only |
+| preferred_language | VARCHAR(5) | `en` / `am` |
+| height_cm | INTEGER | for BMI (Vitals slice) |
+| chd_stage | VARCHAR(50) | |
+| disease_history | TEXT | |
+| comorbidities | JSONB NOT NULL | default `[]`; string array |
+| management_plan | TEXT | |
+| goals | JSONB | nullable |
+| created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+| updated_at | TIMESTAMPTZ NOT NULL | default `now()` |
