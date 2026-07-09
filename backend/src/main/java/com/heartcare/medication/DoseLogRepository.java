@@ -17,8 +17,8 @@ public interface DoseLogRepository extends JpaRepository<DoseLog, UUID> {
     @Query("""
             SELECT d FROM DoseLog d
             WHERE d.userId = :userId
-              AND (:from IS NULL OR d.scheduledDate >= :from)
-              AND (:to IS NULL OR d.scheduledDate <= :to)
+              AND (CAST(:from AS LocalDate) IS NULL OR d.scheduledDate >= :from)
+              AND (CAST(:to AS LocalDate) IS NULL OR d.scheduledDate <= :to)
               AND (:medicationId IS NULL OR d.medicationId = :medicationId)
             ORDER BY d.scheduledDate DESC, d.loggedAt DESC
             """)
