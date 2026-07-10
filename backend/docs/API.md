@@ -102,3 +102,31 @@ All filters optional: `from`/`to` bound `scheduledDate` inclusively (`YYYY-MM-DD
 `medicationId` narrows to a single medication.
 `data`: array of dose logs.
 Errors: `401` missing/invalid token.
+
+## Health Vitals
+
+All under `/api/v1`. Each reading is one row of a given `type`; numeric values live in a JSON `values` map. The server computes `flagged` (clinical alert threshold, FR-VIT-008) and, for `WEIGHT`, `bmi` from the profile's `heightCm`. Append-only; idempotent on `clientRecordId`.
+
+Per-type `values` keys (canonical units):
+- `BLOOD_PRESSURE` — `systolic`, `diastolic` (mmHg; `systolic > diastolic`)
+- `GLUCOSE` — `glucose` (mmol/L)
+- `HEART_RATE` — `heartRate` (bpm)
+- `WEIGHT` — `weight` (kg); response adds `bmi` when height is known
+- `CHOLESTEROL` — `ldl`, `hdl`, `total` (mmol/L)
+
+### POST `/vitals` — Bearer JWT
+Request:
+```json
+{ "type": "BLOOD_PRESSURE", "values": { "systolic": 190, "diastolic": 100 },
+  "measuredAt": "2026-07-10T08:15:00Z", "note": "felt dizzy", "clientRecordId": "..." }
+```
+`measuredAt`, `note`, `clientRecordId` optional; any client-sent `flagged`/`bmi` is ignored. Response `data`:
+```json
+{ "id": "...", "type": "BLOOD_PRESSURE", "values": { "systolic": 190, "diastolic": 100 },
+  "flagged": true, "measuredAt": "2026-07-10T08:15:00Z", "note": "felt dizzy",
+  "clientRecordId": "...", "createdAt": "2026-07-10T08:15:02Z" }
+```
+`400` on unknown `type`, missing/unknown `values` key, non-numeric or out-of-range value, or `systolic <= diastolic`.
+
+### GET `/vitals?type=&from=&to=` — Bearer JWT
+Optional `type` (enum), `from`/`to` (ISO dates, filter on `measuredAt`). Returns the user's readings, newest first.
