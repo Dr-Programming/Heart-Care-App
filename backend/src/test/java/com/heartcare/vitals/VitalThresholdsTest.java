@@ -40,6 +40,12 @@ class VitalThresholdsTest {
     }
 
     @Test
+    void diastolicLowEdge() {
+        assertThat(thresholds.isFlagged(values("systolic", 120, "diastolic", 60))).isTrue();
+        assertThat(thresholds.isFlagged(values("systolic", 120, "diastolic", 61))).isFalse();
+    }
+
+    @Test
     void glucoseBoundaries() {
         assertThat(thresholds.isFlagged(values("glucose", "5.5"))).isFalse();
         assertThat(thresholds.isFlagged(values("glucose", "4.0"))).isTrue();
@@ -63,6 +69,8 @@ class VitalThresholdsTest {
         assertThat(thresholds.isFlagged(values("weight", 70, "bmi", "24.0"))).isFalse();
         assertThat(thresholds.isFlagged(values("weight", 120, "bmi", "30.0"))).isTrue();
         assertThat(thresholds.isFlagged(values("weight", 45, "bmi", "17.0"))).isTrue();
+        assertThat(thresholds.isFlagged(values("weight", 50, "bmi", "18.5"))).isTrue();
+        assertThat(thresholds.isFlagged(values("weight", 55, "bmi", "18.6"))).isFalse();
     }
 
     @Test
@@ -71,5 +79,7 @@ class VitalThresholdsTest {
         assertThat(thresholds.isFlagged(values("ldl", "4.9", "hdl", "1.5", "total", "5.0"))).isTrue();
         assertThat(thresholds.isFlagged(values("ldl", "3.0", "hdl", "0.9", "total", "5.0"))).isTrue();
         assertThat(thresholds.isFlagged(values("ldl", "3.0", "hdl", "1.5", "total", "7.5"))).isTrue();
+        assertThat(thresholds.isFlagged(values("ldl", "3.0", "hdl", "1.0", "total", "5.0"))).isTrue();
+        assertThat(thresholds.isFlagged(values("ldl", "3.0", "hdl", "1.1", "total", "5.0"))).isFalse();
     }
 }
