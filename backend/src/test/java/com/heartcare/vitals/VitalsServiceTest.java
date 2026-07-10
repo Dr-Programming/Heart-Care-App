@@ -10,7 +10,6 @@ import com.heartcare.vitals.model.VitalType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -153,6 +152,23 @@ class VitalsServiceTest {
                 request(VitalType.BLOOD_PRESSURE, values("systolic", 120), null)))
                 .isInstanceOf(BadRequestException.class);
         verify(vitalsRepository, never()).save(any());
+    }
+
+    @Test
+    void logRejectsExtraKey() {
+        assertThatThrownBy(() -> service.log(userId,
+                request(VitalType.BLOOD_PRESSURE, values("systolic", 120, "diastolic", 80, "extra", 1), null)))
+                .isInstanceOf(BadRequestException.class);
+        verify(vitalsRepository, never()).save(any());
+    }
+
+    @Test
+    void logAcceptsCholesterolWithThreeKeys() {
+        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
+        VitalLogResponse response = service.log(userId,
+                request(VitalType.CHOLESTEROL, values("ldl", "3.0", "hdl", "1.5", "total", "5.0"), null));
+        assertThat(response.type()).isEqualTo(VitalType.CHOLESTEROL);
+        assertThat(response.flagged()).isFalse();
     }
 
     @Test
