@@ -90,3 +90,22 @@ by the device when the patient logs a dose; the server stores and serves them an
 | created_at | TIMESTAMPTZ NOT NULL | default `now()` |
 
 Indexes: `(user_id, measured_at)`, `(user_id, type)`.
+
+### V6 — `create_symptom_logs`
+
+`symptom_logs` — one row per daily symptom check-in.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | app-assigned |
+| user_id | UUID NOT NULL | FK → `users(id)` `ON DELETE CASCADE` |
+| data | JSONB NOT NULL | patient-entered fields: `chestPain`, `shortnessOfBreath`, `heartRate`, `bloodPressure`, `swelling`, `energyLevel`, optional `worseThanYesterday` |
+| assessment | JSONB NOT NULL | server-computed `{overall, symptoms}` severity snapshot (FR-SYM-010) |
+| overall_severity | VARCHAR(20) NOT NULL | queryable snapshot of `assessment.overall` (`NONE` / `MONITOR` / `URGENT` / `EMERGENCY`) |
+| measured_at | TIMESTAMPTZ NOT NULL | when the check-in was taken |
+| note | TEXT | nullable |
+| client_record_id | UUID | unique per `user_id` (`UNIQUE (user_id, client_record_id)`) |
+| created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+Indexes: `(user_id, measured_at)`, `(user_id, overall_severity)`. Unique constraint:
+`uq_symptom_user_client_record` on `(user_id, client_record_id)`.
