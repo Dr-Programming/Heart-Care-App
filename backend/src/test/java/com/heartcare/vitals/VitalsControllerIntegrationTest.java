@@ -204,4 +204,20 @@ class VitalsControllerIntegrationTest extends AbstractIntegrationTest {
                         .content("{ \"type\": \"BLOOD_PRESSURE\", \"values\": { \"systolic\": 80, \"diastolic\": 80 } }"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void historyDateRangeBucketsMeasuredAtInUtc() throws Exception {
+        String token = registerAndGetToken();
+        // 23:30Z on 2026-07-10 is still 2026-07-10 in UTC (would be 2026-07-11 in UTC+3)
+        postVital(token, "{ \"type\": \"GLUCOSE\", \"values\": { \"glucose\": 5.5 }, \"measuredAt\": \"2026-07-10T23:30:00Z\" }");
+        // 00:30Z on 2026-07-11 is 2026-07-11 in UTC
+        postVital(token, "{ \"type\": \"GLUCOSE\", \"values\": { \"glucose\": 6.6 }, \"measuredAt\": \"2026-07-11T00:30:00Z\" }");
+
+        // Filtering to just 2026-07-11 must return only the 00:30Z reading under UTC bucketing.
+        mockMvc.perform(get("/api/v1/vitals?from=2026-07-11&to=2026-07-11")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].values.glucose").value(6.6));
+    }
 }
