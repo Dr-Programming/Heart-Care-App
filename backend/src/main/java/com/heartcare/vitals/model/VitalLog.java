@@ -14,6 +14,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -59,7 +60,7 @@ public class VitalLog {
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
-            createdAt = OffsetDateTime.now();
+            createdAt = OffsetDateTime.now(ZoneOffset.UTC);
         }
     }
 

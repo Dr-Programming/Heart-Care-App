@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -189,10 +190,13 @@ class VitalsServiceTest {
     void historyDelegatesToRepositoryWithFilters() {
         LocalDate from = LocalDate.of(2026, 7, 1);
         LocalDate to = LocalDate.of(2026, 7, 31);
-        when(vitalsRepository.findHistory(userId, from, to, VitalType.GLUCOSE)).thenReturn(List.of());
+        // Service buckets by UTC day into a half-open range: [from 00:00Z, day-after-to 00:00Z).
+        OffsetDateTime fromTs = OffsetDateTime.of(2026, 7, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime toTs = OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        when(vitalsRepository.findHistory(userId, fromTs, toTs, VitalType.GLUCOSE)).thenReturn(List.of());
 
         service.history(userId, VitalType.GLUCOSE, from, to);
 
-        verify(vitalsRepository).findHistory(userId, from, to, VitalType.GLUCOSE);
+        verify(vitalsRepository).findHistory(userId, fromTs, toTs, VitalType.GLUCOSE);
     }
 }

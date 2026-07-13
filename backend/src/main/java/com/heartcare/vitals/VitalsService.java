@@ -42,6 +42,10 @@ public class VitalsService {
             "hdl", range(0, 30),
             "total", range(0, 30));
 
+    // Sentinel bounds for open-ended date filters (safe within Postgres timestamptz range).
+    private static final OffsetDateTime MIN_INSTANT = OffsetDateTime.of(1, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    private static final OffsetDateTime MAX_INSTANT = OffsetDateTime.of(9999, 12, 31, 0, 0, 0, 0, ZoneOffset.UTC);
+
     private final VitalsRepository vitalsRepository;
     private final PatientProfileRepository profileRepository;
     private final VitalThresholds thresholds;
@@ -88,7 +92,11 @@ public class VitalsService {
 
     @Transactional(readOnly = true)
     public List<VitalLogResponse> history(UUID userId, VitalType type, LocalDate from, LocalDate to) {
-        return vitalsRepository.findHistory(userId, from, to, type)
+        // Bucket calendar-date filters by UTC day; the query range is half-open [fromTs, toTs).
+        // 'to' is inclusive of the whole day, so the exclusive upper bound is the start of the next day.
+        OffsetDateTime fromTs = from == null ? MIN_INSTANT : from.atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        OffsetDateTime toTs = to == null ? MAX_INSTANT : to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        return vitalsRepository.findHistory(userId, fromTs, toTs, type)
                 .stream().map(this::toResponse).toList();
     }
 
