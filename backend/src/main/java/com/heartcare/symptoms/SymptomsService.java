@@ -4,7 +4,6 @@ import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.symptoms.SymptomAssessment.Assessment;
 import com.heartcare.symptoms.dto.SymptomLogRequest;
 import com.heartcare.symptoms.dto.SymptomLogResponse;
-import com.heartcare.symptoms.model.Severity;
 import com.heartcare.symptoms.model.SymptomLog;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +25,6 @@ public class SymptomsService {
             "chestPain", "shortnessOfBreath", "heartRate", "bloodPressure", "swelling", "energyLevel");
     private static final Set<String> OPTIONAL_KEYS = Set.of("worseThanYesterday");
     private static final Set<String> SOB_LEVELS = Set.of("NONE", "MILD", "SEVERE");
-    private static final Set<String> KNOWN_SYMPTOM_NAMES = Set.of(
-            "chestPain", "shortnessOfBreath", "heartRate", "bloodPressure", "swelling", "energyLevel");
 
     // Sentinel bounds for open-ended date filters (safe within Postgres timestamptz range).
     private static final OffsetDateTime MIN_INSTANT = OffsetDateTime.of(1, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
@@ -121,7 +118,7 @@ public class SymptomsService {
 
     private void validateWorseThanYesterday(Map<String, Object> worse) {
         for (Map.Entry<String, Object> entry : worse.entrySet()) {
-            if (!KNOWN_SYMPTOM_NAMES.contains(entry.getKey())) {
+            if (!REQUIRED_KEYS.contains(entry.getKey())) {
                 throw new BadRequestException("unknown symptom in worseThanYesterday: " + entry.getKey());
             }
             boolValue(entry.getValue(), "worseThanYesterday." + entry.getKey());
@@ -142,11 +139,10 @@ public class SymptomsService {
         if (d != Math.rint(d)) {
             throw new BadRequestException(field + " must be a whole number");
         }
-        int i = number.intValue();
-        if (i < min || i > max) {
+        if (d < min || d > max) {
             throw new BadRequestException(field + " is out of range");
         }
-        return i;
+        return (int) d;
     }
 
     private boolean boolValue(Object value, String field) {
