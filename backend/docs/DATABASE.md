@@ -72,3 +72,21 @@ by the device when the patient logs a dose; the server stores and serves them an
 | note | TEXT | nullable |
 | client_record_id | UUID | unique per `user_id` |
 | created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+### V5 — `create_vitals_logs`
+
+`vitals_logs` — one row per vital-sign reading.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | app-assigned |
+| user_id | UUID NOT NULL | FK → `users(id)` `ON DELETE CASCADE` |
+| type | VARCHAR(20) NOT NULL | `BLOOD_PRESSURE` / `GLUCOSE` / `HEART_RATE` / `WEIGHT` / `CHOLESTEROL` |
+| vital_values | JSONB NOT NULL | per-type numeric map (`values` is a reserved word, hence `vital_values`); server injects `bmi` for weight |
+| flagged | BOOLEAN NOT NULL | default `false`; server-computed clinical alert flag (FR-VIT-008) |
+| measured_at | TIMESTAMPTZ NOT NULL | when the reading was taken |
+| note | TEXT | nullable |
+| client_record_id | UUID | unique per `user_id` (`UNIQUE (user_id, client_record_id)`) |
+| created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+Indexes: `(user_id, measured_at)`, `(user_id, type)`.
