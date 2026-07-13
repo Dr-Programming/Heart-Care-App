@@ -147,6 +147,14 @@ class SymptomsServiceTest {
     }
 
     @Test
+    void logRejectsOutOfRangeHeartRateThatTruncatesIntoRange() {
+        Map<String, Object> data = benignData();
+        data.put("heartRate", 4294967316L); // (int) 4294967316L == 20, but true value is out of range
+        assertThatThrownBy(() -> service.log(userId, request(data, null)))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
     void logRejectsSystolicNotGreaterThanDiastolic() {
         Map<String, Object> data = benignData();
         data.put("bloodPressure", Map.of("systolic", 80, "diastolic", 80));
