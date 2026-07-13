@@ -130,3 +130,62 @@ Request:
 
 ### GET `/vitals?type=&from=&to=` — Bearer JWT
 Optional `type` (enum), `from`/`to` (ISO dates, filter on `measuredAt`). Returns the user's readings, newest first.
+
+## Symptom Check-ins
+
+All under `/api/v1`. Each check-in is one row; the patient-entered fields live in a JSON `data`
+map and the server computes a clinical severity `assessment` from them (FR-SYM-010) — any
+client-sent `assessment` key is rejected as unknown. Append-only; idempotent on `clientRecordId`.
+
+`data` keys (all required except `worseThanYesterday`):
+- `chestPain` — `{ present: boolean, severity?: 0-10 }`; `severity` required when `present` is `true`
+- `shortnessOfBreath` — one of `NONE` / `MILD` / `SEVERE`
+- `heartRate` — integer, 20-300 (bpm)
+- `bloodPressure` — `{ systolic: 40-300, diastolic: 40-300 }`; `systolic > diastolic`
+- `swelling` — boolean
+- `energyLevel` — integer, 0-10
+- `worseThanYesterday` — optional `{ <symptomKey>: boolean, ... }`; keys must be one of the six above
+
+### POST `/symptoms` — Bearer JWT
+Request:
+```json
+{ "data": {
+    "chestPain": { "present": true, "severity": 8 },
+    "shortnessOfBreath": "MILD",
+    "heartRate": 82,
+    "bloodPressure": { "systolic": 165, "diastolic": 92 },
+    "swelling": true,
+    "energyLevel": 4
+  }, "note": "tight chest", "clientRecordId": "..." }
+```
+`measuredAt`, `note`, `clientRecordId` optional; `measuredAt` defaults to now (UTC) when omitted.
+The server computes `assessment` server-side — it is never accepted from the client (sending an
+`assessment` key inside `data` is rejected as an unknown key). Response `data`:
+```json
+{ "id": "...", "data": { "chestPain": { "present": true, "severity": 8 }, "...": "..." },
+  "assessment": { "overall": "EMERGENCY",
+    "symptoms": { "chestPain": "EMERGENCY", "shortnessOfBreath": "MONITOR",
+      "bloodPressure": "URGENT", "heartRate": "NONE", "swelling": "MONITOR", "energyLevel": "NONE" } },
+  "measuredAt": "2026-07-10T08:15:00Z", "note": "tight chest",
+  "clientRecordId": "...", "createdAt": "2026-07-10T08:15:02Z" }
+```
+`assessment.overall` is the maximum severity across all six per-symptom assessments
+(`NONE` < `MONITOR` < `URGENT` < `EMERGENCY`).
+`400` on missing/unknown `data` key, wrong type, out-of-range value, unrecognized
+`shortnessOfBreath` value or `worseThanYesterday` symptom key, missing `chestPain.severity`
+when `chestPain.present` is `true`, or `systolic <= diastolic`.
+
+### GET `/symptoms?from=&to=` — Bearer JWT
+Optional `from`/`to` (`YYYY-MM-DD`) bound `measuredAt` by UTC calendar day, inclusive on both
+ends (internally a half-open `[from 00:00Z, to+1day 00:00Z)` range). Returns the user's
+check-ins, newest first.
+
+**Severity → recommended action** (client-rendered, EN/AM; FR-SYM-010). These thresholds and
+actions are documented defaults pending clinical sign-off (spec §0):
+
+| Severity | Recommended action (rendered client-side, EN/AM) |
+|----------|--------------------------------------------------|
+| NONE | No action; keep monitoring |
+| MONITOR | Self-care; watch for changes |
+| URGENT | Contact your clinician today |
+| EMERGENCY | Call your emergency contact now |
