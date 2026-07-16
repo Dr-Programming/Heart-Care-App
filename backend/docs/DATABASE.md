@@ -109,3 +109,21 @@ Indexes: `(user_id, measured_at)`, `(user_id, type)`.
 
 Indexes: `(user_id, measured_at)`, `(user_id, overall_severity)`. Unique constraint:
 `uq_symptom_user_client_record` on `(user_id, client_record_id)`.
+
+### V7 — `create_activity_logs`
+
+`activity_logs` — one row per logged physical-activity session. Unlike `vitals_logs`/
+`symptom_logs`, this slice computes nothing, so there is **no assessment/severity column**.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | app-assigned |
+| user_id | UUID NOT NULL | FK → `users(id)` `ON DELETE CASCADE` |
+| data | JSONB NOT NULL | patient-entered fields: `type`, `durationMinutes`, `intensity`, optional `steps`, `distanceMeters` |
+| measured_at | TIMESTAMPTZ NOT NULL | when the session happened |
+| note | TEXT | nullable |
+| client_record_id | UUID | unique per `user_id` (`UNIQUE (user_id, client_record_id)`) |
+| created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+Index: `idx_activity_user_measured` on `(user_id, measured_at)`. Unique constraint:
+`uq_activity_user_client_record` on `(user_id, client_record_id)`.
