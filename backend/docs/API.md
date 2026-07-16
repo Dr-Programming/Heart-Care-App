@@ -189,3 +189,64 @@ actions are documented defaults pending clinical sign-off (spec §0):
 | MONITOR | Self-care; watch for changes |
 | URGENT | Contact your clinician today |
 | EMERGENCY | Call your emergency contact now |
+
+## Activity Logs
+
+All under `/api/v1`. Each logged session is one row; the patient-entered fields live in a JSON
+`data` map. Unlike vitals/symptoms, the server computes **no** classification, flag, or severity
+for an activity log — it is pure persist-and-serve. Append-only; idempotent on `clientRecordId`.
+
+`data` keys:
+
+| Key | Type | Required |
+|---|---|---|
+| `type` | enum: `WALKING` / `JOGGING` / `CYCLING` / `HOUSEHOLD` / `FARMING` / `STRETCHING` / `OTHER` | ✅ |
+| `durationMinutes` | int, 1-1440 | ✅ |
+| `intensity` | enum: `LIGHT` / `MODERATE` / `VIGOROUS` | ✅ |
+| `steps` | int, 0-100000 | ❌ |
+| `distanceMeters` | number, 0-100000 | ❌ |
+
+`type` and `intensity` are language-neutral codes; the client renders localized EN/AM labels
+(same approach as `Severity`). There is no server-computed field on an activity log.
+
+### POST `/activities` — Bearer JWT
+Request:
+```json
+{
+  "data": {
+    "type": "WALKING",
+    "durationMinutes": 30,
+    "intensity": "MODERATE",
+    "steps": 3200,
+    "distanceMeters": 2400
+  },
+  "measuredAt": "2026-07-16T06:30:00Z",
+  "note": "morning walk to the market",
+  "clientRecordId": "…uuid…"
+}
+```
+`measuredAt`, `note`, `clientRecordId` optional; `measuredAt` defaults to now (UTC) when omitted;
+`note` ≤ 500 chars. Response `data`:
+```json
+{
+  "id": "…uuid…",
+  "data": {
+    "type": "WALKING",
+    "durationMinutes": 30,
+    "intensity": "MODERATE",
+    "steps": 3200,
+    "distanceMeters": 2400
+  },
+  "measuredAt": "2026-07-16T06:30:00Z",
+  "note": "morning walk to the market",
+  "clientRecordId": "…uuid…",
+  "createdAt": "2026-07-16T06:30:02Z"
+}
+```
+`400` on missing/unknown `data` key, unrecognized `type`/`intensity` enum value, wrong field
+type, or out-of-range `durationMinutes`/`steps`/`distanceMeters`.
+
+### GET `/activities?from=&to=` — Bearer JWT
+Optional `from`/`to` (ISO dates) bound `measuredAt` by UTC calendar day, inclusive on both ends
+(internally a half-open `[from 00:00Z, to+1day 00:00Z)` range). Returns the user's activity
+history, newest first (`measuredAt` desc).
