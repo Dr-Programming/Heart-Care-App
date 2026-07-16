@@ -31,7 +31,7 @@ mvn test
 | 3 | Medications & dose logs (CRUD + Taken/Missed/Skipped logging, JSONB schedule) | ✅ Done |
 | 4 | Vitals (BP/glucose/heart-rate/weight+BMI/cholesterol logging, server-computed flag, JSONB values) | ✅ Done |
 | 5 | Symptoms (daily check-in: chest pain/SOB/HR/BP/swelling/energy, server-computed severity assessment, JSONB data) | ✅ Done |
-| 6 | Activity | ⬜ Not started |
+| 6 | Activity (log physical-activity sessions: type/duration/intensity + optional steps/distance, JSONB data) | ✅ Done |
 | 7 | Sync engine | ⬜ Not started |
 
 ## Documentation
