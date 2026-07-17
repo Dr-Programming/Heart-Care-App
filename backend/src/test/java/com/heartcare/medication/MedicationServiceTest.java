@@ -1,10 +1,12 @@
 package com.heartcare.medication;
 
 import com.heartcare.common.exception.ResourceNotFoundException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.medication.dto.MedicationRequest;
 import com.heartcare.medication.dto.MedicationResponse;
 import com.heartcare.medication.model.Frequency;
 import com.heartcare.medication.model.Medication;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,10 +33,20 @@ class MedicationServiceTest {
     @Mock
     MedicationRepository repository;
 
+    @Mock
+    IdempotentSaver saver;
+
     @InjectMocks
     MedicationService service;
 
     private final UUID userId = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
+        // saved, mirroring a successful (non-racing) insert.
+        lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
+    }
 
     private MedicationRequest request(UUID clientRecordId, Boolean active) {
         return new MedicationRequest("Aspirin", new BigDecimal("100.00"),
@@ -42,12 +55,10 @@ class MedicationServiceTest {
 
     @Test
     void createSavesAndReturnsMedication() {
-        when(repository.save(any(Medication.class))).thenAnswer(inv -> inv.getArgument(0));
-
         MedicationResponse response = service.create(userId, request(null, null));
 
         ArgumentCaptor<Medication> captor = ArgumentCaptor.forClass(Medication.class);
-        verify(repository).save(captor.capture());
+        verify(saver).saveOrGetExisting(any(), any(), captor.capture());
         assertThat(captor.getValue().getUserId()).isEqualTo(userId);
         assertThat(captor.getValue().isActive()).isTrue();
         assertThat(captor.getValue().getScheduleTimes()).containsExactly("08:00", "20:00");
@@ -68,7 +79,7 @@ class MedicationServiceTest {
         MedicationResponse response = service.create(userId, request(clientRecordId, null));
 
         assertThat(response.name()).isEqualTo("Aspirin");
-        verify(repository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test

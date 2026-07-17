@@ -4,6 +4,7 @@ import com.heartcare.activity.dto.ActivityLogRequest;
 import com.heartcare.activity.dto.ActivityLogResponse;
 import com.heartcare.activity.model.ActivityLog;
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,13 +34,19 @@ class ActivityServiceTest {
     @Mock
     ActivityRepository activityRepository;
 
+    @Mock
+    IdempotentSaver saver;
+
     ActivityService service;
 
     private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        service = new ActivityService(activityRepository);
+        service = new ActivityService(activityRepository, saver);
+        // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
+        // saved, mirroring a successful (non-racing) insert.
+        lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
     }
 
     private static Map<String, Object> validData() {
@@ -55,7 +63,6 @@ class ActivityServiceTest {
 
     @Test
     void logPersistsData() {
-        when(activityRepository.save(any(ActivityLog.class))).thenAnswer(inv -> inv.getArgument(0));
         ActivityLogResponse response = service.log(userId, request(validData(), null));
         assertThat(response.data().get("type")).isEqualTo("WALKING");
         assertThat(response.data().get("durationMinutes")).isEqualTo(30);
@@ -63,14 +70,12 @@ class ActivityServiceTest {
 
     @Test
     void logDefaultsMeasuredAtWhenNull() {
-        when(activityRepository.save(any(ActivityLog.class))).thenAnswer(inv -> inv.getArgument(0));
         ActivityLogResponse response = service.log(userId, request(validData(), null));
         assertThat(response.measuredAt()).isNotNull();
     }
 
     @Test
     void logAcceptsOptionalStepsAndDistance() {
-        when(activityRepository.save(any(ActivityLog.class))).thenAnswer(inv -> inv.getArgument(0));
         Map<String, Object> data = validData();
         data.put("steps", 3200);
         data.put("distanceMeters", 2400);
@@ -90,7 +95,7 @@ class ActivityServiceTest {
         ActivityLogResponse response = service.log(userId, request(validData(), crid));
 
         assertThat(response.data().get("type")).isEqualTo("CYCLING");
-        verify(activityRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
