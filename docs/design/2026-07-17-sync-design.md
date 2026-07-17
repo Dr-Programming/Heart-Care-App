@@ -141,7 +141,7 @@ Each decision records the choice, the rationale, and the rejected alternative.
 
 ### Decision 10 — Batch cap of 200, configured not hardcoded
 
-**Choice:** `heartcare.sync.max-batch-size: 200` in `application.yml`. Over-cap batches are rejected `400`; the client chunks.
+**Choice:** `app.sync.max-batch-size: 200` in `application.yml`, injected with `@Value("${app.sync.max-batch-size}")` to match the existing `JwtTokenProvider` convention. Over-cap batches are rejected `400`; the client chunks.
 
 **Rationale:** Bounds request size and server memory against a device that has been offline for weeks (or a malicious client). 200 records comfortably covers realistic offline stretches — a patient logging vitals, symptoms, activity and doses daily accrues well under 200/week. Per architectural rule #4, config lives in `application.yml`, never hardcoded.
 
@@ -175,7 +175,9 @@ Content-Type: application/json
 }
 ```
 
-`payload` is **verbatim the feature's existing request DTO shape**. `VITAL` payloads are `VitalLogRequest`, `ACTIVITY` payloads are `ActivityLogRequest`, and so on. This is deliberate: validation rules, JSONB contracts, and range checks stay defined in exactly one place per feature, and `/sync` inherits them for free. The sole addition anywhere is `DOSE_LOG.medicationClientRecordId` (Decision 8).
+`payload` is **verbatim the feature's existing request DTO shape**. `VITAL` payloads are `VitalLogRequest`, `ACTIVITY` payloads are `ActivityLogRequest`, and so on. This is deliberate: validation rules, JSONB contracts, and range checks stay defined in exactly one place per feature, and `/sync` reuses them rather than restating them. The sole addition anywhere is `DOSE_LOG.medicationClientRecordId` (Decision 8).
+
+**Bean Validation must be invoked explicitly — it does not come for free.** The request DTOs carry Jakarta constraints (`MedicationRequest.name` is `@NotBlank`, `doseMg` is `@Positive`; `DoseLogRequest.status` is `@NotNull`). On the direct `POST` endpoints those fire because the controller parameter is annotated `@Valid`. A handler that deserializes a `JsonNode` into the same record **bypasses them completely**, so a medication with a blank name would reach the database. `SyncPayloadMapper` (§6) therefore deserializes *and* runs `jakarta.validation.Validator` over the result, mapping violations to `BadRequestException` → `REJECTED`, with the same `field: message; field: message` formatting `GlobalExceptionHandler` produces for `MethodArgumentNotValidException`. Unknown enum values and malformed JSON surface from the same seam: Jackson throws `InvalidFormatException`, which the mapper converts to `BadRequestException`.
 
 **The envelope's `clientRecordId` is authoritative.** The feature request DTOs each carry their own optional `clientRecordId` field; inside a sync payload it is **ignored and overwritten** by the envelope's value. It is not validated for agreement and a mismatch is not an error — one key, one source of truth, no third failure mode to specify.
 
@@ -229,6 +231,7 @@ Patient-self-scoped: `userId` comes from `@AuthenticationPrincipal UserPrincipal
 com.heartcare.common.sync/
   SyncHandler.java              interface — entityType(), handle(userId, payload)
   SyncOutcome.java              handler result: status + serverId (+ reason)
+  SyncPayloadMapper.java        JsonNode -> DTO + Bean Validation (§4)
 com.heartcare.common.persistence/
   IdempotentWriter.java         @Transactional(REQUIRES_NEW) insert (§8)
 
@@ -272,6 +275,8 @@ Enforced by Bean Validation on `SyncRequest`/`SyncRecord`, surfaced by the exist
 ### Record-level → `REJECTED`, batch continues
 
 Content problems, including **unknown `entityType`** (`reason: "unknown entityType: FOO"`). An unknown type is record data, not envelope structure, so it must not wedge the batch. Feature `BadRequestException` and `ResourceNotFoundException` (e.g. dose log naming a medication that does not exist) map to `REJECTED` with the exception message as `reason`.
+
+This tier also covers everything `SyncPayloadMapper` raises (§4): Bean Validation violations, malformed payload JSON, and unknown enum values. All three are per-record data problems that must not fail the batch.
 
 ### Transient failure → `500`, whole batch
 
