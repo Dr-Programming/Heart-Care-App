@@ -229,8 +229,9 @@ Patient-self-scoped: `userId` comes from `@AuthenticationPrincipal UserPrincipal
 
 ```
 com.heartcare.common.sync/
-  SyncHandler.java              interface — entityType(), handle(userId, payload)
-  SyncOutcome.java              handler result: status + serverId (+ reason)
+  SyncHandler.java              interface — entityType(), handle(userId, clientRecordId, payload)
+  SyncStatus.java               enum SAVED | DUPLICATE | CONFLICT | REJECTED
+  SyncOutcome.java              handler verdict: status + serverId
   SyncPayloadMapper.java        JsonNode -> DTO + Bean Validation (§4)
 com.heartcare.common.persistence/
   IdempotentWriter.java         @Transactional(REQUIRES_NEW) insert (§8)
@@ -242,7 +243,6 @@ com.heartcare.sync/
   dto/SyncRecord.java           { clientRecordId, entityType, payload }
   dto/SyncResponse.java         { List<SyncResult> results }
   dto/SyncResult.java           { clientRecordId, status, serverId, reason }
-  dto/SyncStatus.java           enum SAVED | DUPLICATE | CONFLICT | REJECTED
 
 com.heartcare.vitals/VitalsSyncHandler.java
 com.heartcare.symptoms/SymptomsSyncHandler.java
