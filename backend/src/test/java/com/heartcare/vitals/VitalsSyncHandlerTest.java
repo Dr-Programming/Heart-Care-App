@@ -33,6 +33,21 @@ class VitalsSyncHandlerTest extends AbstractIntegrationTest {
                 .formatted(systolic, measuredAt));
     }
 
+    /** Seeds a profile with a height so VitalsService computes and stores a server-side bmi. */
+    private UUID seedUserWithHeight(int heightCm) {
+        UUID id = seedUser();
+        jdbcTemplate.update(
+                "INSERT INTO patient_profiles (user_id, height_cm) VALUES (?, ?)",
+                id, heightCm);
+        return id;
+    }
+
+    private JsonNode weightPayload(String measuredAt, double weightKg) throws Exception {
+        return objectMapper.readTree("""
+                {"type":"WEIGHT","values":{"weight":%s},"measuredAt":"%s"}"""
+                .formatted(weightKg, measuredAt));
+    }
+
     @Test
     void entityTypeIsVital() {
         assertThat(handler.entityType()).isEqualTo("VITAL");
@@ -109,5 +124,25 @@ class VitalsSyncHandlerTest extends AbstractIntegrationTest {
         var second = handler.handle(userId, crid, scaled);
 
         assertThat(second.status()).isEqualTo(SyncStatus.DUPLICATE);
+    }
+
+    /**
+     * The bmi trap: for a WEIGHT reading, VitalsService computes and stores a server-side "bmi"
+     * key alongside "weight" whenever the patient's profile has a height_cm — but the client never
+     * sends bmi. So the stored map is {weight, bmi} while the incoming resend is only {weight}.
+     * sameValues() strips "bmi" from both sides before comparing; without that strip the key sets
+     * would differ and every resynced weight reading would be reported as CONFLICT. A profile with
+     * no height would never produce a bmi at all, which would make this test pass regardless of the
+     * strip — hence seeding patient_profiles with a real height_cm here.
+     */
+    @Test
+    void weightResendWithServerComputedBmiIsStillDuplicate() throws Exception {
+        UUID userId = seedUserWithHeight(170);
+        UUID crid = UUID.randomUUID();
+        var first = handler.handle(userId, crid, weightPayload("2026-07-17T08:30:00+03:00", 70));
+        var second = handler.handle(userId, crid, weightPayload("2026-07-17T08:30:00+03:00", 70));
+
+        assertThat(second.status()).isEqualTo(SyncStatus.DUPLICATE);
+        assertThat(second.serverId()).isEqualTo(first.serverId());
     }
 }

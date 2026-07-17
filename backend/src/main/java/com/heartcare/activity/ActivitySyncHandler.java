@@ -9,7 +9,6 @@ import com.heartcare.common.sync.SyncOutcome;
 import com.heartcare.common.sync.SyncPayloadMapper;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
