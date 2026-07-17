@@ -8,6 +8,7 @@ import com.heartcare.sync.dto.SyncRecord;
 import com.heartcare.sync.dto.SyncRequest;
 import com.heartcare.sync.dto.SyncResponse;
 import com.heartcare.sync.dto.SyncResult;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -33,8 +34,10 @@ public class SyncService {
     private static final String MEDICATION = "MEDICATION";
 
     private final Map<String, SyncHandler> handlers;
+    private final int maxBatchSize;
 
-    public SyncService(List<SyncHandler> handlerBeans) {
+    public SyncService(List<SyncHandler> handlerBeans,
+                       @Value("${app.sync.max-batch-size}") int maxBatchSize) {
         Map<String, SyncHandler> byType = new HashMap<>();
         for (SyncHandler handler : handlerBeans) {
             SyncHandler previous = byType.put(handler.entityType(), handler);
@@ -44,10 +47,15 @@ public class SyncService {
             }
         }
         this.handlers = Map.copyOf(byType);
+        this.maxBatchSize = maxBatchSize;
     }
 
     public SyncResponse sync(UUID userId, SyncRequest request) {
         List<SyncRecord> records = request.records();
+        if (records.size() > maxBatchSize) {
+            throw new BadRequestException(
+                    "batch too large: " + records.size() + " records, max is " + maxBatchSize);
+        }
         SyncResult[] results = new SyncResult[records.size()];
         for (int index : processingOrder(records)) {
             results[index] = process(userId, records.get(index));

@@ -47,7 +47,7 @@ class SyncServiceTest {
 
     @Test
     void dispatchesEachEntityTypeToItsHandler() {
-        SyncService service = new SyncService(List.of(ok("VITAL"), ok("ACTIVITY")));
+        SyncService service = new SyncService(List.of(ok("VITAL"), ok("ACTIVITY")), 200);
         UUID a = UUID.randomUUID();
         UUID b = UUID.randomUUID();
 
@@ -62,7 +62,7 @@ class SyncServiceTest {
 
     @Test
     void unknownEntityTypeIsRejectedAndBatchContinues() {
-        SyncService service = new SyncService(List.of(ok("VITAL")));
+        SyncService service = new SyncService(List.of(ok("VITAL")), 200);
         UUID bad = UUID.randomUUID();
         UUID good = UUID.randomUUID();
 
@@ -77,7 +77,7 @@ class SyncServiceTest {
     @Test
     void badRequestBecomesRejectedWithMessageAsReason() {
         SyncService service = new SyncService(List.of(
-                handler("VITAL", crid -> { throw new BadRequestException("systolic is out of range"); })));
+                handler("VITAL", crid -> { throw new BadRequestException("systolic is out of range"); })), 200);
 
         SyncResponse response = service.sync(userId,
                 new SyncRequest(List.of(record("VITAL", UUID.randomUUID()))));
@@ -90,7 +90,7 @@ class SyncServiceTest {
     @Test
     void resourceNotFoundBecomesRejected() {
         SyncService service = new SyncService(List.of(
-                handler("DOSE_LOG", crid -> { throw new ResourceNotFoundException("Medication not found"); })));
+                handler("DOSE_LOG", crid -> { throw new ResourceNotFoundException("Medication not found"); })), 200);
 
         SyncResponse response = service.sync(userId,
                 new SyncRequest(List.of(record("DOSE_LOG", UUID.randomUUID()))));
@@ -106,7 +106,7 @@ class SyncServiceTest {
     @Test
     void unexpectedExceptionPropagatesAndFailsTheBatch() {
         SyncService service = new SyncService(List.of(
-                handler("VITAL", crid -> { throw new IllegalStateException("connection pool exhausted"); })));
+                handler("VITAL", crid -> { throw new IllegalStateException("connection pool exhausted"); })), 200);
 
         assertThatThrownBy(() -> service.sync(userId,
                 new SyncRequest(List.of(record("VITAL", UUID.randomUUID())))))
@@ -116,7 +116,7 @@ class SyncServiceTest {
     /** Decision 8: a dose log must be able to resolve a medication created in the same batch. */
     @Test
     void medicationsAreProcessedBeforeDoseLogs() {
-        SyncService service = new SyncService(List.of(ok("MEDICATION"), ok("DOSE_LOG")));
+        SyncService service = new SyncService(List.of(ok("MEDICATION"), ok("DOSE_LOG")), 200);
 
         service.sync(userId, new SyncRequest(List.of(
                 record("DOSE_LOG", UUID.randomUUID()),
@@ -127,7 +127,7 @@ class SyncServiceTest {
 
     @Test
     void resultsPreserveRequestOrderEvenWhenProcessingOrderDiffers() {
-        SyncService service = new SyncService(List.of(ok("MEDICATION"), ok("DOSE_LOG")));
+        SyncService service = new SyncService(List.of(ok("MEDICATION"), ok("DOSE_LOG")), 200);
         UUID dose = UUID.randomUUID();
         UUID med = UUID.randomUUID();
 
@@ -139,8 +139,21 @@ class SyncServiceTest {
 
     @Test
     void duplicateEntityTypeRegistrationFailsFast() {
-        assertThatThrownBy(() -> new SyncService(List.of(ok("VITAL"), ok("VITAL"))))
+        assertThatThrownBy(() -> new SyncService(List.of(ok("VITAL"), ok("VITAL")), 200))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("VITAL");
+    }
+
+    @Test
+    void overCapBatchIsRejected() {
+        SyncService service = new SyncService(List.of(ok("VITAL")), 2);
+        List<SyncRecord> three = List.of(
+                record("VITAL", UUID.randomUUID()),
+                record("VITAL", UUID.randomUUID()),
+                record("VITAL", UUID.randomUUID()));
+
+        assertThatThrownBy(() -> service.sync(userId, new SyncRequest(three)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("max is 2");
     }
 }
