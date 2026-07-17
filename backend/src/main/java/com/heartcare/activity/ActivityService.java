@@ -6,6 +6,7 @@ import com.heartcare.activity.model.ActivityLog;
 import com.heartcare.activity.model.ActivityType;
 import com.heartcare.activity.model.Intensity;
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,8 +16,10 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,18 +39,22 @@ public class ActivityService {
     private static final OffsetDateTime MAX_INSTANT = OffsetDateTime.of(9999, 12, 31, 0, 0, 0, 0, ZoneOffset.UTC);
 
     private final ActivityRepository activityRepository;
+    private final IdempotentSaver saver;
 
-    public ActivityService(ActivityRepository activityRepository) {
+    public ActivityService(ActivityRepository activityRepository, IdempotentSaver saver) {
         this.activityRepository = activityRepository;
+        this.saver = saver;
     }
 
-    @Transactional
+    // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
     public ActivityLogResponse log(UUID userId, ActivityLogRequest request) {
-        if (request.clientRecordId() != null) {
-            var existing = activityRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
-            if (existing.isPresent()) {
-                return toResponse(existing.get());
-            }
+        Supplier<Optional<ActivityLog>> finder = () -> request.clientRecordId() == null
+                ? Optional.empty()
+                : activityRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
+
+        var existing = finder.get();
+        if (existing.isPresent()) {
+            return toResponse(existing.get());
         }
 
         Map<String, Object> data = validate(request.data());
@@ -59,7 +66,8 @@ public class ActivityService {
                 ? OffsetDateTime.now(ZoneOffset.UTC) : request.measuredAt());
         log.setNote(request.note());
         log.setClientRecordId(request.clientRecordId());
-        return toResponse(activityRepository.save(log));
+
+        return toResponse(saver.saveOrGetExisting(activityRepository, finder, log));
     }
 
     @Transactional(readOnly = true)

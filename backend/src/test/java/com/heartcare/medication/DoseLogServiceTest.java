@@ -1,11 +1,13 @@
 package com.heartcare.medication;
 
 import com.heartcare.common.exception.ResourceNotFoundException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.medication.dto.DoseLogRequest;
 import com.heartcare.medication.dto.DoseLogResponse;
 import com.heartcare.medication.model.DoseLog;
 import com.heartcare.medication.model.DoseStatus;
 import com.heartcare.medication.model.Medication;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,11 +40,21 @@ class DoseLogServiceTest {
     @Mock
     MedicationRepository medicationRepository;
 
+    @Mock
+    IdempotentSaver saver;
+
     @InjectMocks
     DoseLogService service;
 
     private final UUID userId = UUID.randomUUID();
     private final UUID medicationId = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
+        // saved, mirroring a successful (non-racing) insert.
+        lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
+    }
 
     private DoseLogRequest request(UUID clientRecordId) {
         return new DoseLogRequest(DoseStatus.TAKEN, LocalDate.of(2026, 7, 10),
@@ -52,12 +65,11 @@ class DoseLogServiceTest {
     void logCreatesDoseAgainstOwnedMedication() {
         when(medicationRepository.findByIdAndUserId(medicationId, userId))
                 .thenReturn(Optional.of(new Medication()));
-        when(doseLogRepository.save(any(DoseLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
         DoseLogResponse response = service.log(userId, medicationId, request(null));
 
         ArgumentCaptor<DoseLog> captor = ArgumentCaptor.forClass(DoseLog.class);
-        verify(doseLogRepository).save(captor.capture());
+        verify(saver).saveOrGetExisting(any(), any(), captor.capture());
         assertThat(captor.getValue().getMedicationId()).isEqualTo(medicationId);
         assertThat(captor.getValue().getUserId()).isEqualTo(userId);
         assertThat(captor.getValue().getStatus()).isEqualTo(DoseStatus.TAKEN);
@@ -69,7 +81,6 @@ class DoseLogServiceTest {
     void logDefaultsLoggedAtWhenNull() {
         when(medicationRepository.findByIdAndUserId(medicationId, userId))
                 .thenReturn(Optional.of(new Medication()));
-        when(doseLogRepository.save(any(DoseLog.class))).thenAnswer(inv -> inv.getArgument(0));
         DoseLogRequest req = new DoseLogRequest(DoseStatus.SKIPPED, LocalDate.of(2026, 7, 10),
                 null, null, null, null);
 
@@ -85,7 +96,7 @@ class DoseLogServiceTest {
 
         assertThatThrownBy(() -> service.log(userId, medicationId, request(null)))
                 .isInstanceOf(ResourceNotFoundException.class);
-        verify(doseLogRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
@@ -105,7 +116,7 @@ class DoseLogServiceTest {
         DoseLogResponse response = service.log(userId, medicationId, request(clientRecordId));
 
         assertThat(response.status()).isEqualTo(DoseStatus.TAKEN);
-        verify(doseLogRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
