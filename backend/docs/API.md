@@ -250,3 +250,108 @@ type, or out-of-range `durationMinutes`/`steps`/`distanceMeters`.
 Optional `from`/`to` (ISO dates) bound `measuredAt` by UTC calendar day, inclusive on both ends
 (internally a half-open `[from 00:00Z, to+1day 00:00Z)` range). Returns the user's activity
 history, newest first (`measuredAt` desc).
+
+## Sync
+
+`POST /api/v1/sync` — Bearer JWT. Submits a batch of records created offline and gets back a
+per-record verdict. Push-only: there is no pull direction — a fresh install (or a second device)
+restores by calling the existing `GET` endpoints (`/vitals`, `/symptoms`, `/activities`,
+`/dose-logs`, `/medications`, `/patients/me`). Patient-self-scoped: `userId` comes from the JWT,
+never the payload.
+
+`payload` is verbatim each feature's existing request DTO shape — `VITAL` payloads are
+`VitalLogRequest`, `SYMPTOM` payloads are `SymptomLogRequest`, `ACTIVITY` payloads are
+`ActivityLogRequest`, `MEDICATION` payloads are `MedicationRequest` — so the validation rules
+documented above for each feature apply unchanged here. `DOSE_LOG` is the one sync-only shape
+(below), because the direct dose endpoint takes the medication from the URL path and a
+never-synced device has no server id to put there. Any `clientRecordId` inside `payload` is
+ignored; the envelope's `clientRecordId` is the sole idempotency key.
+
+Within a batch, `MEDICATION` records are always processed before `DOSE_LOG` records regardless of
+request order, so a dose can reference a medication created in the **same** batch — see
+`medicationClientRecordId` below. `results` preserves request order even though processing order
+differs.
+
+### Request
+
+```
+POST /api/v1/sync
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+```json
+{
+  "records": [
+    { "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001", "entityType": "MEDICATION",
+      "payload": { "name": "Atorvastatin", "doseMg": 20, "frequency": "ONCE_DAILY",
+                   "scheduleTimes": ["08:00"] } },
+    { "clientRecordId": "2b7edc44-0000-0000-0000-000000000002", "entityType": "DOSE_LOG",
+      "payload": { "medicationClientRecordId": "9f1c2b7e-0000-0000-0000-000000000001",
+                   "status": "TAKEN", "scheduledDate": "2026-07-16",
+                   "loggedAt": "2026-07-16T08:05:00+03:00" } },
+    { "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003", "entityType": "VITAL",
+      "payload": { "type": "BLOOD_PRESSURE", "values": { "systolic": 128, "diastolic": 82 },
+                   "measuredAt": "2026-07-16T08:10:00+03:00" } }
+  ]
+}
+```
+
+`entityType` ∈ {`VITAL`, `SYMPTOM`, `ACTIVITY`, `MEDICATION`, `DOSE_LOG`}. Medication *edits*
+(update/deactivate) are not syncable — adding a medication offline works, editing one requires
+connectivity. `DOSE_LOG.payload` takes exactly one of `medicationId` (server UUID) or
+`medicationClientRecordId`, plus `status` (`TAKEN`/`MISSED`/`SKIPPED`), `scheduledDate`
+(required, `YYYY-MM-DD`), and optional `scheduledTime`, `loggedAt`, `note`.
+
+### Response
+
+`200 OK`, wrapped in the standard `ApiResponse<T>` envelope:
+
+```json
+{
+  "success": true,
+  "message": "Sync processed",
+  "data": {
+    "results": [
+      { "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001", "status": "SAVED",     "serverId": "a3f1..." },
+      { "clientRecordId": "2b7edc44-0000-0000-0000-000000000002", "status": "SAVED",     "serverId": "b7de..." },
+      { "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003", "status": "DUPLICATE", "serverId": "c19a..." },
+      { "clientRecordId": "81aa5e02-0000-0000-0000-000000000004", "status": "REJECTED",  "reason": "durationMinutes is out of range" }
+    ]
+  }
+}
+```
+
+`results` preserves request order. There are no summary counts — the client derives them
+trivially from the array.
+
+### Statuses
+
+| Status | Meaning | `serverId` | Client action |
+|---|---|---|---|
+| `SAVED` | New record committed | ✅ | mark `SYNCED`, store `serverId` |
+| `DUPLICATE` | `clientRecordId` already stored, payload matches | ✅ | mark `SYNCED`, store `serverId` |
+| `CONFLICT` | `clientRecordId` already stored, payload **differs** — the stored record always wins; the incoming payload is never written | ✅ | mark `SYNCED`; surface/log — a genuine conflict signals a client bug reusing a UUID, not a data merge |
+| `REJECTED` | Payload invalid, or unknown `entityType`; will never succeed | ✗ (`reason` instead) | do **not** retry; flag for the user |
+
+`SAVED`, `DUPLICATE`, and `CONFLICT` all mean the server now holds this record under that
+`clientRecordId` — the client marks all three `SYNCED`. That `serverId` is what lets a later
+batch reference a medication by server id instead of `medicationClientRecordId`.
+
+### Errors
+
+- **`400`, whole batch rejected before any record is processed** — `records` missing/empty,
+  `records.size()` over the configured cap (`app.sync.max-batch-size`, 200 by default; the client
+  chunks larger batches), or any record missing `clientRecordId`, `entityType`, or `payload`.
+  These are envelope-structure problems the client caused, not record content, so nothing is
+  processed and there is no partial result to report.
+- **Per-record `REJECTED` inside a `200`** — the record's own content is the problem: unknown
+  `entityType`, a Bean Validation failure on the mapped DTO (e.g. a blank medication name),
+  malformed payload JSON, an unrecognized enum value, or a `DOSE_LOG` whose
+  `medicationId`/`medicationClientRecordId` doesn't resolve to an owned medication. One bad
+  record never blocks its neighbours — the rest of the batch still commits.
+- **`500`, whole batch fails** — a transient failure not tied to any record's content (database
+  unavailable, an unexpected error). The client must keep **every** record queued and retry the
+  whole batch later; do not treat this like `REJECTED`. Retrying is safe because of idempotency —
+  records already committed on the failed attempt come back `DUPLICATE` on the retry, so nothing
+  double-saves.
