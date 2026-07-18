@@ -385,6 +385,8 @@ created_locally_at TIMESTAMP (for ordering)
 
 For health logs (vitals, dose logs, symptoms), the rule is **last recorded timestamp wins per record**. Since each record has a unique `client_record_id`, true duplicates are simply skipped on the server. Conflicts only arise if the same `client_record_id` arrives with different data — treated as a server-side update if `recorded_at` is newer.
 
+> ⚠️ **As-built deviation (Slice 7), approved by project owner 2026-07-19.** The implemented sync engine does **not** overwrite. Log tables are append-only/immutable, so a divergent payload under an existing `client_record_id` is *detected and reported* as a per-record `CONFLICT` — the first-stored record wins and is returned unchanged. With the phone as the sole writer and no edit path for logged records, a genuine conflict signals a client bug reusing a UUID rather than a legitimate later edit; overwriting clinical history would need an audit trail to be defensible. See `docs/design/2026-07-17-sync-design.md`, Decision 3.
+
 ### 7.4 Offline Notifications
 
 Medication reminders are scheduled using `flutter_local_notifications`, which runs entirely on the device with no server dependency. When a user adds a medication with a schedule (e.g., 8 AM daily), the app schedules local notifications for the next 30 days. These fire regardless of connectivity.

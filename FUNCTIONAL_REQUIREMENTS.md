@@ -285,6 +285,7 @@ TO BE DROPPED
 | FR-OFF-005 | The sync process shall submit pending records to the server in a single batched API call to minimise data usage. | 🔴 P1 | - [ ] |
 | FR-OFF-006 | Each offline record shall carry a client-generated UUID (`client_record_id`) to prevent duplicate entries on re-submission. | 🔴 P1 | - [ ] |
 | FR-OFF-007 | The system shall handle sync conflicts using a last-recorded-timestamp-wins strategy per record. | 🔴 P1 | - [ ] |
+| ⚠️ FR-OFF-007 — **implemented as an approved deviation (owner sign-off 2026-07-19).** The Slice 7 sync engine detects and *reports* conflicts (per-record `CONFLICT` status) but does **not** overwrite: the first-stored record always wins, because all log tables are append-only/immutable and the phone is the sole writer, so a divergent payload under an existing `client_record_id` signals a client bug rather than a legitimate edit. Overwriting would mutate clinical history with no audit trail. See `docs/design/2026-07-17-sync-design.md`, Decision 3. | | |
 | FR-OFF-008 | The system shall notify the user if a sync fails, and retain records in the queue for retry. | 🟡 P2 | - [ ] |
 | FR-OFF-009 | All education content shall be bundled into the app and available offline without a server request. | 🔴 P1 | - [ ] |
 | FR-OFF-010 | Medication reminders and appointment notifications shall fire locally without any server dependency. | 🔴 P1 | - [ ] |
