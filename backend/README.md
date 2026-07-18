@@ -32,7 +32,7 @@ mvn test
 | 4 | Vitals (BP/glucose/heart-rate/weight+BMI/cholesterol logging, server-computed flag, JSONB values) | ✅ Done |
 | 5 | Symptoms (daily check-in: chest pain/SOB/HR/BP/swelling/energy, server-computed severity assessment, JSONB data) | ✅ Done |
 | 6 | Activity (log physical-activity sessions: type/duration/intensity + optional steps/distance, JSONB data) | ✅ Done |
-| 7 | Sync engine | ⬜ Not started |
+| 7 | Sync engine (batched offline sync, `POST /api/v1/sync`, per-record SAVED/DUPLICATE/CONFLICT/REJECTED outcomes) | ✅ Done |
 
 ## Documentation
 - [API reference](docs/API.md)

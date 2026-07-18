@@ -127,3 +127,14 @@ Indexes: `(user_id, measured_at)`, `(user_id, overall_severity)`. Unique constra
 
 Index: `idx_activity_user_measured` on `(user_id, measured_at)`. Unique constraint:
 `uq_activity_user_client_record` on `(user_id, client_record_id)`.
+
+### Slice 7 — Sync engine: no migration
+
+`POST /api/v1/sync` (Slice 7) added **no `V8__` migration**. It reuses the `UNIQUE (user_id,
+client_record_id)` constraint already present on `medications`, `dose_logs`, `vitals_logs`,
+`symptom_logs`, and `activity_logs` (V3–V7 above) as its entire deduplication mechanism.
+
+`sync_queue` is **not** a PostgreSQL table. It is a device-side Drift/SQLite table tracking what
+a given phone still owes the server (`PENDING` / `SYNCING` / `SYNCED`) — inherently local state,
+since a second device would have a different queue for the same patient. See
+`docs/design/2026-07-17-sync-design.md`, Decision 1.

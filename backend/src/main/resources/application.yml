@@ -17,3 +17,5 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: 604800000  # 7 days
+  sync:
+    max-batch-size: 200  # records per /api/v1/sync call; the client chunks beyond this
