@@ -166,6 +166,38 @@ class SyncControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.results[1].status").value("DUPLICATE"));
     }
 
+    /**
+     * Cross-user isolation (design's planned test, closing the gap flagged in whole-branch
+     * review): dedup is keyed on (user_id, client_record_id), so the SAME clientRecordId used
+     * by two different users must resolve to two distinct rows, not a DUPLICATE collision.
+     */
+    @Test
+    void sameClientRecordIdAcrossUsersProducesDistinctRows() throws Exception {
+        String tokenA = registerAndGetToken();
+        String tokenB = registerAndGetToken();
+        UUID sharedCrid = UUID.randomUUID();
+
+        MvcResult resultA = mockMvc.perform(post("/api/v1/sync").header("Authorization", "Bearer " + tokenA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(syncBody(vitalRecord(sharedCrid, 128))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.results[0].status").value("SAVED"))
+                .andReturn();
+        String serverIdA = JsonPath.read(resultA.getResponse().getContentAsString(),
+                "$.data.results[0].serverId");
+
+        MvcResult resultB = mockMvc.perform(post("/api/v1/sync").header("Authorization", "Bearer " + tokenB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(syncBody(vitalRecord(sharedCrid, 128))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.results[0].status").value("SAVED"))
+                .andReturn();
+        String serverIdB = JsonPath.read(resultB.getResponse().getContentAsString(),
+                "$.data.results[0].serverId");
+
+        org.assertj.core.api.Assertions.assertThat(serverIdA).isNotEqualTo(serverIdB);
+    }
+
     @Test
     void emptyBatchReturns400() throws Exception {
         String token = registerAndGetToken();
