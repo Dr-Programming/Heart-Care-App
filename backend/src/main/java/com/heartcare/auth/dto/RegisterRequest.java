@@ -7,5 +7,9 @@ import jakarta.validation.constraints.Size;
 public record RegisterRequest(
         @NotBlank String fullName,
         @NotBlank @Email String email,
-        @NotBlank @Size(min = 8, message = "password must be at least 8 characters") String password) {
+        // Upper bound is not arbitrary: BCrypt silently truncates at 72 bytes, so a longer
+        // passphrase would be weaker than the user believes. Reject it instead of ignoring the tail.
+        @NotBlank
+        @Size(min = 8, max = 72, message = "password must be between 8 and 72 characters")
+        String password) {
 }

@@ -1,0 +1,9 @@
+# Test-classpath override of the dev profile (tests run under the default `dev` profile).
+#
+# Exists so the main application-dev.yml can omit a JWT secret default — see the comment there.
+# This file shadows it on the test classpath only, so tests get a fixed signing key without a
+# usable default ever existing in a deployable artifact. The datasource is supplied by
+# Testcontainers via @ServiceConnection, which overrides whatever is configured here.
+app:
+  jwt:
+    secret: test-only-signing-secret-not-used-outside-unit-tests
