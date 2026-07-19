@@ -4,6 +4,7 @@ spring:
     username: ${POSTGRES_USER:heartcare}
     password: ${POSTGRES_PASSWORD:heartcare}
 
-app:
-  jwt:
-    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32bytes-minimum}
+# app.jwt.secret is deliberately NOT defaulted here. This profile is the fallback when
+# SPRING_PROFILES_ACTIVE is unset, including on a misconfigured production deploy, so a
+# default here would silently sign real tokens with a secret committed to this repo.
+# Export JWT_SECRET (see .env.example) before running locally; the app refuses to start without it.

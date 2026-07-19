@@ -1,5 +1,6 @@
 package com.heartcare.patient;
 
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.patient.dto.PatientProfileRequest;
 import com.heartcare.patient.dto.PatientProfileResponse;
 import com.heartcare.patient.model.PatientProfile;
@@ -14,9 +15,11 @@ import java.util.UUID;
 public class PatientService {
 
     private final PatientProfileRepository repository;
+    private final IdempotentSaver saver;
 
-    public PatientService(PatientProfileRepository repository) {
+    public PatientService(PatientProfileRepository repository, IdempotentSaver saver) {
         this.repository = repository;
+        this.saver = saver;
     }
 
     @Transactional(readOnly = true)
@@ -26,10 +29,13 @@ public class PatientService {
                 .orElseGet(() -> emptyResponse(userId));
     }
 
-    @Transactional
+    // Deliberately NOT @Transactional: the create-if-absent step runs in IdempotentSaver's
+    // REQUIRES_NEW transaction so two concurrent first-time upserts cannot both insert the same
+    // primary key and fail one of them with a 500. Same idiom as the log services (design §8).
     public PatientProfileResponse upsertProfile(UUID userId, PatientProfileRequest request) {
-        PatientProfile profile = repository.findById(userId)
-                .orElseGet(() -> new PatientProfile(userId));
+        PatientProfile profile = repository.findById(userId).orElseGet(() ->
+                saver.saveOrGetExisting(repository, () -> repository.findById(userId),
+                        new PatientProfile(userId)));
         profile.setBirthYear(request.birthYear());
         profile.setPreferredLanguage(request.preferredLanguage());
         profile.setHeightCm(request.heightCm());

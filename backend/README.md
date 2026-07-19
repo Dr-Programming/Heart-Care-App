@@ -16,6 +16,7 @@ docker compose up -d
 
 # 2. Run the API (from backend/)
 cd backend
+export JWT_SECRET=$(openssl rand -base64 48)   # required — no profile supplies a default
 mvn spring-boot:run         # serves on http://localhost:8080
 
 # 3. Run tests (requires Docker for Testcontainers)
