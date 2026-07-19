@@ -1,5 +1,6 @@
 package com.heartcare.patient;
 
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.patient.dto.PatientProfileRequest;
 import com.heartcare.patient.dto.PatientProfileResponse;
 import com.heartcare.patient.model.Goals;
@@ -27,10 +28,19 @@ class PatientServiceTest {
     @Mock
     PatientProfileRepository repository;
 
+    @Mock
+    IdempotentSaver saver;
+
     @InjectMocks
     PatientService service;
 
     private final UUID userId = UUID.randomUUID();
+
+    /** Stubs the uncontended path: no concurrent creator, so the new entity is returned as-is. */
+    private void saverInsertsCleanly() {
+        when(saver.saveOrGetExisting(any(), any(), any(PatientProfile.class)))
+                .thenAnswer(inv -> inv.getArgument(2));
+    }
 
     @Test
     void getProfileReturnsEmptySkeletonWhenNoneExists() {
@@ -48,6 +58,7 @@ class PatientServiceTest {
     @Test
     void upsertCreatesProfileWhenNoneExists() {
         when(repository.findById(userId)).thenReturn(Optional.empty());
+        saverInsertsCleanly();
         when(repository.save(any(PatientProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PatientProfileRequest request = new PatientProfileRequest(
@@ -84,6 +95,7 @@ class PatientServiceTest {
     @Test
     void upsertWithNullComorbiditiesStoresEmptyList() {
         when(repository.findById(userId)).thenReturn(Optional.empty());
+        saverInsertsCleanly();
         when(repository.save(any(PatientProfile.class))).thenAnswer(inv -> inv.getArgument(0));
 
         PatientProfileRequest request = new PatientProfileRequest(
