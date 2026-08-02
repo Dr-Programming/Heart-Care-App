@@ -1,216 +1,784 @@
 # API Reference
 
-**Base URL:** `/api/v1`
-**Auth:** `Authorization: Bearer <JWT>` on protected routes.
-**Response envelope (all endpoints):**
-```json
-{ "success": true, "data": {}, "message": "OK", "timestamp": "2026-06-30T10:00:00Z" }
+Complete reference for the Heart-Care backend REST API. Every endpoint, request/response shape,
+validation rule, and error code below was verified against the controllers and DTOs in
+`backend/src/main/java/com/heartcare/`.
+
+- [Conventions](#conventions) · [Errors](#error-handling) · [Limits](#limits-and-quotas)
+- [Auth](#1-auth) · [Patient Profile](#2-patient-profile) · [Medications](#3-medications) ·
+  [Dose Logs](#4-dose-logs) · [Vitals](#5-health-vitals) · [Symptoms](#6-symptom-check-ins) ·
+  [Activity](#7-activity-logs) · [Sync](#8-sync)
+- [Enum reference](#enum-reference)
+
+---
+
+## Conventions
+
+### Base URL
+
+| Environment | Base URL |
+|---|---|
+| Local dev | `http://localhost:8080/api/v1` |
+| Production | `https://<railway-host>/api/v1` |
+
+Every path below is written in full relative to that base, e.g. `POST /api/v1/vitals`.
+
+### Authentication
+
+All endpoints require a bearer token **except** `POST /api/v1/auth/register` and
+`POST /api/v1/auth/login`.
+
+```
+Authorization: Bearer <jwt>
 ```
 
-## Auth
+The token is an HS256 JWT with a **7-day** lifetime carrying the user id as `sub` and a `role`
+claim. There is no refresh token and no server-side revocation — logout is client-side (discard
+the token). `userId` is always taken from the token, never from a request body or path, so no
+endpoint can act on another user's data.
 
-### POST `/auth/register` — public
-Registers a patient and returns a JWT (auto-login).
-Request: `{ "fullName": "Abebe", "email": "abe@example.com", "password": "min 8 chars" }`
-`data`: `{ "token": "...", "userId": "...", "role": "PATIENT" }`
-Errors: `409` email already registered · `400` validation.
+### Response envelope
 
-### POST `/auth/login` — public
-Request: `{ "email": "...", "password": "..." }`
-`data`: `{ "token": "...", "userId": "...", "role": "PATIENT" }`
-Errors: `401` invalid email or password.
+Every response — success **and** error — uses the same envelope:
 
-### GET `/auth/me` — Bearer JWT
-`data`: `{ "userId": "...", "fullName": "...", "email": "...", "role": "PATIENT" }`
-Errors: `401` missing/invalid/expired token.
-
-> JWT lifetime: 7 days. Logout is client-side (discard the token).
-
-## Patient Profile
-
-All endpoints require `Authorization: Bearer <JWT>`.
-
-### GET `/patients/me` — Bearer JWT
-Returns the authenticated patient's profile. If no profile has been saved yet, returns `200` with an all-null skeleton (`comorbidities` is `[]`, `goals` is `null`) — not a `404`.
-
-`data`:
 ```json
 {
-  "userId": "...",
+  "success": true,
+  "data": { },
+  "message": "OK",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `success` | boolean | `false` on every 4xx/5xx |
+| `data` | object \| array \| null | Always `null` on an error |
+| `message` | string | `"OK"` unless the endpoint sets one; the error text on failure |
+| `timestamp` | ISO-8601 UTC | Server time the response was built |
+
+An error therefore looks like:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "doseMg must be greater than 0",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+### Dates and times
+
+| Kind | Format | Example |
+|---|---|---|
+| Timestamp (`measuredAt`, `loggedAt`, `createdAt`) | ISO-8601 with offset | `2026-07-16T08:05:00+03:00` |
+| Calendar date (`scheduledDate`, `from`, `to`) | `YYYY-MM-DD` | `2026-07-16` |
+| Time of day (`scheduledTime`, `scheduleTimes`) | `HH:mm` 24-hour | `08:00` |
+
+Timestamps are stored as `timestamptz` and returned in UTC. `from`/`to` query filters are
+interpreted as **UTC calendar days, inclusive on both ends** (internally a half-open
+`[from 00:00Z, to+1day 00:00Z)` range).
+
+### Idempotency
+
+Every log-type `POST` accepts an optional `clientRecordId` (a UUID the device generates). Repeating
+a create with the same `clientRecordId` returns the **existing** record instead of duplicating it,
+enforced by a `UNIQUE (user_id, client_record_id)` database constraint rather than an
+application-level check — so it holds under concurrent retries.
+
+Omitting `clientRecordId` disables deduplication for that call: two identical requests create two
+rows. Offline-first clients should always send one.
+
+---
+
+## Error handling
+
+### Status codes
+
+| Code | Meaning | When |
+|---|---|---|
+| `200 OK` | Success | All successful calls, including creates (no `201` is used) |
+| `400 Bad Request` | Invalid input | Body validation failure, malformed JSON, bad enum/date/UUID in a query param, missing required query param |
+| `401 Unauthorized` | Not authenticated | Missing, malformed, expired, or badly-signed token |
+| `404 Not Found` | Absent or not owned | Unknown route, or a record that does not exist **or belongs to another user** |
+| `405 Method Not Allowed` | Wrong verb | e.g. `GET /api/v1/medications/{id}` (only `PUT`/`DELETE` exist) |
+| `409 Conflict` | Duplicate | Registering an email that already exists |
+| `413 Payload Too Large` | Body over cap | Request body exceeds 2 MB |
+| `500 Internal Server Error` | Transient/unexpected | Database unavailable or an unhandled fault. Details are never leaked — the response is always `"An unexpected error occurred"` |
+
+### `404` vs `403`
+
+Operating on a record owned by another user returns **`404`, never `403`**. This is deliberate:
+a `403` would confirm the record exists. Clients cannot distinguish "no such record" from "not
+yours", by design.
+
+### Validation error format
+
+Body validation failures return every violated field in one message, `field: message` joined by
+`; ` and sorted:
+
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "doseMg: doseMg must be greater than 0; name: name is required",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+Sync applies the identical format per record (in `results[].reason`), so a validation failure reads
+the same whether it arrived via a direct `POST` or a sync batch.
+
+### Retry semantics
+
+`400`, `404`, `405`, `409`, and `413` are **permanent** — the request can never succeed as written,
+so a client must not retry it. `401` is permanent until re-authentication. Only `500` is transient
+and worth retrying. This distinction matters for the offline queue: retrying a permanently-failed
+record forever would block the queue behind it.
+
+---
+
+## Limits and quotas
+
+| Limit | Value | Configured by | Exceeding it |
+|---|---|---|---|
+| Request body size | 2 MB | `app.sync.max-body-bytes` | `413` |
+| Sync batch size | 200 records | `app.sync.max-batch-size` | `400`, whole batch |
+| Password length | 8–72 chars | `RegisterRequest` | `400` |
+| `note` field | 500 chars | per-DTO `@Size` | `400` |
+| Medication `name` | 255 chars | `MedicationRequest` | `400` |
+| Token lifetime | 7 days | `app.jwt.expiration-ms` | `401` |
+
+There is currently **no rate limiting** on any endpoint, including login.
+
+---
+
+## 1. Auth
+
+### `POST /api/v1/auth/register` — public
+
+Registers a patient and returns a token (auto-login). Role is always `PATIENT`; it cannot be set
+by the client.
+
+**Request**
+
+```json
+{
+  "fullName": "Abebe Bekele",
+  "email": "abebe@example.com",
+  "password": "correct-horse-battery"
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `fullName` | string | ✅ | Not blank |
+| `email` | string | ✅ | Not blank, valid email format |
+| `password` | string | ✅ | 8–72 characters |
+
+> The 72-character cap is not arbitrary: BCrypt truncates at 72 bytes, so a longer passphrase would
+> be silently weaker than the user believes.
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "userId": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
+    "role": "PATIENT"
+  },
+  "message": "Registered",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+**Errors**
+
+| Code | Cause |
+|---|---|
+| `400` | Blank field, invalid email format, password outside 8–72 |
+| `409` | `"Email already registered"` |
+
+> Registration reveals whether an email is already in use. Login deliberately does not.
+
+---
+
+### `POST /api/v1/auth/login` — public
+
+**Request**
+
+```json
+{ "email": "abebe@example.com", "password": "correct-horse-battery" }
+```
+
+**Response** `200 OK` — same `data` shape as register; `message` is `"Logged in"`.
+
+**Errors**
+
+| Code | Cause |
+|---|---|
+| `400` | Blank email/password, or malformed email |
+| `401` | `"Invalid email or password"` |
+
+> The `401` message is identical for an unknown email and a wrong password, so login cannot be used
+> to enumerate accounts.
+
+---
+
+### `GET /api/v1/auth/me` — authenticated
+
+Returns the current user.
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
+    "fullName": "Abebe Bekele",
+    "email": "abebe@example.com",
+    "role": "PATIENT"
+  },
+  "message": "OK",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+**Errors:** `401` missing/invalid/expired token · `404` user no longer exists (deleted account with
+a still-valid token).
+
+---
+
+## 2. Patient Profile
+
+One profile per user, keyed by user id. There is no create step — `PUT` upserts.
+
+### `GET /api/v1/patients/me` — authenticated
+
+Returns the profile. If none has been saved, returns `200` with an **all-null skeleton** (with
+`comorbidities: []` and `goals: null`) — **not** a `404`. Clients never need to special-case a
+first run.
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
+    "birthYear": 1975,
+    "preferredLanguage": "am",
+    "heightCm": 172,
+    "chdStage": "Stage II",
+    "diseaseHistory": "prior MI in 2021",
+    "comorbidities": ["diabetes", "hypertension"],
+    "managementPlan": "statin + aspirin daily",
+    "goals": {
+      "bpSystolic": 120,
+      "bpDiastolic": 80,
+      "totalCholesterol": 180,
+      "stepsPerDay": 8000,
+      "targetWeightKg": 70,
+      "dietNote": "low salt"
+    }
+  },
+  "message": "OK",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
+```
+
+**Errors:** `401`.
+
+---
+
+### `PUT /api/v1/patients/me` — authenticated
+
+Creates or replaces the profile. **Full-replace, not a patch: any field omitted from the body is
+cleared to `null`.** Clients must send the complete profile on every call.
+
+**Request** — same shape as the response above, minus `userId`. All fields are optional.
+
+```json
+{
   "birthYear": 1975,
   "preferredLanguage": "am",
   "heightCm": 172,
   "chdStage": "Stage II",
-  "diseaseHistory": "prior MI",
+  "diseaseHistory": "prior MI in 2021",
   "comorbidities": ["diabetes", "hypertension"],
-  "managementPlan": "statin + aspirin",
+  "managementPlan": "statin + aspirin daily",
   "goals": {
     "bpSystolic": 120, "bpDiastolic": 80, "totalCholesterol": 180,
     "stepsPerDay": 8000, "targetWeightKg": 70, "dietNote": "low salt"
   }
 }
 ```
-Errors: `401` missing/invalid/expired token.
 
-### PUT `/patients/me` — Bearer JWT
-Creates or replaces the authenticated patient's profile (full-replace upsert). Request body is the same shape as the response above minus `userId`; all fields optional — **any field omitted from the body is cleared to `null`**, so clients should send their complete profile on every call, not a partial diff.
-Validation: `birthYear` 1900–2100 · `preferredLanguage` ∈ {`en`, `am`} · `heightCm` 50–250 · `chdStage` ≤ 50 chars.
-`data`: the saved profile (same shape as `GET /patients/me`).
-Errors: `400` validation · `401` missing/invalid/expired token.
+| Field | Type | Rules |
+|---|---|---|
+| `birthYear` | int | 1900–2100 |
+| `preferredLanguage` | string | `en` or `am` |
+| `heightCm` | int | 50–250 |
+| `chdStage` | string | ≤ 50 chars |
+| `diseaseHistory` | string | Unbounded |
+| `comorbidities` | string[] | `null` is stored as `[]` |
+| `managementPlan` | string | Unbounded |
+| `goals.*` (numeric) | int | Must not be negative |
+| `goals.dietNote` | string | Unbounded |
 
-## Medications & Dose Logs
+**Response** `200 OK` — the saved profile, `message: "Profile saved"`.
 
-All endpoints require `Authorization: Bearer <JWT>`. Base path `/api/v1`.
-Operations on another user's records return `404` (never `403` — existence is not revealed).
-`POST` creates are idempotent on `clientRecordId`: repeating a create with the same value
-returns the existing row instead of duplicating.
+**Errors:** `400` validation · `401`.
 
-### POST `/medications` — Bearer JWT
-Create a medication.
-Request: `{ name, doseMg, frequency, scheduleTimes[], active?, clientRecordId? }` where
-`frequency` ∈ {`ONCE_DAILY`, `BID`, `TID`, `CUSTOM`} and each `scheduleTimes` entry is `HH:mm` (24-hour).
-Validation: `name` required (≤ 255) · `doseMg` > 0 · `frequency` required · `scheduleTimes` entries `HH:mm`.
-`data`: the created medication.
-Errors: `400` validation/malformed body · `401` missing/invalid token.
+> `heightCm` is not cosmetic: it is what lets `POST /vitals` compute BMI for `WEIGHT` readings.
+> With no height on the profile, `bmi` is simply omitted.
 
-### GET `/medications?includeInactive=false` — Bearer JWT
-List the caller's medications, newest first. `includeInactive=true` also returns deactivated ones.
-`data`: array of medications.
-Errors: `401` missing/invalid token.
+---
 
-### PUT `/medications/{id}` — Bearer JWT
-Full-replace of `name, doseMg, frequency, scheduleTimes, active`. `clientRecordId` is never changed.
-`data`: the updated medication.
-Errors: `400` validation · `401` missing/invalid token · `404` not owned.
+## 3. Medications
 
-### DELETE `/medications/{id}` — Bearer JWT
-Soft-deactivate (sets `active: false`; dose history is preserved — never hard-deleted).
-`data`: the deactivated medication.
-Errors: `401` missing/invalid token · `404` not owned.
+Idempotent on `clientRecordId`. Medications are **never hard-deleted** — `DELETE` deactivates, so
+dose history stays intact.
 
-### POST `/medications/{id}/doses` — Bearer JWT
-Log a dose against an owned medication.
-Request: `{ status, scheduledDate, scheduledTime?, loggedAt?, note?, clientRecordId? }` where
-`status` ∈ {`TAKEN`, `MISSED`, `SKIPPED`}. `scheduledDate` (`YYYY-MM-DD`) required; `loggedAt`
-defaults to now (UTC) when omitted; `note` ≤ 500 chars.
-`data`: the created dose log.
-Errors: `400` validation/malformed body · `401` missing/invalid token · `404` medication not owned.
+### `POST /api/v1/medications` — authenticated
 
-### GET `/dose-logs?from=&to=&medicationId=` — Bearer JWT
-Return the caller's dose history, newest first (by `scheduledDate`, then `loggedAt`).
-All filters optional: `from`/`to` bound `scheduledDate` inclusively (`YYYY-MM-DD`);
-`medicationId` narrows to a single medication.
-`data`: array of dose logs.
-Errors: `401` missing/invalid token.
+**Request**
 
-## Health Vitals
-
-All under `/api/v1`. Each reading is one row of a given `type`; numeric values live in a JSON `values` map. The server computes `flagged` (clinical alert threshold, FR-VIT-008) and, for `WEIGHT`, `bmi` from the profile's `heightCm`. Append-only; idempotent on `clientRecordId`.
-
-Per-type `values` keys (canonical units):
-- `BLOOD_PRESSURE` — `systolic`, `diastolic` (mmHg; `systolic > diastolic`)
-- `GLUCOSE` — `glucose` (mmol/L)
-- `HEART_RATE` — `heartRate` (bpm)
-- `WEIGHT` — `weight` (kg); response adds `bmi` when height is known
-- `CHOLESTEROL` — `ldl`, `hdl`, `total` (mmol/L)
-
-### POST `/vitals` — Bearer JWT
-Request:
 ```json
-{ "type": "BLOOD_PRESSURE", "values": { "systolic": 190, "diastolic": 100 },
-  "measuredAt": "2026-07-10T08:15:00Z", "note": "felt dizzy", "clientRecordId": "..." }
+{
+  "name": "Atorvastatin",
+  "doseMg": 20,
+  "frequency": "ONCE_DAILY",
+  "scheduleTimes": ["08:00"],
+  "active": true,
+  "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001"
+}
 ```
-`measuredAt`, `note`, `clientRecordId` optional; any client-sent `flagged`/`bmi` is ignored. Response `data`:
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `name` | string | ✅ | Not blank, ≤ 255 chars |
+| `doseMg` | number | ✅ | > 0 |
+| `frequency` | enum | ✅ | `ONCE_DAILY` · `BID` · `TID` · `CUSTOM` |
+| `scheduleTimes` | string[] | ❌ | Each entry `HH:mm` 24-hour; `null` → `[]` |
+| `active` | boolean | ❌ | Defaults to `true` |
+| `clientRecordId` | UUID | ❌ | Idempotency key |
+
+**Response** `200 OK`, `message: "Medication created"`
+
 ```json
-{ "id": "...", "type": "BLOOD_PRESSURE", "values": { "systolic": 190, "diastolic": 100 },
-  "flagged": true, "measuredAt": "2026-07-10T08:15:00Z", "note": "felt dizzy",
-  "clientRecordId": "...", "createdAt": "2026-07-10T08:15:02Z" }
+{
+  "success": true,
+  "data": {
+    "id": "a3f1b2c4-1111-2222-3333-444455556666",
+    "name": "Atorvastatin",
+    "doseMg": 20.00,
+    "frequency": "ONCE_DAILY",
+    "scheduleTimes": ["08:00"],
+    "active": true,
+    "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001",
+    "createdAt": "2026-07-19T10:00:00Z",
+    "updatedAt": "2026-07-19T10:00:00Z"
+  },
+  "message": "Medication created",
+  "timestamp": "2026-07-19T10:00:00Z"
+}
 ```
-`400` on unknown `type`, missing/unknown `values` key, non-numeric or out-of-range value, or `systolic <= diastolic`.
 
-### GET `/vitals?type=&from=&to=` — Bearer JWT
-Optional `type` (enum), `from`/`to` (ISO dates, filter on `measuredAt`). Returns the user's readings, newest first.
+**Errors:** `400` validation or malformed body · `401`.
 
-## Symptom Check-ins
+---
 
-All under `/api/v1`. Each check-in is one row; the patient-entered fields live in a JSON `data`
-map and the server computes a clinical severity `assessment` from them (FR-SYM-010) — any
-client-sent `assessment` key is rejected as unknown. Append-only; idempotent on `clientRecordId`.
+### `GET /api/v1/medications` — authenticated
 
-`data` keys (all required except `worseThanYesterday`):
-- `chestPain` — `{ present: boolean, severity?: 0-10 }`; `severity` required when `present` is `true`
-- `shortnessOfBreath` — one of `NONE` / `MILD` / `SEVERE`
-- `heartRate` — integer, 20-300 (bpm)
-- `bloodPressure` — `{ systolic: 40-300, diastolic: 40-300 }`; `systolic > diastolic`
-- `swelling` — boolean
-- `energyLevel` — integer, 0-10
-- `worseThanYesterday` — optional `{ <symptomKey>: boolean, ... }`; keys must be one of the six above
+**Query parameters**
 
-### POST `/symptoms` — Bearer JWT
-Request:
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `includeInactive` | boolean | `false` | `true` also returns deactivated medications |
+
+**Response** `200 OK` — array of medication objects, newest first (`createdAt` desc). `data` is
+`[]` when there are none.
+
+**Errors:** `400` non-boolean `includeInactive` · `401`.
+
+---
+
+### `PUT /api/v1/medications/{id}` — authenticated
+
+Full replace of `name`, `doseMg`, `frequency`, `scheduleTimes`, `active`. `clientRecordId` is
+never changed. Omitting `active` leaves it unchanged (unlike the other fields).
+
+**Path:** `id` — medication UUID.
+**Request:** same shape as `POST`.
+**Response** `200 OK` — the updated medication, `message: "Medication updated"`.
+
+**Errors:** `400` validation or non-UUID `id` · `401` · `404` unknown or owned by another user.
+
+---
+
+### `DELETE /api/v1/medications/{id}` — authenticated
+
+Soft-deactivates (`active: false`). Idempotent — deactivating twice is fine.
+
+**Response** `200 OK` — the deactivated medication, `message: "Medication deactivated"`.
+
+**Errors:** `400` non-UUID `id` · `401` · `404` unknown or not owned.
+
+> Dose logs are **not** deleted or detached. History for a deactivated medication remains queryable
+> via `GET /dose-logs`.
+
+---
+
+## 4. Dose Logs
+
+Append-only: there is no update or delete. Idempotent on `clientRecordId`.
+
+### `POST /api/v1/medications/{medicationId}/doses` — authenticated
+
+Logs a dose against an owned medication.
+
+**Path:** `medicationId` — must belong to the caller.
+
+**Request**
+
 ```json
-{ "data": {
+{
+  "status": "TAKEN",
+  "scheduledDate": "2026-07-16",
+  "scheduledTime": "08:00",
+  "loggedAt": "2026-07-16T08:05:00+03:00",
+  "note": "taken with breakfast",
+  "clientRecordId": "2b7edc44-0000-0000-0000-000000000002"
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `status` | enum | ✅ | `TAKEN` · `MISSED` · `SKIPPED` |
+| `scheduledDate` | date | ✅ | `YYYY-MM-DD` |
+| `scheduledTime` | time | ❌ | `HH:mm` |
+| `loggedAt` | timestamp | ❌ | Defaults to now (UTC) |
+| `note` | string | ❌ | ≤ 500 chars |
+| `clientRecordId` | UUID | ❌ | Idempotency key |
+
+**Response** `200 OK`, `message: "Dose logged"`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "b7de1122-aaaa-bbbb-cccc-ddddeeeeffff",
+    "medicationId": "a3f1b2c4-1111-2222-3333-444455556666",
+    "scheduledDate": "2026-07-16",
+    "scheduledTime": "08:00",
+    "status": "TAKEN",
+    "loggedAt": "2026-07-16T05:05:00Z",
+    "note": "taken with breakfast",
+    "clientRecordId": "2b7edc44-0000-0000-0000-000000000002",
+    "createdAt": "2026-07-16T05:05:02Z"
+  },
+  "message": "Dose logged",
+  "timestamp": "2026-07-16T05:05:02Z"
+}
+```
+
+**Errors:** `400` validation, unknown `status`, malformed body, non-UUID `medicationId` · `401` ·
+`404` medication unknown or not owned.
+
+---
+
+### `GET /api/v1/dose-logs` — authenticated
+
+Dose history, newest first (`scheduledDate` desc, then `loggedAt` desc).
+
+**Query parameters** — all optional
+
+| Param | Type | Notes |
+|---|---|---|
+| `from` | date | Lower bound on `scheduledDate`, inclusive |
+| `to` | date | Upper bound on `scheduledDate`, inclusive |
+| `medicationId` | UUID | Narrow to one medication |
+
+**Example:** `GET /api/v1/dose-logs?from=2026-07-01&to=2026-07-31&medicationId=a3f1b2c4-...`
+
+**Response** `200 OK` — array of dose logs (shape above). `[]` when nothing matches.
+
+**Errors:** `400` unparseable date or non-UUID `medicationId` · `401`.
+
+> An unknown but well-formed `medicationId` returns `200` with `[]`, not `404` — the filter matches
+> nothing rather than asserting the medication exists.
+
+---
+
+## 5. Health Vitals
+
+Each reading is one row of a given `type`, with numeric values in a `values` map. Append-only;
+idempotent on `clientRecordId`.
+
+Two fields are **server-owned** and silently ignored if a client sends them:
+
+- `flagged` — whether any value breached a clinical alert threshold (FR-VIT-008)
+- `bmi` — computed for `WEIGHT` readings from the profile's `heightCm`; omitted when unknown
+
+### `values` keys by type
+
+| `type` | Required keys | Units | Sanity range (reject outside) |
+|---|---|---|---|
+| `BLOOD_PRESSURE` | `systolic`, `diastolic` | mmHg | 40–300 each; `systolic > diastolic` |
+| `GLUCOSE` | `glucose` | mmol/L | 0–50 |
+| `HEART_RATE` | `heartRate` | bpm | 20–300 |
+| `WEIGHT` | `weight` | kg | 0–500 |
+| `CHOLESTEROL` | `ldl`, `hdl`, `total` | mmol/L | 0–30 each |
+
+`values` must contain **exactly** the required keys — a missing key and an extra key are both
+`400`. Sanity ranges reject typos and garbage; they are much wider than the clinical flag
+thresholds below.
+
+### Flag thresholds
+
+`flagged` is `true` when **any** value breaches its bound (`≤ low` or `≥ high`):
+
+| Key | Low | High |
+|---|---|---|
+| `systolic` | 90 | 180 |
+| `diastolic` | 60 | 120 |
+| `glucose` | 4.0 | 11.1 |
+| `heartRate` | 40 | 120 |
+| `bmi` | 18.5 | 30 |
+| `ldl` | — | 4.9 |
+| `total` | — | 7.5 |
+| `hdl` | 1.0 | — |
+
+> These are documented defaults **pending clinical sign-off**, not clinically approved values.
+
+### `POST /api/v1/vitals` — authenticated
+
+**Request**
+
+```json
+{
+  "type": "BLOOD_PRESSURE",
+  "values": { "systolic": 190, "diastolic": 100 },
+  "measuredAt": "2026-07-10T08:15:00Z",
+  "note": "felt dizzy",
+  "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003"
+}
+```
+
+| Field | Type | Required | Rules |
+|---|---|---|---|
+| `type` | enum | ✅ | See table above |
+| `values` | object | ✅ | Exactly the required keys for `type`, all numeric |
+| `measuredAt` | timestamp | ❌ | Defaults to now (UTC) |
+| `note` | string | ❌ | ≤ 500 chars |
+| `clientRecordId` | UUID | ❌ | Idempotency key |
+
+**Response** `200 OK`, `message: "Vital logged"`
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "c19a7788-9999-0000-1111-222233334444",
+    "type": "BLOOD_PRESSURE",
+    "values": { "systolic": 190, "diastolic": 100 },
+    "flagged": true,
+    "measuredAt": "2026-07-10T08:15:00Z",
+    "note": "felt dizzy",
+    "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003",
+    "createdAt": "2026-07-10T08:15:02Z"
+  },
+  "message": "Vital logged",
+  "timestamp": "2026-07-10T08:15:02Z"
+}
+```
+
+A `WEIGHT` reading with `heightCm` on the profile comes back with BMI merged in:
+
+```json
+{ "type": "WEIGHT", "values": { "weight": 82.0, "bmi": 27.7 }, "flagged": false, "...": "..." }
+```
+
+**Errors**
+
+| Code | Cause |
+|---|---|
+| `400` | Unknown `type`; `values` missing, or not exactly the required key set; non-numeric value; value outside its sanity range; `systolic <= diastolic`; `note` over 500 chars |
+| `401` | Missing/invalid token |
+
+---
+
+### `GET /api/v1/vitals` — authenticated
+
+Readings newest first (`measuredAt` desc).
+
+**Query parameters** — all optional
+
+| Param | Type | Notes |
+|---|---|---|
+| `type` | enum | Filter to one vital type |
+| `from` | date | UTC day, inclusive |
+| `to` | date | UTC day, inclusive |
+
+**Example:** `GET /api/v1/vitals?type=BLOOD_PRESSURE&from=2026-07-01&to=2026-07-31`
+
+**Response** `200 OK` — array of readings. `[]` when nothing matches.
+
+**Errors:** `400` unknown `type` value or unparseable date · `401`.
+
+---
+
+## 6. Symptom Check-ins
+
+One row per check-in. Patient-entered fields live in `data`; the server computes an `assessment`
+from them (FR-SYM-010). Append-only; idempotent on `clientRecordId`.
+
+### `data` keys
+
+| Key | Type | Required | Rules |
+|---|---|---|---|
+| `chestPain` | object | ✅ | `{ present: boolean, severity?: 0–10 }`; `severity` **required** when `present` is `true` |
+| `shortnessOfBreath` | enum | ✅ | `NONE` · `MILD` · `SEVERE` |
+| `heartRate` | int | ✅ | 20–300 |
+| `bloodPressure` | object | ✅ | `{ systolic: 40–300, diastolic: 40–300 }`; `systolic > diastolic` |
+| `swelling` | boolean | ✅ | — |
+| `energyLevel` | int | ✅ | 0–10 |
+| `worseThanYesterday` | object | ❌ | `{ <symptomKey>: boolean }`; keys must be from the six above |
+
+`data` is strictly whitelisted: any key not listed is a `400`. `assessment` is server-owned, so
+sending it inside `data` is rejected as an unknown key.
+
+### How `assessment` is computed
+
+Per-symptom severity, then `overall` = the maximum across all six
+(`NONE` < `MONITOR` < `URGENT` < `EMERGENCY`):
+
+| Symptom | `EMERGENCY` | `URGENT` | `MONITOR` | else |
+|---|---|---|---|---|
+| `chestPain` | severity ≥ 7 | severity 4–6 | severity 1–3 | not present, or 0 |
+| `shortnessOfBreath` | — | `SEVERE` | `MILD` | `NONE` |
+| `bloodPressure` | systolic ≥ 180 | systolic ≥ 160 or ≤ 90, or diastolic ≥ 100 or ≤ 60 | — | otherwise |
+| `heartRate` | — | < 40 or > 120 | — | otherwise |
+| `swelling` | — | — | `true` | `false` |
+| `energyLevel` | — | — | ≤ 2 | otherwise |
+
+> Documented defaults **pending clinical sign-off**.
+
+### `POST /api/v1/symptoms` — authenticated
+
+**Request**
+
+```json
+{
+  "data": {
     "chestPain": { "present": true, "severity": 8 },
     "shortnessOfBreath": "MILD",
     "heartRate": 82,
     "bloodPressure": { "systolic": 165, "diastolic": 92 },
     "swelling": true,
-    "energyLevel": 4
-  }, "note": "tight chest", "clientRecordId": "..." }
+    "energyLevel": 4,
+    "worseThanYesterday": { "chestPain": true, "swelling": false }
+  },
+  "measuredAt": "2026-07-10T08:15:00Z",
+  "note": "tight chest since morning",
+  "clientRecordId": "5c2f8a91-0000-0000-0000-000000000005"
+}
 ```
-`measuredAt`, `note`, `clientRecordId` optional; `measuredAt` defaults to now (UTC) when omitted.
-The server computes `assessment` server-side — it is never accepted from the client (sending an
-`assessment` key inside `data` is rejected as an unknown key). Response `data`:
+
+**Response** `200 OK`, `message: "Symptom check-in logged"`
+
 ```json
-{ "id": "...", "data": { "chestPain": { "present": true, "severity": 8 }, "...": "..." },
-  "assessment": { "overall": "EMERGENCY",
-    "symptoms": { "chestPain": "EMERGENCY", "shortnessOfBreath": "MONITOR",
-      "bloodPressure": "URGENT", "heartRate": "NONE", "swelling": "MONITOR", "energyLevel": "NONE" } },
-  "measuredAt": "2026-07-10T08:15:00Z", "note": "tight chest",
-  "clientRecordId": "...", "createdAt": "2026-07-10T08:15:02Z" }
+{
+  "success": true,
+  "data": {
+    "id": "d41b9900-5555-6666-7777-888899990000",
+    "data": {
+      "chestPain": { "present": true, "severity": 8 },
+      "shortnessOfBreath": "MILD",
+      "heartRate": 82,
+      "bloodPressure": { "systolic": 165, "diastolic": 92 },
+      "swelling": true,
+      "energyLevel": 4,
+      "worseThanYesterday": { "chestPain": true, "swelling": false }
+    },
+    "assessment": {
+      "overall": "EMERGENCY",
+      "symptoms": {
+        "chestPain": "EMERGENCY",
+        "shortnessOfBreath": "MONITOR",
+        "bloodPressure": "URGENT",
+        "heartRate": "NONE",
+        "swelling": "MONITOR",
+        "energyLevel": "NONE"
+      }
+    },
+    "measuredAt": "2026-07-10T08:15:00Z",
+    "note": "tight chest since morning",
+    "clientRecordId": "5c2f8a91-0000-0000-0000-000000000005",
+    "createdAt": "2026-07-10T08:15:02Z"
+  },
+  "message": "Symptom check-in logged",
+  "timestamp": "2026-07-10T08:15:02Z"
+}
 ```
-`assessment.overall` is the maximum severity across all six per-symptom assessments
-(`NONE` < `MONITOR` < `URGENT` < `EMERGENCY`).
-`400` on missing/unknown `data` key, wrong type, out-of-range value, unrecognized
-`shortnessOfBreath` value or `worseThanYesterday` symptom key, missing `chestPain.severity`
-when `chestPain.present` is `true`, or `systolic <= diastolic`.
 
-### GET `/symptoms?from=&to=` — Bearer JWT
-Optional `from`/`to` (`YYYY-MM-DD`) bound `measuredAt` by UTC calendar day, inclusive on both
-ends (internally a half-open `[from 00:00Z, to+1day 00:00Z)` range). Returns the user's
-check-ins, newest first.
+**Errors**
 
-**Severity → recommended action** (client-rendered, EN/AM; FR-SYM-010). These thresholds and
-actions are documented defaults pending clinical sign-off (spec §0):
+| Code | Cause |
+|---|---|
+| `400` | Missing or unknown `data` key; wrong field type; out-of-range value; unrecognized `shortnessOfBreath`; unknown key in `worseThanYesterday`; missing `chestPain.severity` when `present` is `true`; `systolic <= diastolic`; `note` over 500 chars |
+| `401` | Missing/invalid token |
 
-| Severity | Recommended action (rendered client-side, EN/AM) |
-|----------|--------------------------------------------------|
-| NONE | No action; keep monitoring |
-| MONITOR | Self-care; watch for changes |
-| URGENT | Contact your clinician today |
-| EMERGENCY | Call your emergency contact now |
+### Severity → recommended action
 
-## Activity Logs
+Rendered client-side in EN/AM; the API returns only the severity code.
 
-All under `/api/v1`. Each logged session is one row; the patient-entered fields live in a JSON
-`data` map. Unlike vitals/symptoms, the server computes **no** classification, flag, or severity
-for an activity log — it is pure persist-and-serve. Append-only; idempotent on `clientRecordId`.
+| Severity | Recommended action |
+|---|---|
+| `NONE` | No action; keep monitoring |
+| `MONITOR` | Self-care; watch for changes |
+| `URGENT` | Contact your clinician today |
+| `EMERGENCY` | Call your emergency contact now |
 
-`data` keys:
+---
 
-| Key | Type | Required |
-|---|---|---|
-| `type` | enum: `WALKING` / `JOGGING` / `CYCLING` / `HOUSEHOLD` / `FARMING` / `STRETCHING` / `OTHER` | ✅ |
-| `durationMinutes` | int, 1-1440 | ✅ |
-| `intensity` | enum: `LIGHT` / `MODERATE` / `VIGOROUS` | ✅ |
-| `steps` | int, 0-100000 | ❌ |
-| `distanceMeters` | number, 0-100000 | ❌ |
+### `GET /api/v1/symptoms` — authenticated
 
-`type` and `intensity` are language-neutral codes; the client renders localized EN/AM labels
-(same approach as `Severity`). There is no server-computed field on an activity log.
+Check-ins newest first (`measuredAt` desc).
 
-### POST `/activities` — Bearer JWT
-Request:
+**Query parameters:** `from`, `to` (optional dates, UTC day, inclusive).
+
+**Response** `200 OK` — array of check-ins. **Errors:** `400` unparseable date · `401`.
+
+---
+
+## 7. Activity Logs
+
+One row per session. Unlike vitals and symptoms, the server computes **nothing** — no flag, no
+severity, no classification. Pure persist-and-serve. Append-only; idempotent on `clientRecordId`.
+
+### `data` keys
+
+| Key | Type | Required | Rules |
+|---|---|---|---|
+| `type` | enum | ✅ | `WALKING` · `JOGGING` · `CYCLING` · `HOUSEHOLD` · `FARMING` · `STRETCHING` · `OTHER` |
+| `durationMinutes` | int | ✅ | 1–1440 |
+| `intensity` | enum | ✅ | `LIGHT` · `MODERATE` · `VIGOROUS` |
+| `steps` | int | ❌ | 0–100000 |
+| `distanceMeters` | number | ❌ | 0–100000 |
+
+Strictly whitelisted — any other key is a `400`. `type` and `intensity` are language-neutral codes;
+the client renders localized EN/AM labels.
+
+### `POST /api/v1/activities` — authenticated
+
+**Request**
+
 ```json
 {
   "data": {
@@ -222,55 +790,97 @@ Request:
   },
   "measuredAt": "2026-07-16T06:30:00Z",
   "note": "morning walk to the market",
-  "clientRecordId": "…uuid…"
+  "clientRecordId": "81aa5e02-0000-0000-0000-000000000004"
 }
 ```
-`measuredAt`, `note`, `clientRecordId` optional; `measuredAt` defaults to now (UTC) when omitted;
-`note` ≤ 500 chars. Response `data`:
+
+**Response** `200 OK`, `message: "Activity logged"`
+
 ```json
 {
-  "id": "…uuid…",
+  "success": true,
   "data": {
-    "type": "WALKING",
-    "durationMinutes": 30,
-    "intensity": "MODERATE",
-    "steps": 3200,
-    "distanceMeters": 2400
+    "id": "e5c30011-1234-5678-9abc-def012345678",
+    "data": {
+      "type": "WALKING",
+      "durationMinutes": 30,
+      "intensity": "MODERATE",
+      "steps": 3200,
+      "distanceMeters": 2400
+    },
+    "measuredAt": "2026-07-16T06:30:00Z",
+    "note": "morning walk to the market",
+    "clientRecordId": "81aa5e02-0000-0000-0000-000000000004",
+    "createdAt": "2026-07-16T06:30:02Z"
   },
-  "measuredAt": "2026-07-16T06:30:00Z",
-  "note": "morning walk to the market",
-  "clientRecordId": "…uuid…",
-  "createdAt": "2026-07-16T06:30:02Z"
+  "message": "Activity logged",
+  "timestamp": "2026-07-16T06:30:02Z"
 }
 ```
-`400` on missing/unknown `data` key, unrecognized `type`/`intensity` enum value, wrong field
-type, or out-of-range `durationMinutes`/`steps`/`distanceMeters`.
 
-### GET `/activities?from=&to=` — Bearer JWT
-Optional `from`/`to` (ISO dates) bound `measuredAt` by UTC calendar day, inclusive on both ends
-(internally a half-open `[from 00:00Z, to+1day 00:00Z)` range). Returns the user's activity
-history, newest first (`measuredAt` desc).
+**Errors:** `400` missing/unknown `data` key, unrecognized `type`/`intensity`, wrong type,
+out-of-range `durationMinutes`/`steps`/`distanceMeters`, `note` over 500 chars · `401`.
 
-## Sync
+---
 
-`POST /api/v1/sync` — Bearer JWT. Submits a batch of records created offline and gets back a
-per-record verdict. Push-only: there is no pull direction — a fresh install (or a second device)
-restores by calling the existing `GET` endpoints (`/vitals`, `/symptoms`, `/activities`,
-`/dose-logs`, `/medications`, `/patients/me`). Patient-self-scoped: `userId` comes from the JWT,
-never the payload.
+### `GET /api/v1/activities` — authenticated
 
-`payload` is verbatim each feature's existing request DTO shape — `VITAL` payloads are
-`VitalLogRequest`, `SYMPTOM` payloads are `SymptomLogRequest`, `ACTIVITY` payloads are
-`ActivityLogRequest`, `MEDICATION` payloads are `MedicationRequest` — so the validation rules
-documented above for each feature apply unchanged here. `DOSE_LOG` is the one sync-only shape
-(below), because the direct dose endpoint takes the medication from the URL path and a
-never-synced device has no server id to put there. Any `clientRecordId` inside `payload` is
-ignored; the envelope's `clientRecordId` is the sole idempotency key.
+History newest first (`measuredAt` desc).
 
-Within a batch, `MEDICATION` records are always processed before `DOSE_LOG` records regardless of
-request order, so a dose can reference a medication created in the **same** batch — see
-`medicationClientRecordId` below. `results` preserves request order even though processing order
-differs.
+**Query parameters:** `from`, `to` (optional dates, UTC day, inclusive).
+
+**Response** `200 OK` — array of activity logs. **Errors:** `400` unparseable date · `401`.
+
+---
+
+## 8. Sync
+
+### `POST /api/v1/sync` — authenticated
+
+Submits a batch of records created offline and returns a per-record verdict.
+
+**Push-only.** There is no pull direction: a fresh install or second device restores by calling the
+existing `GET` endpoints (`/medications`, `/dose-logs`, `/vitals`, `/symptoms`, `/activities`,
+`/patients/me`).
+
+`userId` always comes from the JWT, never the payload, so a batch can only ever write the caller's
+own records.
+
+### Record envelope
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `clientRecordId` | UUID | ✅ | **The** idempotency key. Any `clientRecordId` inside `payload` is ignored and overwritten with this one |
+| `entityType` | string | ✅ | `VITAL` · `SYMPTOM` · `ACTIVITY` · `MEDICATION` · `DOSE_LOG` |
+| `payload` | object | ✅ | The feature's normal request body (see below) |
+
+`payload` is verbatim each feature's existing request DTO — `VITAL` takes a `POST /vitals` body,
+`SYMPTOM` a `POST /symptoms` body, `ACTIVITY` a `POST /activities` body, `MEDICATION` a
+`POST /medications` body. **Every validation rule documented above applies unchanged here.**
+
+`DOSE_LOG` is the one sync-only shape, because the direct endpoint takes the medication from the
+URL path and a never-synced device has no server id to put there:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `medicationId` | UUID | one of the two | Server id of an owned medication |
+| `medicationClientRecordId` | UUID | one of the two | `clientRecordId` of a medication — may be one created in this same batch |
+| `status` | enum | ✅ | `TAKEN` · `MISSED` · `SKIPPED` |
+| `scheduledDate` | date | ✅ | `YYYY-MM-DD` |
+| `scheduledTime` | time | ❌ | `HH:mm` |
+| `loggedAt` | timestamp | ❌ | Defaults to now (UTC) |
+| `note` | string | ❌ | ≤ 500 chars |
+
+Exactly one of `medicationId` / `medicationClientRecordId` must be present.
+
+### Ordering
+
+Within a batch, `MEDICATION` records are always processed **before** `DOSE_LOG` records regardless
+of request order, so a dose can reference a medication created in the same batch. `results`
+nonetheless preserves **request** order.
+
+Medication *edits* (update/deactivate) are not syncable — creating a medication offline works,
+editing one requires connectivity.
 
 ### Request
 
@@ -283,75 +893,132 @@ Content-Type: application/json
 ```json
 {
   "records": [
-    { "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001", "entityType": "MEDICATION",
-      "payload": { "name": "Atorvastatin", "doseMg": 20, "frequency": "ONCE_DAILY",
-                   "scheduleTimes": ["08:00"] } },
-    { "clientRecordId": "2b7edc44-0000-0000-0000-000000000002", "entityType": "DOSE_LOG",
-      "payload": { "medicationClientRecordId": "9f1c2b7e-0000-0000-0000-000000000001",
-                   "status": "TAKEN", "scheduledDate": "2026-07-16",
-                   "loggedAt": "2026-07-16T08:05:00+03:00" } },
-    { "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003", "entityType": "VITAL",
-      "payload": { "type": "BLOOD_PRESSURE", "values": { "systolic": 128, "diastolic": 82 },
-                   "measuredAt": "2026-07-16T08:10:00+03:00" } }
+    {
+      "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001",
+      "entityType": "MEDICATION",
+      "payload": {
+        "name": "Atorvastatin",
+        "doseMg": 20,
+        "frequency": "ONCE_DAILY",
+        "scheduleTimes": ["08:00"]
+      }
+    },
+    {
+      "clientRecordId": "2b7edc44-0000-0000-0000-000000000002",
+      "entityType": "DOSE_LOG",
+      "payload": {
+        "medicationClientRecordId": "9f1c2b7e-0000-0000-0000-000000000001",
+        "status": "TAKEN",
+        "scheduledDate": "2026-07-16",
+        "loggedAt": "2026-07-16T08:05:00+03:00"
+      }
+    },
+    {
+      "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003",
+      "entityType": "VITAL",
+      "payload": {
+        "type": "BLOOD_PRESSURE",
+        "values": { "systolic": 128, "diastolic": 82 },
+        "measuredAt": "2026-07-16T08:10:00+03:00"
+      }
+    }
   ]
 }
 ```
 
-`entityType` ∈ {`VITAL`, `SYMPTOM`, `ACTIVITY`, `MEDICATION`, `DOSE_LOG`}. Medication *edits*
-(update/deactivate) are not syncable — adding a medication offline works, editing one requires
-connectivity. `DOSE_LOG.payload` takes exactly one of `medicationId` (server UUID) or
-`medicationClientRecordId`, plus `status` (`TAKEN`/`MISSED`/`SKIPPED`), `scheduledDate`
-(required, `YYYY-MM-DD`), and optional `scheduledTime`, `loggedAt`, `note`.
-
 ### Response
 
-`200 OK`, wrapped in the standard `ApiResponse<T>` envelope:
+`200 OK`, `message: "Sync processed"`
 
 ```json
 {
   "success": true,
-  "message": "Sync processed",
   "data": {
     "results": [
-      { "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001", "status": "SAVED",     "serverId": "a3f1..." },
-      { "clientRecordId": "2b7edc44-0000-0000-0000-000000000002", "status": "SAVED",     "serverId": "b7de..." },
-      { "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003", "status": "DUPLICATE", "serverId": "c19a..." },
+      { "clientRecordId": "9f1c2b7e-0000-0000-0000-000000000001", "status": "SAVED",     "serverId": "a3f1b2c4-..." },
+      { "clientRecordId": "2b7edc44-0000-0000-0000-000000000002", "status": "SAVED",     "serverId": "b7de1122-..." },
+      { "clientRecordId": "44d0a3b1-0000-0000-0000-000000000003", "status": "DUPLICATE", "serverId": "c19a7788-..." },
       { "clientRecordId": "81aa5e02-0000-0000-0000-000000000004", "status": "REJECTED",  "reason": "durationMinutes is out of range" }
     ]
-  }
+  },
+  "message": "Sync processed",
+  "timestamp": "2026-07-16T08:10:05Z"
 }
 ```
 
-`results` preserves request order. There are no summary counts — the client derives them
-trivially from the array.
+`serverId` is present unless `REJECTED`; `reason` appears only on `REJECTED`. There are no summary
+counts — the client derives them from the array.
 
 ### Statuses
 
 | Status | Meaning | `serverId` | Client action |
 |---|---|---|---|
-| `SAVED` | New record committed | ✅ | mark `SYNCED`, store `serverId` |
-| `DUPLICATE` | `clientRecordId` already stored, payload matches | ✅ | mark `SYNCED`, store `serverId` |
-| `CONFLICT` | `clientRecordId` already stored, payload **differs** — the stored record always wins; the incoming payload is never written | ✅ | mark `SYNCED`; surface/log — a genuine conflict signals a client bug reusing a UUID, not a data merge |
-| `REJECTED` | Payload invalid, or unknown `entityType`; will never succeed | ✗ (`reason` instead) | do **not** retry; flag for the user |
+| `SAVED` | New record committed | ✅ | Mark `SYNCED`, store `serverId` |
+| `DUPLICATE` | Already stored under this `clientRecordId`, payload matches | ✅ | Mark `SYNCED`, store `serverId` |
+| `CONFLICT` | Already stored, payload **differs** — the stored record wins; the incoming payload is never written | ✅ | Mark `SYNCED`; log it — a real conflict means a client bug reusing a UUID, not a merge situation |
+| `REJECTED` | Payload invalid or unknown `entityType`; can never succeed | ✗ (`reason` instead) | Do **not** retry; surface to the user |
 
-`SAVED`, `DUPLICATE`, and `CONFLICT` all mean the server now holds this record under that
-`clientRecordId` — the client marks all three `SYNCED`. That `serverId` is what lets a later
-batch reference a medication by server id instead of `medicationClientRecordId`.
+`SAVED`, `DUPLICATE`, and `CONFLICT` all mean the server now holds the record under that
+`clientRecordId`, so the client marks all three `SYNCED`. The returned `serverId` is what lets a
+later batch reference a medication by `medicationId` instead of `medicationClientRecordId`.
 
 ### Errors
 
-- **`400`, whole batch rejected before any record is processed** — `records` missing/empty,
-  `records.size()` over the configured cap (`app.sync.max-batch-size`, 200 by default; the client
-  chunks larger batches), or any record missing `clientRecordId`, `entityType`, or `payload`.
-  These are envelope-structure problems the client caused, not record content, so nothing is
-  processed and there is no partial result to report.
-- **Per-record `REJECTED` inside a `200`** — the record's own content is the problem: unknown
-  `entityType`, a Bean Validation failure on the mapped DTO (e.g. a blank medication name),
-  malformed payload JSON, an unrecognized enum value, or a `DOSE_LOG` whose
-  `medicationId`/`medicationClientRecordId` doesn't resolve to an owned medication. One bad
-  record never blocks its neighbours — the rest of the batch still commits.
-- **`500`, whole batch fails** — a transient failure not tied to any record's content (database
-  unavailable, an unexpected error). The client must keep **every** record queued and retry the
-  whole batch later; do not treat this like `REJECTED`. Retrying is safe because of idempotency —
-  records already committed on the failed attempt come back `DUPLICATE` on the retry, so nothing
-  double-saves.
+| Code | Scope | Cause | Client action |
+|---|---|---|---|
+| `400` | Whole batch, nothing processed | `records` missing or empty; over 200 records; any record missing `clientRecordId`, `entityType`, or `payload` | Fix the envelope; for size, chunk into smaller batches |
+| `401` | Whole batch | Missing/invalid token | Re-authenticate |
+| `413` | Whole batch | Body over 2 MB | Chunk into smaller batches |
+| `REJECTED` in a `200` | One record | Record content: unknown `entityType`, DTO validation failure, malformed payload, bad enum, or a `DOSE_LOG` whose medication reference doesn't resolve to an owned medication | Drop that record; **the rest of the batch still committed** |
+| `500` | Whole batch | Transient — database unavailable or unexpected fault | Keep **every** record queued and retry the whole batch |
+
+The `500`-vs-`REJECTED` split is the important one. `REJECTED` means "this record is bad, stop
+retrying it". `500` means "nothing is wrong with your data, try again later" — treating it like
+`REJECTED` would make a correct client silently discard unsynced health data. Retrying after a
+`500` is safe: records that did commit come back `DUPLICATE`.
+
+---
+
+## Enum reference
+
+| Enum | Values | Used by |
+|---|---|---|
+| `Role` | `PATIENT` | Auth (`CLINICIAN` is planned, not implemented) |
+| `Frequency` | `ONCE_DAILY`, `BID`, `TID`, `CUSTOM` | Medications |
+| `DoseStatus` | `TAKEN`, `MISSED`, `SKIPPED` | Dose logs |
+| `VitalType` | `BLOOD_PRESSURE`, `GLUCOSE`, `HEART_RATE`, `WEIGHT`, `CHOLESTEROL` | Vitals |
+| `Severity` | `NONE`, `MONITOR`, `URGENT`, `EMERGENCY` | Symptom assessment (ordered) |
+| `ActivityType` | `WALKING`, `JOGGING`, `CYCLING`, `HOUSEHOLD`, `FARMING`, `STRETCHING`, `OTHER` | Activity |
+| `Intensity` | `LIGHT`, `MODERATE`, `VIGOROUS` | Activity |
+| `SyncStatus` | `SAVED`, `DUPLICATE`, `CONFLICT`, `REJECTED` | Sync results |
+
+Enum values are sent and received as **strings**, exactly as spelled above (case-sensitive). An
+unrecognized value is a `400` on the direct endpoints and a per-record `REJECTED` in sync.
+
+---
+
+## Endpoint index
+
+| Method | Path | Auth | Feature |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/register` | — | Auth |
+| `POST` | `/api/v1/auth/login` | — | Auth |
+| `GET` | `/api/v1/auth/me` | ✅ | Auth |
+| `GET` | `/api/v1/patients/me` | ✅ | Profile |
+| `PUT` | `/api/v1/patients/me` | ✅ | Profile |
+| `POST` | `/api/v1/medications` | ✅ | Medications |
+| `GET` | `/api/v1/medications` | ✅ | Medications |
+| `PUT` | `/api/v1/medications/{id}` | ✅ | Medications |
+| `DELETE` | `/api/v1/medications/{id}` | ✅ | Medications |
+| `POST` | `/api/v1/medications/{medicationId}/doses` | ✅ | Dose logs |
+| `GET` | `/api/v1/dose-logs` | ✅ | Dose logs |
+| `POST` | `/api/v1/vitals` | ✅ | Vitals |
+| `GET` | `/api/v1/vitals` | ✅ | Vitals |
+| `POST` | `/api/v1/symptoms` | ✅ | Symptoms |
+| `GET` | `/api/v1/symptoms` | ✅ | Symptoms |
+| `POST` | `/api/v1/activities` | ✅ | Activity |
+| `GET` | `/api/v1/activities` | ✅ | Activity |
+| `POST` | `/api/v1/sync` | ✅ | Sync |
+
+18 endpoints across 7 features. There is no `GET /medications/{id}`, no update or delete on any log
+type (all append-only), and no pull direction on sync.
