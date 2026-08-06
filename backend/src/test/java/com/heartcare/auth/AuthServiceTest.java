@@ -5,6 +5,7 @@ import com.heartcare.auth.dto.LoginRequest;
 import com.heartcare.auth.dto.RegisterRequest;
 import com.heartcare.auth.dto.UserResponse;
 import com.heartcare.auth.model.User;
+import com.heartcare.common.exception.AccountLockedException;
 import com.heartcare.common.exception.ConflictException;
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.exception.UnauthorizedException;
@@ -19,12 +20,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +49,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, tokenProvider);
+        authService = new AuthService(userRepository, passwordEncoder, tokenProvider, 5, 15);
     }
 
     private User existingUser(String pin) {
@@ -149,5 +154,95 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.getCurrentUser(id))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void aFailedLoginIsRecordedAgainstTheAccount() {
+        User user = existingUser("1234");
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "9999")))
+                .isInstanceOf(UnauthorizedException.class);
+
+        verify(userRepository).recordFailedAttempt(eq(user.getId()), eq(5), any(OffsetDateTime.class));
+    }
+
+    @Test
+    void theFifthConsecutiveFailureLocksTheAccount() {
+        User user = existingUser("1234");
+        ReflectionTestUtils.setField(user, "failedLoginAttempts", 4);
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "9999")))
+                .isInstanceOf(AccountLockedException.class)
+                .hasMessageContaining("15 minute");
+
+        verify(userRepository).recordFailedAttempt(eq(user.getId()), eq(5), any(OffsetDateTime.class));
+    }
+
+    @Test
+    void loginIsRefusedWhileTheLockIsActiveWithoutCheckingThePin() {
+        User user = existingUser("1234");
+        ReflectionTestUtils.setField(user, "failedLoginAttempts", 5);
+        ReflectionTestUtils.setField(user, "lockedUntil", OffsetDateTime.now().plusMinutes(9));
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        // Even the CORRECT pin is refused while locked — that is what makes the lock a limit.
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "1234")))
+                .isInstanceOf(AccountLockedException.class)
+                .hasMessageContaining("9 minute");
+
+        verify(userRepository, never()).recordFailedAttempt(any(), anyInt(), any());
+    }
+
+    @Test
+    void anExpiredLockLetsTheUserBackInAndClearsTheCounter() {
+        User user = existingUser("1234");
+        ReflectionTestUtils.setField(user, "failedLoginAttempts", 5);
+        ReflectionTestUtils.setField(user, "lockedUntil", OffsetDateTime.now().minusSeconds(1));
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        AuthResponse resp = authService.login(new LoginRequest(PHONE, "1234"));
+
+        assertThat(resp.token()).isNotBlank();
+        verify(userRepository).resetFailedAttempts(user.getId());
+    }
+
+    @Test
+    void aFailureAfterAnExpiredLockDoesNotImmediatelyRelock() {
+        User user = existingUser("1234");
+        ReflectionTestUtils.setField(user, "failedLoginAttempts", 5);
+        ReflectionTestUtils.setField(user, "lockedUntil", OffsetDateTime.now().minusSeconds(1));
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        // The elapsed lock cleared the counter, so this is failure #1 of the next window,
+        // not #6 of the last one.
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "9999")))
+                .isInstanceOf(UnauthorizedException.class);
+
+        verify(userRepository).resetFailedAttempts(user.getId());
+        verify(userRepository).recordFailedAttempt(eq(user.getId()), eq(5), any(OffsetDateTime.class));
+    }
+
+    @Test
+    void aSuccessfulLoginClearsAPartialFailureStreak() {
+        User user = existingUser("1234");
+        ReflectionTestUtils.setField(user, "failedLoginAttempts", 3);
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        authService.login(new LoginRequest(PHONE, "1234"));
+
+        verify(userRepository).resetFailedAttempts(user.getId());
+    }
+
+    @Test
+    void aCleanSuccessfulLoginWritesNothing() {
+        User user = existingUser("1234");
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        authService.login(new LoginRequest(PHONE, "1234"));
+
+        verify(userRepository, never()).resetFailedAttempts(any());
+        verify(userRepository, never()).recordFailedAttempt(any(), anyInt(), any());
     }
 }
