@@ -31,6 +31,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
+    static final String PHONE = "+251911234567";
+
     @Mock
     UserRepository userRepository;
 
@@ -45,9 +47,15 @@ class AuthServiceTest {
         authService = new AuthService(userRepository, passwordEncoder, tokenProvider);
     }
 
+    private User existingUser(String pin) {
+        User user = new User(PHONE, passwordEncoder.encode(pin), "Abebe Girma", "am");
+        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+        return user;
+    }
+
     @Test
-    void registerHashesPasswordAndReturnsToken() {
-        when(userRepository.existsByEmail("abe@example.com")).thenReturn(false);
+    void registerHashesPinAndReturnsTokenWithUser() {
+        when(userRepository.existsByPhone(PHONE)).thenReturn(false);
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
             ReflectionTestUtils.setField(u, "id", UUID.randomUUID());
@@ -55,72 +63,82 @@ class AuthServiceTest {
         });
 
         AuthResponse resp = authService.register(
-                new RegisterRequest("Abebe", "abe@example.com", "password1"));
+                new RegisterRequest(PHONE, "1234", "Abebe Girma", "am"));
 
         assertThat(resp.token()).isNotBlank();
-        assertThat(resp.role()).isEqualTo("PATIENT");
+        assertThat(resp.user().phone()).isEqualTo(PHONE);
+        assertThat(resp.user().name()).isEqualTo("Abebe Girma");
+        assertThat(resp.user().preferredLanguage()).isEqualTo("am");
+        assertThat(resp.user().role()).isEqualTo("PATIENT");
+        assertThat(resp.user().id()).isNotBlank();
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).saveAndFlush(captor.capture());
-        assertThat(captor.getValue().getPasswordHash()).isNotEqualTo("password1");
-        assertThat(passwordEncoder.matches("password1", captor.getValue().getPasswordHash())).isTrue();
+        assertThat(captor.getValue().getPinHash()).isNotEqualTo("1234");
+        assertThat(passwordEncoder.matches("1234", captor.getValue().getPinHash())).isTrue();
     }
 
     @Test
-    void registerRejectsDuplicateEmail() {
-        when(userRepository.existsByEmail("abe@example.com")).thenReturn(true);
+    void registerRejectsDuplicatePhone() {
+        when(userRepository.existsByPhone(PHONE)).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(
-                new RegisterRequest("Abebe", "abe@example.com", "password1")))
+                new RegisterRequest(PHONE, "1234", "Abebe Girma", "en")))
                 .isInstanceOf(ConflictException.class);
-    }
-
-    @Test
-    void loginFailsWithWrongPassword() {
-        User user = new User("abe@example.com", passwordEncoder.encode("password1"), "Abebe");
-        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-        when(userRepository.findByEmail("abe@example.com")).thenReturn(Optional.of(user));
-
-        assertThatThrownBy(() -> authService.login(
-                new LoginRequest("abe@example.com", "wrongpass")))
-                .isInstanceOf(UnauthorizedException.class);
-    }
-
-    @Test
-    void loginSucceedsWithCorrectPassword() {
-        User user = new User("abe@example.com", passwordEncoder.encode("password1"), "Abebe");
-        ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
-        when(userRepository.findByEmail("abe@example.com")).thenReturn(Optional.of(user));
-
-        AuthResponse resp = authService.login(new LoginRequest("abe@example.com", "password1"));
-
-        assertThat(resp.token()).isNotBlank();
-        assertThat(resp.userId()).isEqualTo(user.getId().toString());
     }
 
     @Test
     void registerTranslatesDbUniqueViolationToConflict() {
-        when(userRepository.existsByEmail("abe@example.com")).thenReturn(false);
+        when(userRepository.existsByPhone(PHONE)).thenReturn(false);
         when(userRepository.saveAndFlush(any(User.class)))
-                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate email"));
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("duplicate phone"));
 
         assertThatThrownBy(() -> authService.register(
-                new RegisterRequest("Abebe", "abe@example.com", "password1")))
+                new RegisterRequest(PHONE, "1234", "Abebe Girma", "en")))
                 .isInstanceOf(ConflictException.class);
     }
 
     @Test
+    void loginSucceedsWithCorrectPin() {
+        User user = existingUser("1234");
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
+
+        AuthResponse resp = authService.login(new LoginRequest(PHONE, "1234"));
+
+        assertThat(resp.token()).isNotBlank();
+        assertThat(resp.user().id()).isEqualTo(user.getId().toString());
+    }
+
+    @Test
+    void loginFailsWithWrongPin() {
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(existingUser("1234")));
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "9999")))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Invalid phone or PIN");
+    }
+
+    @Test
+    void loginWithUnknownPhoneGivesTheSameMessageAsAWrongPin() {
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "1234")))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Invalid phone or PIN");
+    }
+
+    @Test
     void getCurrentUserReturnsUserResponse() {
-        User user = new User("abe@example.com", "hash", "Abebe");
-        UUID id = UUID.randomUUID();
-        ReflectionTestUtils.setField(user, "id", id);
+        User user = existingUser("1234");
+        UUID id = user.getId();
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
         UserResponse resp = authService.getCurrentUser(id);
 
-        assertThat(resp.userId()).isEqualTo(id.toString());
-        assertThat(resp.email()).isEqualTo("abe@example.com");
-        assertThat(resp.fullName()).isEqualTo("Abebe");
+        assertThat(resp.id()).isEqualTo(id.toString());
+        assertThat(resp.phone()).isEqualTo(PHONE);
+        assertThat(resp.name()).isEqualTo("Abebe Girma");
+        assertThat(resp.preferredLanguage()).isEqualTo("am");
         assertThat(resp.role()).isEqualTo("PATIENT");
     }
 

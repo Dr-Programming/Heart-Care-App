@@ -17,27 +17,31 @@ class UserRepositoryTest extends AbstractIntegrationTest {
     UserRepository userRepository;
 
     @Test
-    void savesAndFindsByEmail() {
-        userRepository.save(new User("abe@example.com", "hash", "Abebe"));
+    void savesAndFindsByPhone() {
+        userRepository.save(new User("+251911111111", "hash", "Abebe", "en"));
 
-        assertThat(userRepository.findByEmail("abe@example.com")).isPresent();
-        assertThat(userRepository.existsByEmail("abe@example.com")).isTrue();
-        assertThat(userRepository.existsByEmail("nobody@example.com")).isFalse();
+        assertThat(userRepository.findByPhone("+251911111111")).isPresent();
+        assertThat(userRepository.existsByPhone("+251911111111")).isTrue();
+        assertThat(userRepository.existsByPhone("+251922222222")).isFalse();
     }
 
     @Test
-    void enforcesUniqueEmail() {
-        userRepository.saveAndFlush(new User("dup@example.com", "h", "A"));
+    void enforcesUniquePhone() {
+        userRepository.saveAndFlush(new User("+251933333333", "h", "A", "en"));
 
-        assertThatThrownBy(() -> userRepository.saveAndFlush(new User("dup@example.com", "h", "B")))
+        assertThatThrownBy(() ->
+                userRepository.saveAndFlush(new User("+251933333333", "h", "B", "en")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    void assignsIdAndDefaultRole() {
-        User saved = userRepository.saveAndFlush(new User("role@example.com", "h", "R"));
+    void assignsIdAndDefaultsForRoleAndLockoutFields() {
+        User saved = userRepository.saveAndFlush(new User("+251944444444", "h", "R", "am"));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getRole()).isEqualTo("PATIENT");
+        assertThat(saved.getPreferredLanguage()).isEqualTo("am");
+        assertThat(saved.getFailedLoginAttempts()).isZero();
+        assertThat(saved.getLockedUntil()).isNull();
     }
 }
