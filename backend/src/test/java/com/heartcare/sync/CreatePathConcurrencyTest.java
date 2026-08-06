@@ -1,6 +1,7 @@
 package com.heartcare.sync;
 
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.heartcare.activity.ActivityService;
 import com.heartcare.activity.dto.ActivityLogRequest;
 import com.heartcare.medication.DoseLogService;
@@ -41,8 +42,8 @@ class CreatePathConcurrencyTest extends AbstractIntegrationTest {
     private UUID seedUser() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
-                id, id + "@example.com", "x", "Test User");
+                "INSERT INTO users (id, phone, pin_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
+                id, TestUsers.nextPhone(), "x", "Test User");
         return id;
     }
 
