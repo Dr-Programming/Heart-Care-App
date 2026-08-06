@@ -173,9 +173,11 @@ class AuthServiceTest {
         ReflectionTestUtils.setField(user, "failedLoginAttempts", 4);
         when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
 
+        // hasMessageEndingWith, not hasMessageContaining: "15 minute" would also match "115
+        // minutes", which is not what this test is meant to catch.
         assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "9999")))
                 .isInstanceOf(AccountLockedException.class)
-                .hasMessageContaining("15 minute");
+                .hasMessageEndingWith("in 15 minutes.");
 
         verify(userRepository).recordFailedAttempt(eq(user.getId()), eq(5), any(OffsetDateTime.class));
     }
@@ -188,9 +190,11 @@ class AuthServiceTest {
         when(userRepository.findByPhone(PHONE)).thenReturn(Optional.of(user));
 
         // Even the CORRECT pin is refused while locked — that is what makes the lock a limit.
+        // hasMessageEndingWith, not hasMessageContaining: "9 minute" would also match "19
+        // minutes".
         assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "1234")))
                 .isInstanceOf(AccountLockedException.class)
-                .hasMessageContaining("9 minute");
+                .hasMessageEndingWith("in 9 minutes.");
 
         verify(userRepository, never()).recordFailedAttempt(any(), anyInt(), any());
     }

@@ -146,6 +146,16 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    // This is the only test in the suite that would catch @Transactional(noRollbackFor = ...)
+    // being deleted from AuthService.login: every AuthServiceTest case mocks the repository, so
+    // there is no real transaction to roll back and the counter assertions pass either way. Here
+    // the failure count is persisted for real, so if the rollback swallowed the increments this
+    // test would never see attempt 5 return 423. Keep both in sync — do not "simplify" either.
+    //
+    // This test is also the one that pins application.yml's duration-minutes value: it asserts
+    // "15 minutes" appears in the lock response, so a wrong config value (e.g. 150) fails here
+    // even though every other test either hardcodes 15 into the service directly or never checks
+    // the minute count at all.
     @Test
     void fiveWrongPinsLockTheAccountAndTheCorrectPinIsThenRefused() throws Exception {
         String phone = TestUsers.nextPhone();
@@ -163,13 +173,17 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        // The fifth failure trips the lock, and says so rather than repeating "invalid".
+        // The fifth failure trips the lock, and says so rather than repeating "invalid". Asserting
+        // "15 minutes" (not just "Too many failed attempts") is what proves the configured
+        // app.auth.lockout.duration-minutes value actually reached the response.
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON).content(wrongPin))
                 .andExpect(status().isLocked())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(
-                        org.hamcrest.Matchers.containsString("Too many failed attempts")));
+                        org.hamcrest.Matchers.containsString("Too many failed attempts")))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("15 minutes")));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)

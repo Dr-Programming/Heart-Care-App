@@ -77,6 +77,14 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException(INVALID_CREDENTIALS));
 
         OffsetDateTime now = OffsetDateTime.now();
+        // Snapshot taken before the atomic UPDATE runs, so it can be stale under concurrency: if
+        // several wrong-PIN requests race in, each reads the same pre-increment count and each
+        // may compute "this isn't attempt 5 yet" even though the DB's atomic increments correctly
+        // reach and stamp the lock. Worst case, a caller sees one extra 401 instead of a 423 on
+        // the request that actually trips the lock — the lock itself is still applied correctly
+        // (recordFailedAttempt is atomic), so security is unaffected; only this response's status
+        // code can lag by one attempt. Do not "fix" this by re-reading after the UPDATE — that
+        // reintroduces the read-modify-write race this design avoids.
         int priorAttempts = user.getFailedLoginAttempts();
         boolean counterAlreadyCleared = false;
 
