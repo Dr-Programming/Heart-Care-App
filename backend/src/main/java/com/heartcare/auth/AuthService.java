@@ -19,6 +19,12 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
+    /**
+     * One message for both "no such phone" and "wrong PIN". Anything more specific would turn
+     * login into an account-enumeration oracle.
+     */
+    static final String INVALID_CREDENTIALS = "Invalid phone or PIN";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
@@ -33,41 +39,51 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new ConflictException("Email already registered");
+        if (userRepository.existsByPhone(request.phone())) {
+            throw new ConflictException("Phone already registered");
         }
         User user = new User(
-                request.email(),
-                passwordEncoder.encode(request.password()),
-                request.fullName());
+                request.phone(),
+                passwordEncoder.encode(request.pin()),
+                request.name(),
+                request.preferredLanguage());
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException("Email already registered");
+            // Two registrations for the same phone racing past the existsByPhone check.
+            throw new ConflictException("Phone already registered");
         }
-        String token = tokenProvider.generateToken(user.getId(), user.getRole());
-        return new AuthResponse(token, user.getId().toString(), user.getRole());
+        return authResponseFor(user);
     }
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new UnauthorizedException("Invalid email or password");
+        User user = userRepository.findByPhone(request.phone())
+                .orElseThrow(() -> new UnauthorizedException(INVALID_CREDENTIALS));
+        if (!passwordEncoder.matches(request.pin(), user.getPinHash())) {
+            throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
-        String token = tokenProvider.generateToken(user.getId(), user.getRole());
-        return new AuthResponse(token, user.getId().toString(), user.getRole());
+        return authResponseFor(user);
     }
 
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return toUserResponse(user);
+    }
+
+    private AuthResponse authResponseFor(User user) {
+        String token = tokenProvider.generateToken(user.getId(), user.getRole());
+        return new AuthResponse(token, toUserResponse(user));
+    }
+
+    private UserResponse toUserResponse(User user) {
         return new UserResponse(
                 user.getId().toString(),
                 user.getFullName(),
-                user.getEmail(),
+                user.getPhone(),
+                user.getPreferredLanguage(),
                 user.getRole());
     }
 }
