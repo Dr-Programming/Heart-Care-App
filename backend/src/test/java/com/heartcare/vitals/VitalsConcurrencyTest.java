@@ -1,6 +1,7 @@
 package com.heartcare.vitals;
 
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.heartcare.vitals.dto.VitalLogRequest;
 import com.heartcare.vitals.dto.VitalLogResponse;
 import com.heartcare.vitals.model.VitalType;
@@ -32,8 +33,8 @@ class VitalsConcurrencyTest extends AbstractIntegrationTest {
     private UUID seedUser() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
-                id, id + "@example.com", "x", "Test User");
+                "INSERT INTO users (id, phone, pin_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
+                id, TestUsers.nextPhone(), "x", "Test User");
         return id;
     }
 
