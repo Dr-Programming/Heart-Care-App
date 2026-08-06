@@ -145,4 +145,65 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void fiveWrongPinsLockTheAccountAndTheCorrectPinIsThenRefused() throws Exception {
+        String phone = TestUsers.nextPhone();
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegisterRequest(phone, "1234", "Abebe", "en"))))
+                .andExpect(status().isOk());
+
+        String wrongPin = objectMapper.writeValueAsString(new LoginRequest(phone, "9999"));
+
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(APPLICATION_JSON).content(wrongPin))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        // The fifth failure trips the lock, and says so rather than repeating "invalid".
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON).content(wrongPin))
+                .andExpect(status().isLocked())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("Too many failed attempts")));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                .andExpect(status().isLocked());
+    }
+
+    @Test
+    void aSuccessfulLoginClearsTheFailureStreak() throws Exception {
+        String phone = TestUsers.nextPhone();
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegisterRequest(phone, "1234", "Abebe", "en"))))
+                .andExpect(status().isOk());
+
+        String wrongPin = objectMapper.writeValueAsString(new LoginRequest(phone, "9999"));
+        String rightPin = objectMapper.writeValueAsString(new LoginRequest(phone, "1234"));
+
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(APPLICATION_JSON).content(wrongPin))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON).content(rightPin))
+                .andExpect(status().isOk());
+
+        // Streak cleared: four more failures must not lock, because the counter restarted.
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(APPLICATION_JSON).content(wrongPin))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
 }
