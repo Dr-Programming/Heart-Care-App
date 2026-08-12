@@ -1,6 +1,7 @@
 package com.heartcare.symptoms;
 
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.heartcare.symptoms.model.Severity;
 import com.heartcare.symptoms.model.SymptomLog;
 import org.junit.jupiter.api.Test;
@@ -24,8 +25,8 @@ class SymptomsRepositoryTest extends AbstractIntegrationTest {
     private UUID seedUser() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
-                id, id + "@example.com", "x", "Test User");
+                "INSERT INTO users (id, phone, pin_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
+                id, TestUsers.nextPhone(), "x", "Test User");
         return id;
     }
 

@@ -12,11 +12,14 @@ migration; add a new `V#__description.sql`.
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID PK | `gen_random_uuid()` default; assigned by app (Hibernate UUID strategy) |
-| email | VARCHAR(255) UNIQUE NOT NULL | login identifier |
-| password_hash | VARCHAR(255) NOT NULL | BCrypt hash |
+| email | VARCHAR(255) UNIQUE NOT NULL | login identifier — **dropped by V8** |
+| password_hash | VARCHAR(255) NOT NULL | BCrypt hash — **dropped by V8** |
 | full_name | VARCHAR(255) NOT NULL | |
 | role | VARCHAR(20) NOT NULL | default `PATIENT`; retained for forward-compat, only `PATIENT` written |
 | created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+> V8 replaced the email+password identity columns with phone+PIN. For the current shape of
+> `users`, read this table together with [V8](#v8--phone_pin_auth) below.
 
 ### V2 — `create_patient_profiles`
 `patient_profiles` table: one row per patient (1:1 with `users`). `user_id` is both PK and FK to `users(id)` (`ON DELETE CASCADE`, so the profile is deleted with its user). JSONB columns: `comorbidities` (string array) and `goals` (BP/cholesterol/steps/weight/diet object).
@@ -130,11 +133,47 @@ Index: `idx_activity_user_measured` on `(user_id, measured_at)`. Unique constrai
 
 ### Slice 7 — Sync engine: no migration
 
-`POST /api/v1/sync` (Slice 7) added **no `V8__` migration**. It reuses the `UNIQUE (user_id,
+`POST /api/v1/sync` (Slice 7) added **no migration of its own**. It reuses the `UNIQUE (user_id,
 client_record_id)` constraint already present on `medications`, `dose_logs`, `vitals_logs`,
-`symptom_logs`, and `activity_logs` (V3–V7 above) as its entire deduplication mechanism.
+`symptom_logs`, and `activity_logs` (V3–V7 above) as its entire deduplication mechanism. (`V8`
+below belongs to the later auth rework, not to sync.)
 
 `sync_queue` is **not** a PostgreSQL table. It is a device-side Drift/SQLite table tracking what
 a given phone still owes the server (`PENDING` / `SYNCING` / `SYNCED`) — inherently local state,
 since a second device would have a different queue for the same patient. See
 `docs/design/2026-07-17-sync-design.md`, Decision 1.
+
+### V8 — `phone_pin_auth`
+
+Swaps the identity columns on `users`: email+password out, phone + 4-digit PIN in, plus the two
+columns that back the login lockout. No other table changes.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| phone | VARCHAR(20) UNIQUE NOT NULL | login identifier; `+251` + 9 digits (`users_phone_key`) |
+| pin_hash | VARCHAR(255) NOT NULL | BCrypt hash of the 4-digit PIN |
+| preferred_language | VARCHAR(2) NOT NULL | default `en`; `en` / `am` |
+| failed_login_attempts | INTEGER NOT NULL | default `0`; consecutive failures, cleared on success |
+| locked_until | TIMESTAMPTZ | nullable; while in the future, login returns `423` |
+
+Dropped: `email`, `password_hash`.
+
+The migration **truncates `users` first**, cascading to every log table. This is not incidental:
+`phone` is `UNIQUE NOT NULL` and no phone number was ever collected, so no backfill value exists.
+The app was pre-release with no production users when V8 was written; any local or Railway dev
+data is lost on upgrade and must be re-registered.
+
+> The migration's own comment credits the log tables' `ON DELETE CASCADE` clauses for making that
+> work. That reasoning is wrong, though the effect is right: `TRUNCATE ... CASCADE` truncates every
+> referencing table regardless of the foreign key's `ON DELETE` action, and would have done so even
+> against `RESTRICT` keys. The comment is left as-is because editing an applied migration changes
+> its Flyway checksum and breaks validation on every database that already ran it — the correction
+> lives here instead.
+
+⚠️ **`preferred_language` is duplicated and the two copies can diverge.** It now exists on both
+`users` (V8, set at registration) and `patient_profiles` (V2). Auth reads and returns the `users`
+copy; `PUT /api/v1/patients/me` writes the `patient_profiles` copy. Nothing reconciles them, and
+**no endpoint updates the `users` copy at all**, so it is effectively write-once. The column types
+also differ — `users.preferred_language` is `VARCHAR(2)`, `patient_profiles.preferred_language` is
+`VARCHAR(5)`. This needs resolving before the mobile app ships a language toggle; see `API.md`
+under `GET /api/v1/auth/me`.

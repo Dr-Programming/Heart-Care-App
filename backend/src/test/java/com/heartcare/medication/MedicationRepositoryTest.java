@@ -1,6 +1,7 @@
 package com.heartcare.medication;
 
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.heartcare.medication.model.DoseLog;
 import com.heartcare.medication.model.DoseStatus;
 import com.heartcare.medication.model.Frequency;
@@ -32,8 +33,8 @@ class MedicationRepositoryTest extends AbstractIntegrationTest {
     private UUID seedUser() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
-                id, id + "@example.com", "x", "Test User");
+                "INSERT INTO users (id, phone, pin_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
+                id, TestUsers.nextPhone(), "x", "Test User");
         return id;
     }
 

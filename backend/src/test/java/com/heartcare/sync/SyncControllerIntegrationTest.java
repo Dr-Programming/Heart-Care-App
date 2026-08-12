@@ -3,6 +3,7 @@ package com.heartcare.sync;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,9 +41,10 @@ class SyncControllerIntegrationTest extends AbstractIntegrationTest {
      */
     private String registerAndGetToken() throws Exception {
         ObjectNode body = objectMapper.createObjectNode();
-        body.put("fullName", "Abebe");
-        body.put("email", UUID.randomUUID() + "@example.com");
-        body.put("password", "password1");
+        body.put("phone", TestUsers.nextPhone());
+        body.put("pin", "1234");
+        body.put("name", "Abebe");
+        body.put("preferredLanguage", "en");
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(APPLICATION_JSON).content(body.toString()))
                 .andExpect(status().isOk())
