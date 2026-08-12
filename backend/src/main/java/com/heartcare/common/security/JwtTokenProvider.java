@@ -19,9 +19,20 @@ public class JwtTokenProvider {
     private final SecretKey key;
     private final long expirationMs;
 
+    /** HS256 requires a key of at least 256 bits; jjwt enforces this too, less legibly. */
+    private static final int MIN_SECRET_BYTES = 32;
+
     public JwtTokenProvider(
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.expiration-ms}") long expirationMs) {
+        // Fail at startup rather than signing real tokens with a guessable key. Spring already
+        // refuses to start when JWT_SECRET is unset (no profile supplies a default), so this
+        // catches the remaining case: a secret that is set but too short to be worth anything.
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "app.jwt.secret must be at least " + MIN_SECRET_BYTES + " bytes; "
+                            + "generate one with: openssl rand -base64 48");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }

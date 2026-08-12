@@ -1,6 +1,7 @@
 package com.heartcare.vitals;
 
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.patient.PatientProfileRepository;
 import com.heartcare.patient.model.PatientProfile;
 import com.heartcare.vitals.dto.VitalLogRequest;
@@ -26,6 +27,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,13 +41,19 @@ class VitalsServiceTest {
     @Mock
     PatientProfileRepository profileRepository;
 
+    @Mock
+    IdempotentSaver saver;
+
     VitalsService service;
 
     private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        service = new VitalsService(vitalsRepository, profileRepository, new VitalThresholds());
+        service = new VitalsService(vitalsRepository, profileRepository, new VitalThresholds(), saver);
+        // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
+        // saved, mirroring a successful (non-racing) insert.
+        lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
     }
 
     private VitalLogRequest request(VitalType type, Map<String, BigDecimal> values, UUID crid) {
@@ -62,8 +70,6 @@ class VitalsServiceTest {
 
     @Test
     void logComputesFlaggedTrueForHighBp() {
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
-
         VitalLogResponse response = service.log(userId,
                 request(VitalType.BLOOD_PRESSURE, values("systolic", 190, "diastolic", 100), null));
 
@@ -72,8 +78,6 @@ class VitalsServiceTest {
 
     @Test
     void logComputesFlaggedFalseForNormalGlucose() {
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
-
         VitalLogResponse response = service.log(userId,
                 request(VitalType.GLUCOSE, values("glucose", "5.5"), null));
 
@@ -85,7 +89,6 @@ class VitalsServiceTest {
         PatientProfile profile = new PatientProfile(userId);
         profile.setHeightCm(170);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
         VitalLogResponse response = service.log(userId,
                 request(VitalType.WEIGHT, values("weight", 72), null));
@@ -97,7 +100,6 @@ class VitalsServiceTest {
     @Test
     void logOmitsBmiWhenNoHeight() {
         when(profileRepository.findById(userId)).thenReturn(Optional.empty());
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
         VitalLogResponse response = service.log(userId,
                 request(VitalType.WEIGHT, values("weight", 72), null));
@@ -108,8 +110,6 @@ class VitalsServiceTest {
 
     @Test
     void logDefaultsMeasuredAtWhenNull() {
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
-
         VitalLogResponse response = service.log(userId,
                 request(VitalType.HEART_RATE, values("heartRate", 70), null));
 
@@ -130,7 +130,7 @@ class VitalsServiceTest {
                 request(VitalType.GLUCOSE, values("glucose", "9.9"), crid));
 
         assertThat(response.values().get("glucose")).isEqualByComparingTo("5.0");
-        verify(vitalsRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
@@ -138,7 +138,6 @@ class VitalsServiceTest {
         PatientProfile profile = new PatientProfile(userId);
         profile.setHeightCm(170);
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
         VitalLogResponse response = service.log(userId,
                 request(VitalType.WEIGHT, values("weight", 72, "bmi", "999"), null));
@@ -152,7 +151,7 @@ class VitalsServiceTest {
         assertThatThrownBy(() -> service.log(userId,
                 request(VitalType.BLOOD_PRESSURE, values("systolic", 120), null)))
                 .isInstanceOf(BadRequestException.class);
-        verify(vitalsRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
@@ -160,12 +159,11 @@ class VitalsServiceTest {
         assertThatThrownBy(() -> service.log(userId,
                 request(VitalType.BLOOD_PRESSURE, values("systolic", 120, "diastolic", 80, "extra", 1), null)))
                 .isInstanceOf(BadRequestException.class);
-        verify(vitalsRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
     void logAcceptsCholesterolWithThreeKeys() {
-        when(vitalsRepository.save(any(VitalLog.class))).thenAnswer(inv -> inv.getArgument(0));
         VitalLogResponse response = service.log(userId,
                 request(VitalType.CHOLESTEROL, values("ldl", "3.0", "hdl", "1.5", "total", "5.0"), null));
         assertThat(response.type()).isEqualTo(VitalType.CHOLESTEROL);

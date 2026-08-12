@@ -1,6 +1,7 @@
 package com.heartcare.medication;
 
 import com.heartcare.common.exception.ResourceNotFoundException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.medication.dto.MedicationRequest;
 import com.heartcare.medication.dto.MedicationResponse;
 import com.heartcare.medication.model.Medication;
@@ -9,31 +10,39 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class MedicationService {
 
     private final MedicationRepository repository;
+    private final IdempotentSaver saver;
 
-    public MedicationService(MedicationRepository repository) {
+    public MedicationService(MedicationRepository repository, IdempotentSaver saver) {
         this.repository = repository;
+        this.saver = saver;
     }
 
-    @Transactional
+    // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
     public MedicationResponse create(UUID userId, MedicationRequest request) {
-        if (request.clientRecordId() != null) {
-            var existing = repository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
-            if (existing.isPresent()) {
-                return toResponse(existing.get());
-            }
+        Supplier<Optional<Medication>> finder = () -> request.clientRecordId() == null
+                ? Optional.empty()
+                : repository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
+
+        var existing = finder.get();
+        if (existing.isPresent()) {
+            return toResponse(existing.get());
         }
+
         Medication medication = new Medication();
         medication.setUserId(userId);
         medication.setClientRecordId(request.clientRecordId());
         applyEditableFields(medication, request);
         medication.setActive(request.active() == null || request.active());
-        return toResponse(repository.save(medication));
+
+        return toResponse(saver.saveOrGetExisting(repository, finder, medication));
     }
 
     @Transactional(readOnly = true)

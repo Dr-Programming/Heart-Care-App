@@ -35,16 +35,34 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             String token = header.substring(BEARER_PREFIX.length());
             if (tokenProvider.validateToken(token)) {
-                UUID userId = UUID.fromString(tokenProvider.getUserId(token));
-                String role = tokenProvider.getRole(token);
-                UserPrincipal principal = new UserPrincipal(userId, role);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                principal, null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                authenticate(token);
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * A signature-valid token can still carry unusable claims (non-UUID subject, absent role).
+     * Leaving the context unauthenticated yields a clean 401 from the entry point; letting the
+     * parse failure escape a filter would bypass GlobalExceptionHandler and surface a container
+     * error page instead.
+     */
+    private void authenticate(String token) {
+        UUID userId;
+        try {
+            userId = UUID.fromString(tokenProvider.getUserId(token));
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            return;
+        }
+        String role = tokenProvider.getRole(token);
+        if (role == null || role.isBlank()) {
+            return;
+        }
+        UserPrincipal principal = new UserPrincipal(userId, role);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        principal, null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

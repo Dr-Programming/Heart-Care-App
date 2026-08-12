@@ -1,6 +1,7 @@
 package com.heartcare.symptoms;
 
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.symptoms.dto.SymptomLogRequest;
 import com.heartcare.symptoms.dto.SymptomLogResponse;
 import com.heartcare.symptoms.model.SymptomLog;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,13 +34,19 @@ class SymptomsServiceTest {
     @Mock
     SymptomsRepository symptomsRepository;
 
+    @Mock
+    IdempotentSaver saver;
+
     SymptomsService service;
 
     private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        service = new SymptomsService(symptomsRepository, new SymptomAssessment());
+        service = new SymptomsService(symptomsRepository, new SymptomAssessment(), saver);
+        // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
+        // saved, mirroring a successful (non-racing) insert.
+        lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
     }
 
     private static Map<String, Object> benignData() {
@@ -58,7 +66,6 @@ class SymptomsServiceTest {
 
     @Test
     void logComputesAssessmentAndOverall() {
-        when(symptomsRepository.save(any(SymptomLog.class))).thenAnswer(inv -> inv.getArgument(0));
         Map<String, Object> data = benignData();
         data.put("chestPain", Map.of("present", true, "severity", 9));
 
@@ -72,18 +79,15 @@ class SymptomsServiceTest {
 
     @Test
     void logPersistsOverallSeverityColumn() {
-        when(symptomsRepository.save(any(SymptomLog.class))).thenAnswer(inv -> {
-            SymptomLog saved = inv.getArgument(0);
-            assertThat(saved.getOverallSeverity().name()).isEqualTo("NONE");
-            return saved;
-        });
         service.log(userId, request(benignData(), null));
-        verify(symptomsRepository).save(any(SymptomLog.class));
+
+        org.mockito.ArgumentCaptor<SymptomLog> captor = org.mockito.ArgumentCaptor.forClass(SymptomLog.class);
+        verify(saver).saveOrGetExisting(any(), any(), captor.capture());
+        assertThat(captor.getValue().getOverallSeverity().name()).isEqualTo("NONE");
     }
 
     @Test
     void logDefaultsMeasuredAtWhenNull() {
-        when(symptomsRepository.save(any(SymptomLog.class))).thenAnswer(inv -> inv.getArgument(0));
         SymptomLogResponse response = service.log(userId, request(benignData(), null));
         assertThat(response.measuredAt()).isNotNull();
     }
@@ -102,7 +106,7 @@ class SymptomsServiceTest {
         SymptomLogResponse response = service.log(userId, request(benignData(), crid));
 
         assertThat(response.assessment().get("overall")).isEqualTo("MONITOR");
-        verify(symptomsRepository, never()).save(any());
+        verify(saver, never()).saveOrGetExisting(any(), any(), any());
     }
 
     @Test
