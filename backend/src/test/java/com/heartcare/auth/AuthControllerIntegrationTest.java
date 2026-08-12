@@ -153,9 +153,10 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     // test would never see attempt 5 return 423. Keep both in sync — do not "simplify" either.
     //
     // This test is also the one that pins application.yml's duration-minutes value: it asserts
-    // "15 minutes" appears in the lock response, so a wrong config value (e.g. 150) fails here
-    // even though every other test either hardcodes 15 into the service directly or never checks
-    // the minute count at all.
+    // the message ends with the exact text "in 15 minutes." (not a substring match — "15 minutes"
+    // would still match "115 minutes" or "215 minutes"), so any wrong config value fails here even
+    // though every other test either hardcodes 15 into the service directly or never checks the
+    // minute count at all.
     @Test
     void fiveWrongPinsLockTheAccountAndTheCorrectPinIsThenRefused() throws Exception {
         String phone = TestUsers.nextPhone();
@@ -173,9 +174,11 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        // The fifth failure trips the lock, and says so rather than repeating "invalid". Asserting
-        // "15 minutes" (not just "Too many failed attempts") is what proves the configured
-        // app.auth.lockout.duration-minutes value actually reached the response.
+        // The fifth failure trips the lock, and says so rather than repeating "invalid". The
+        // second assertion below must be an exact-tail match, not containsString: "15 minutes" as
+        // a substring would still match "115 minutes" or "215 minutes", silently passing a wrong
+        // app.auth.lockout.duration-minutes value. endsWith("in 15 minutes.") cannot match any
+        // duration other than 15.
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON).content(wrongPin))
                 .andExpect(status().isLocked())
@@ -183,7 +186,7 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value(
                         org.hamcrest.Matchers.containsString("Too many failed attempts")))
                 .andExpect(jsonPath("$.message").value(
-                        org.hamcrest.Matchers.containsString("15 minutes")));
+                        org.hamcrest.Matchers.endsWith("in 15 minutes.")));
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(APPLICATION_JSON)
