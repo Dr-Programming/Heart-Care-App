@@ -12,11 +12,14 @@ migration; add a new `V#__description.sql`.
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID PK | `gen_random_uuid()` default; assigned by app (Hibernate UUID strategy) |
-| email | VARCHAR(255) UNIQUE NOT NULL | login identifier |
-| password_hash | VARCHAR(255) NOT NULL | BCrypt hash |
+| email | VARCHAR(255) UNIQUE NOT NULL | login identifier — **dropped by V8** |
+| password_hash | VARCHAR(255) NOT NULL | BCrypt hash — **dropped by V8** |
 | full_name | VARCHAR(255) NOT NULL | |
 | role | VARCHAR(20) NOT NULL | default `PATIENT`; retained for forward-compat, only `PATIENT` written |
 | created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+
+> V8 replaced the email+password identity columns with phone+PIN. For the current shape of
+> `users`, read this table together with [V8](#v8--phone_pin_auth) below.
 
 ### V2 — `create_patient_profiles`
 `patient_profiles` table: one row per patient (1:1 with `users`). `user_id` is both PK and FK to `users(id)` (`ON DELETE CASCADE`, so the profile is deleted with its user). JSONB columns: `comorbidities` (string array) and `goals` (BP/cholesterol/steps/weight/diet object).
@@ -130,11 +133,35 @@ Index: `idx_activity_user_measured` on `(user_id, measured_at)`. Unique constrai
 
 ### Slice 7 — Sync engine: no migration
 
-`POST /api/v1/sync` (Slice 7) added **no `V8__` migration**. It reuses the `UNIQUE (user_id,
+`POST /api/v1/sync` (Slice 7) added **no migration of its own**. It reuses the `UNIQUE (user_id,
 client_record_id)` constraint already present on `medications`, `dose_logs`, `vitals_logs`,
-`symptom_logs`, and `activity_logs` (V3–V7 above) as its entire deduplication mechanism.
+`symptom_logs`, and `activity_logs` (V3–V7 above) as its entire deduplication mechanism. (`V8`
+below belongs to the later auth rework, not to sync.)
 
 `sync_queue` is **not** a PostgreSQL table. It is a device-side Drift/SQLite table tracking what
 a given phone still owes the server (`PENDING` / `SYNCING` / `SYNCED`) — inherently local state,
 since a second device would have a different queue for the same patient. See
 `docs/design/2026-07-17-sync-design.md`, Decision 1.
+
+### V8 — `phone_pin_auth`
+
+Swaps the identity columns on `users`: email+password out, phone + 4-digit PIN in, plus the two
+columns that back the login lockout. No other table changes.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| phone | VARCHAR(20) UNIQUE NOT NULL | login identifier; `+251` + 9 digits (`users_phone_key`) |
+| pin_hash | VARCHAR(255) NOT NULL | BCrypt hash of the 4-digit PIN |
+| preferred_language | VARCHAR(2) NOT NULL | default `en`; `en` / `am` |
+| failed_login_attempts | INTEGER NOT NULL | default `0`; consecutive failures, cleared on success |
+| locked_until | TIMESTAMPTZ | nullable; while in the future, login returns `423` |
+
+Dropped: `email`, `password_hash`.
+
+The migration **truncates `users` first**, cascading to every log table. This is not incidental:
+`phone` is `UNIQUE NOT NULL` and no phone number was ever collected, so no backfill value exists.
+The app was pre-release with no production users when V8 was written; any local or Railway dev
+data is lost on upgrade and must be re-registered.
+
+`preferred_language` now exists on both `users` (set at registration, drives the app's UI language)
+and `patient_profiles` (V2). The `users` copy is the one auth reads and returns.

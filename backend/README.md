@@ -34,6 +34,7 @@ mvn test
 | 5 | Symptoms (daily check-in: chest pain/SOB/HR/BP/swelling/energy, server-computed severity assessment, JSONB data) | ✅ Done |
 | 6 | Activity (log physical-activity sessions: type/duration/intensity + optional steps/distance, JSONB data) | ✅ Done |
 | 7 | Sync engine (batched offline sync, `POST /api/v1/sync`, per-record SAVED/DUPLICATE/CONFLICT/REJECTED outcomes) | ✅ Done |
+| 8 | Phone+PIN auth rework (`+251…` phone + 4-digit PIN replaces email+password, `V8`, 5-try/15-min account lockout closing SecurityReview M-1) | ✅ Done |
 
 ## Documentation
 - [API reference](docs/API.md)
