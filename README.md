@@ -32,5 +32,5 @@ The current scope is **patient-only**. A clinician role, real-time alerting, and
 
 Early development.
 
-- **Backend:** the authentication foundation (Spring Boot 4.1 · PostgreSQL · Flyway · JWT — patient register/login/`me`) is implemented and tested. See [`backend/README.md`](./backend/README.md) for build/run instructions and slice-by-slice progress.
-- **Mobile:** the Flutter app has not been started yet.
+- **Backend:** all 7 slices (auth, patient profile, medications & dose logs, vitals, symptoms, activity, offline sync) are implemented and tested. See [`backend/README.md`](./backend/README.md) for build/run instructions and slice-by-slice progress.
+- **Mobile:** not yet built, but the first slice — **Foundation & Auth** — is designed and approved (`docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md`). Stack decided: Flutter · Riverpod · go_router · Drift · Dio. Auth moves to phone + 4-digit PIN (see [`docs/frontend-decisions.md`](./docs/frontend-decisions.md)).

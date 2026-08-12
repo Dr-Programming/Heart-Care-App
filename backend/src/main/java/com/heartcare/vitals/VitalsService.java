@@ -1,6 +1,7 @@
 package com.heartcare.vitals;
 
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.patient.PatientProfileRepository;
 import com.heartcare.patient.model.PatientProfile;
 import com.heartcare.vitals.dto.VitalLogRequest;
@@ -18,8 +19,10 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class VitalsService {
@@ -49,22 +52,29 @@ public class VitalsService {
     private final VitalsRepository vitalsRepository;
     private final PatientProfileRepository profileRepository;
     private final VitalThresholds thresholds;
+    private final IdempotentSaver saver;
 
     public VitalsService(VitalsRepository vitalsRepository,
                          PatientProfileRepository profileRepository,
-                         VitalThresholds thresholds) {
+                         VitalThresholds thresholds,
+                         IdempotentSaver saver) {
         this.vitalsRepository = vitalsRepository;
         this.profileRepository = profileRepository;
         this.thresholds = thresholds;
+        this.saver = saver;
     }
 
-    @Transactional
+    // Deliberately NOT @Transactional: the insert runs in IdempotentWriter's REQUIRES_NEW
+    // transaction so a UNIQUE violation can be caught and recovered by IdempotentSaver (design §8).
     public VitalLogResponse log(UUID userId, VitalLogRequest request) {
-        if (request.clientRecordId() != null) {
-            var existing = vitalsRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
-            if (existing.isPresent()) {
-                return toResponse(existing.get());
-            }
+        // Empty when there is no idempotency key: nothing to recover to, so a violation propagates.
+        Supplier<Optional<VitalLog>> finder = () -> request.clientRecordId() == null
+                ? Optional.empty()
+                : vitalsRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
+
+        var existing = finder.get();
+        if (existing.isPresent()) {
+            return toResponse(existing.get());
         }
 
         Map<String, BigDecimal> values = validateAndClean(request.type(), request.values());
@@ -87,7 +97,8 @@ public class VitalsService {
                 ? OffsetDateTime.now(ZoneOffset.UTC) : request.measuredAt());
         vital.setNote(request.note());
         vital.setClientRecordId(request.clientRecordId());
-        return toResponse(vitalsRepository.save(vital));
+
+        return toResponse(saver.saveOrGetExisting(vitalsRepository, finder, vital));
     }
 
     @Transactional(readOnly = true)

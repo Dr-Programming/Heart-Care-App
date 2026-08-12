@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtTokenProviderTest {
 
@@ -36,6 +37,19 @@ class JwtTokenProviderTest {
         String token = expiredProvider.generateToken(UUID.randomUUID(), "PATIENT");
 
         assertThat(expiredProvider.validateToken(token)).isFalse();
+    }
+
+    @Test
+    void refusesToStartWithSecretShorterThan32Bytes() {
+        assertThatThrownBy(() -> new JwtTokenProvider("too-short", 604800000L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("at least 32 bytes");
+    }
+
+    @Test
+    void refusesToStartWithNullSecret() {
+        assertThatThrownBy(() -> new JwtTokenProvider(null, 604800000L))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

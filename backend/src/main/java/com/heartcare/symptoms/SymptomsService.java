@@ -1,6 +1,7 @@
 package com.heartcare.symptoms;
 
 import com.heartcare.common.exception.BadRequestException;
+import com.heartcare.common.persistence.IdempotentSaver;
 import com.heartcare.symptoms.SymptomAssessment.Assessment;
 import com.heartcare.symptoms.dto.SymptomLogRequest;
 import com.heartcare.symptoms.dto.SymptomLogResponse;
@@ -14,8 +15,10 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class SymptomsService {
@@ -32,19 +35,24 @@ public class SymptomsService {
 
     private final SymptomsRepository symptomsRepository;
     private final SymptomAssessment assessment;
+    private final IdempotentSaver saver;
 
-    public SymptomsService(SymptomsRepository symptomsRepository, SymptomAssessment assessment) {
+    public SymptomsService(SymptomsRepository symptomsRepository, SymptomAssessment assessment,
+                            IdempotentSaver saver) {
         this.symptomsRepository = symptomsRepository;
         this.assessment = assessment;
+        this.saver = saver;
     }
 
-    @Transactional
+    // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
     public SymptomLogResponse log(UUID userId, SymptomLogRequest request) {
-        if (request.clientRecordId() != null) {
-            var existing = symptomsRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
-            if (existing.isPresent()) {
-                return toResponse(existing.get());
-            }
+        Supplier<Optional<SymptomLog>> finder = () -> request.clientRecordId() == null
+                ? Optional.empty()
+                : symptomsRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
+
+        var existing = finder.get();
+        if (existing.isPresent()) {
+            return toResponse(existing.get());
         }
 
         Map<String, Object> data = validate(request.data());
@@ -59,7 +67,8 @@ public class SymptomsService {
                 ? OffsetDateTime.now(ZoneOffset.UTC) : request.measuredAt());
         log.setNote(request.note());
         log.setClientRecordId(request.clientRecordId());
-        return toResponse(symptomsRepository.save(log));
+
+        return toResponse(saver.saveOrGetExisting(symptomsRepository, finder, log));
     }
 
     @Transactional(readOnly = true)
