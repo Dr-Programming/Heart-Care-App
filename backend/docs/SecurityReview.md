@@ -4,7 +4,7 @@
 **Scope:** `backend/` — all 7 merged slices (auth, patient, medication, vitals, symptoms, activity, sync), Flyway migrations V1–V7, Spring config, `docker-compose.yml`. `mobile/` has no source and was not reviewed.
 **Method:** Manual read of every controller, service, repository, DTO, entity, security component, and migration. No dynamic testing.
 
-**Remediation pass:** 2026-07-19 — H-1, M-4, M-5, L-3, L-4, L-5 fixed; suite green at 222 tests (215 before, 7 added). M-1 and M-2 remain open pending a decision, and are the only items now blocking a production deploy.
+**Remediation pass:** 2026-07-19 — H-1, M-4, M-5, L-3, L-4, L-5 fixed; suite green at 222 tests (215 before, 7 added). M-1 was fixed on 2026-08-06 alongside the phone+PIN auth change; M-2 (token revocation) remains open and is the only item now blocking a production deploy.
 
 ---
 
@@ -13,7 +13,7 @@
 | Severity | Count | Fixed | Open |
 |---|---|---|---|
 | High | 1 | 1 | 0 |
-| Medium | 5 | 2 | 3 |
+| Medium | 5 | 3 | 2 |
 | Low | 6 | 3 | 3 |
 | Verified good | 8 | — | — |
 
@@ -49,11 +49,53 @@ The dev datasource points at `localhost:5432`, which looks like it would prevent
 
 ## Medium
 
-### M-1 — No rate limiting or lockout on `/api/v1/auth/login` — ⚠️ OPEN (needs your call)
+### M-1 — No rate limiting or lockout on `/api/v1/auth/login` — ✅ FIXED (2026-08-06)
 
 `AuthService.login` is unthrottled. BCrypt's work factor slows an offline crack but does nothing against an online attacker pacing requests. For a health record system this is the highest-value unauthenticated endpoint. Add per-IP and per-account throttling (bucket4j, or a gateway rule).
 
 Left open deliberately: every option adds a dependency (bucket4j / Redis) or a platform rule, which is a decision about deployment shape rather than a code fix.
+
+**Fixed 2026-08-06** (`feature/phone-pin-auth`). Per-account lockout held in `users`
+(`failed_login_attempts`, `locked_until`): 5 consecutive failures → 15 minutes, cleared by any
+successful login or by the window elapsing. Configured at `app.auth.lockout.*`. The counter is
+incremented by a single atomic `UPDATE` so parallel guessing cannot lose increments, and
+`login` is annotated `noRollbackFor` so the rejection does not roll the increment back. No new
+dependency (no bucket4j, no Redis). Locked logins return `423`.
+
+This is per-account, not per-IP: it stops PIN guessing against a known phone number, which is the
+threat a 4-digit PIN creates. A distributed attack spraying one PIN across many accounts is not
+covered and needs an edge/gateway rule.
+
+The move to a 4-digit PIN (same change) is what made this urgent rather than merely advisable: the
+keyspace is 10,000, so an unthrottled endpoint would be exhaustible in minutes.
+
+**Residual risks, accepted by the owner on 2026-08-06 — the fix is not risk-free and these were
+not closed silently:**
+
+1. **`423` is an account-enumeration oracle.** A locked account answers `423` where an unregistered
+   phone answers `401`, so five deliberate wrong PINs tell an attacker whether a phone is
+   registered — defeating, for that phone, the generic `"Invalid phone or PIN"` message. Accepted
+   because registration already leaks the same fact through `409 "Phone already registered"`
+   (M-3, still open), so `423` adds no capability an attacker lacks; and because a patient who is
+   locked out needs to be told *"try again in 15 minutes"* rather than *"wrong PIN"*, which is the
+   whole point of a distinct code. Closing this properly means fixing M-3 first — at which point
+   the `423`/`401` split should be revisited in the same pass.
+
+2. **Lockout is a denial-of-service primitive.** Anyone who knows a patient's phone number can lock
+   that account for 15 minutes at will, repeatedly, and a patient locked out of a CHD app cannot
+   log a symptom or check a medication schedule. Accepted as the inherent cost of *any* per-account
+   lockout: the alternative (per-IP throttling) does not protect a 4-digit PIN against an attacker
+   who can change IP. The offline-first design blunts it — the device holds a 7-day token and its
+   own local database, so an already-logged-in patient keeps working through a lockout and the
+   attack only bites at re-login. Revisit if abuse appears in the field; the fix is an edge rule,
+   not an app change.
+
+3. **A lockout does not revoke tokens already issued.** Lockout gates `POST /auth/login` only, so a
+   session opened before the lock survives it — a stolen phone with a live token is unaffected by
+   locking the account. This is correct per the spec (the lock exists to stop *guessing*, not to
+   terminate sessions) but it means "lock the account" is not a containment action for a
+   compromised device. That gap is M-2's, not M-1's: it disappears the moment token revocation
+   exists.
 
 ### M-2 — Tokens live 7 days with no revocation path — ⚠️ OPEN (needs your call)
 
@@ -61,9 +103,13 @@ Left open deliberately: every option adds a dependency (bucket4j / Redis) or a p
 
 Left open deliberately: a refresh-token flow changes the mobile client's auth contract, and the Flutter side is unwritten — better decided together with it than retrofitted now.
 
+Raised in impact by the 2026-08-06 auth rework: the login lockout added for M-1 gates `POST /auth/login` only, so locking an account does not end sessions already open on it. Until this is fixed there is **no** way to contain a compromised device short of waiting out the 7-day token. A `token_version` claim would make both a PIN change and an account lock revoke live tokens.
+
 ### M-3 — Account enumeration on registration — ⚠️ OPEN (accepted tradeoff?)
 
-`AuthService.register:37` returns `409 "Email already registered"`. Login is correctly generic (`"Invalid email or password"` for both branches — good), but register leaks which emails have accounts. For a CHD patient app, mere account existence is sensitive. Consider a generic 202 + confirmation email, or accept the tradeoff explicitly.
+`AuthService.register` returns `409 "Phone already registered"`. Login is correctly generic (`"Invalid phone or PIN"` for both branches — good), but register leaks which phone numbers have accounts. For a CHD patient app, mere account existence is sensitive. Consider a generic 202 + an SMS confirmation step, or accept the tradeoff explicitly.
+
+Unchanged by the 2026-08-06 phone+PIN rework: the identifier is now a phone number rather than an email, but the leak is the same shape. Still open.
 
 ### M-4 — CORS allows all origins — ✅ FIXED
 
@@ -145,15 +191,14 @@ No secrets are committed: `git ls-files` turns up only `.env.example` with place
 
 Blocking a production deploy:
 
-1. **M-1 — login rate limiting.** Needs a dependency (bucket4j, or a platform/gateway rule). Pick the approach and it is a small change.
-2. **M-2 — token lifetime and revocation.** Best decided alongside the Flutter auth flow, which is unwritten; a `token_version` claim checked against the user row is the cheapest option that makes password reset meaningful.
-3. **Confirm HTTPS enforcement at the platform edge.** Not visible from this codebase and outranks everything above in impact.
+1. **M-2 — token lifetime and revocation.** Best decided alongside the Flutter auth flow, which is unwritten; a `token_version` claim checked against the user row is the cheapest option that makes a PIN reset meaningful.
+2. **Confirm HTTPS enforcement at the platform edge.** Not visible from this codebase and outranks everything above in impact.
 
 Worth doing, not blocking:
 
-4. M-3 — decide whether registration enumeration is an accepted tradeoff, and record it either way.
-5. L-1 — composite FK on `dose_logs`; batch with the next migration.
-6. L-2 — re-check the trusted `role` claim the moment CLINICIAN endpoints are added.
+3. M-3 — decide whether registration enumeration is an accepted tradeoff, and record it either way.
+4. L-1 — composite FK on `dose_logs`; batch with the next migration.
+5. L-2 — re-check the trusted `role` claim the moment CLINICIAN endpoints are added.
 
 ## Changes made in the remediation pass
 

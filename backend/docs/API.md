@@ -103,8 +103,9 @@ rows. Offline-first clients should always send one.
 | `401 Unauthorized` | Not authenticated | Missing, malformed, expired, or badly-signed token |
 | `404 Not Found` | Absent or not owned | Unknown route, or a record that does not exist **or belongs to another user** |
 | `405 Method Not Allowed` | Wrong verb | e.g. `GET /api/v1/medications/{id}` (only `PUT`/`DELETE` exist) |
-| `409 Conflict` | Duplicate | Registering an email that already exists |
+| `409 Conflict` | Duplicate | Registering a phone that already exists |
 | `413 Payload Too Large` | Body over cap | Request body exceeds 2 MB |
+| `423 Locked` | Account locked | Five consecutive failed logins; the account is unavailable for 15 minutes |
 | `500 Internal Server Error` | Transient/unexpected | Database unavailable or an unhandled fault. Details are never leaked — the response is always `"An unexpected error occurred"` |
 
 ### `404` vs `403`
@@ -133,9 +134,10 @@ the same whether it arrived via a direct `POST` or a sync batch.
 ### Retry semantics
 
 `400`, `404`, `405`, `409`, and `413` are **permanent** — the request can never succeed as written,
-so a client must not retry it. `401` is permanent until re-authentication. Only `500` is transient
-and worth retrying. This distinction matters for the offline queue: retrying a permanently-failed
-record forever would block the queue behind it.
+so a client must not retry it. `401` is permanent until re-authentication. `423` is temporary but
+must not be retried on a timer — it clears only after the 15-minute lockout window. Only `500` is
+transient and worth retrying. This distinction matters for the offline queue: retrying a
+permanently-failed record forever would block the queue behind it.
 
 ---
 
@@ -145,12 +147,14 @@ record forever would block the queue behind it.
 |---|---|---|---|
 | Request body size | 2 MB | `app.sync.max-body-bytes` | `413` |
 | Sync batch size | 200 records | `app.sync.max-batch-size` | `400`, whole batch |
-| Password length | 8–72 chars | `RegisterRequest` | `400` |
+| PIN length | Exactly 4 digits | `RegisterRequest` / `LoginRequest` | `400` |
+| Failed logins per account | 5, then a 15-minute lock | `app.auth.lockout.*` | `423` |
 | `note` field | 500 chars | per-DTO `@Size` | `400` |
 | Medication `name` | 255 chars | `MedicationRequest` | `400` |
 | Token lifetime | 7 days | `app.jwt.expiration-ms` | `401` |
 
-There is currently **no rate limiting** on any endpoint, including login.
+Apart from the per-account login lockout above, there is **no rate limiting** on any endpoint — no
+per-IP or global throttle.
 
 ---
 
@@ -158,27 +162,30 @@ There is currently **no rate limiting** on any endpoint, including login.
 
 ### `POST /api/v1/auth/register` — public
 
-Registers a patient and returns a token (auto-login). Role is always `PATIENT`; it cannot be set
-by the client.
+Registers a patient and returns a token plus the user (auto-login). Role is always `PATIENT`; it
+cannot be set by the client. Registration is identity only — medical details are set later through
+`PUT /api/v1/patients/me`.
 
 **Request**
 
 ```json
 {
-  "fullName": "Abebe Bekele",
-  "email": "abebe@example.com",
-  "password": "correct-horse-battery"
+  "phone": "+251911234567",
+  "pin": "1234",
+  "name": "Abebe Bekele",
+  "preferredLanguage": "am"
 }
 ```
 
 | Field | Type | Required | Rules |
 |---|---|---|---|
-| `fullName` | string | ✅ | Not blank |
-| `email` | string | ✅ | Not blank, valid email format |
-| `password` | string | ✅ | 8–72 characters |
+| `phone` | string | ✅ | `+251` followed by exactly 9 digits |
+| `pin` | string | ✅ | Exactly 4 digits |
+| `name` | string | ✅ | Not blank, ≤ 255 characters |
+| `preferredLanguage` | string | ✅ | `en` or `am` |
 
-> The 72-character cap is not arbitrary: BCrypt truncates at 72 bytes, so a longer passphrase would
-> be silently weaker than the user believes.
+> The PIN is stored only as a BCrypt hash and is never returned or logged. Four digits is
+> defensible only because login is lockout-limited — see below.
 
 **Response** `200 OK`
 
@@ -187,11 +194,16 @@ by the client.
   "success": true,
   "data": {
     "token": "eyJhbGciOiJIUzI1NiJ9...",
-    "userId": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
-    "role": "PATIENT"
+    "user": {
+      "id": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
+      "name": "Abebe Bekele",
+      "phone": "+251911234567",
+      "preferredLanguage": "am",
+      "role": "PATIENT"
+    }
   },
   "message": "Registered",
-  "timestamp": "2026-07-19T10:00:00Z"
+  "timestamp": "2026-08-06T10:00:00Z"
 }
 ```
 
@@ -199,10 +211,10 @@ by the client.
 
 | Code | Cause |
 |---|---|
-| `400` | Blank field, invalid email format, password outside 8–72 |
-| `409` | `"Email already registered"` |
+| `400` | Malformed phone, PIN that is not exactly 4 digits, blank name, unsupported language |
+| `409` | `"Phone already registered"` |
 
-> Registration reveals whether an email is already in use. Login deliberately does not.
+> Registration reveals whether a phone is already in use. Login deliberately does not.
 
 ---
 
@@ -211,7 +223,7 @@ by the client.
 **Request**
 
 ```json
-{ "email": "abebe@example.com", "password": "correct-horse-battery" }
+{ "phone": "+251911234567", "pin": "1234" }
 ```
 
 **Response** `200 OK` — same `data` shape as register; `message` is `"Logged in"`.
@@ -220,11 +232,20 @@ by the client.
 
 | Code | Cause |
 |---|---|
-| `400` | Blank email/password, or malformed email |
-| `401` | `"Invalid email or password"` |
+| `400` | Malformed phone or PIN |
+| `401` | `"Invalid phone or PIN"` |
+| `423` | `"Too many failed attempts. Try again in N minutes."` |
 
-> The `401` message is identical for an unknown email and a wrong password, so login cannot be used
-> to enumerate accounts.
+> The `401` message is identical for an unknown phone and a wrong PIN, so login cannot be used to
+> enumerate accounts.
+
+**Lockout.** Five consecutive failed attempts lock that account for 15 minutes. While locked, every
+login returns `423` — including one with the correct PIN, which is what makes the limit real. Any
+successful login resets the counter, and the counter also resets once the window elapses. The limit
+is per account, held in the `users` row; there is no IP-based or global rate limit.
+
+Clients must treat `423` as "wait", not "wrong PIN": re-prompting immediately just burns the
+window. The message carries the remaining minutes.
 
 ---
 
@@ -238,13 +259,14 @@ Returns the current user.
 {
   "success": true,
   "data": {
-    "userId": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
-    "fullName": "Abebe Bekele",
-    "email": "abebe@example.com",
+    "id": "3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b",
+    "name": "Abebe Bekele",
+    "phone": "+251911234567",
+    "preferredLanguage": "am",
     "role": "PATIENT"
   },
   "message": "OK",
-  "timestamp": "2026-07-19T10:00:00Z"
+  "timestamp": "2026-08-06T10:00:00Z"
 }
 ```
 
