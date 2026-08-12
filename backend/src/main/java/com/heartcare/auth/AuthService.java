@@ -25,9 +25,17 @@ public class AuthService {
 
     /**
      * One message for both "no such phone" and "wrong PIN". Anything more specific would turn
-     * login into an account-enumeration oracle.
+     * login into an account-enumeration oracle. The message alone is not enough — see
+     * {@link #UNKNOWN_PHONE_PLACEHOLDER} for the timing half of the same problem.
      */
     static final String INVALID_CREDENTIALS = "Invalid phone or PIN";
+
+    /**
+     * Hashed at startup and verified against whenever the phone is unknown, so that branch costs
+     * the same BCrypt work as a wrong PIN on a real account. It is not a PIN and can never match
+     * one: PINs are exactly 4 digits.
+     */
+    private static final String UNKNOWN_PHONE_PLACEHOLDER = "no-such-account";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -35,16 +43,35 @@ public class AuthService {
     private final int maxAttempts;
     private final int lockoutMinutes;
 
+    /**
+     * Encoded once here rather than written in as a literal, so it always carries this encoder's
+     * algorithm and cost factor — a stale literal would verify at the wrong speed and reopen the
+     * timing gap it exists to close.
+     */
+    private final String unknownPhoneHash;
+
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtTokenProvider tokenProvider,
                        @Value("${app.auth.lockout.max-attempts}") int maxAttempts,
                        @Value("${app.auth.lockout.duration-minutes}") int lockoutMinutes) {
+        // Fail at startup, not at 3am. max-attempts below 1 makes `priorAttempts + 1 >= maxAttempts`
+        // true on the very first failure, locking every account on one typo; duration-minutes below
+        // 1 stamps a lock that has already expired, silently disabling the lockout entirely.
+        if (maxAttempts < 1) {
+            throw new IllegalArgumentException(
+                    "app.auth.lockout.max-attempts must be at least 1, but was " + maxAttempts);
+        }
+        if (lockoutMinutes < 1) {
+            throw new IllegalArgumentException(
+                    "app.auth.lockout.duration-minutes must be at least 1, but was " + lockoutMinutes);
+        }
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.maxAttempts = maxAttempts;
         this.lockoutMinutes = lockoutMinutes;
+        this.unknownPhoneHash = passwordEncoder.encode(UNKNOWN_PHONE_PLACEHOLDER);
     }
 
     @Transactional
@@ -73,8 +100,17 @@ public class AuthService {
      */
     @Transactional(noRollbackFor = {UnauthorizedException.class, AccountLockedException.class})
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByPhone(request.phone())
-                .orElseThrow(() -> new UnauthorizedException(INVALID_CREDENTIALS));
+        User user = userRepository.findByPhone(request.phone()).orElse(null);
+        if (user == null) {
+            // Burn the same BCrypt work a real account would before failing identically. Without
+            // this, an unknown phone answers after one indexed lookup while a wrong PIN answers a
+            // full verify later — a gap of two to three orders of magnitude, measurable over the
+            // network and enough to enumerate accounts despite the shared message above. Spring
+            // Security's own DaoAuthenticationProvider.mitigateAgainstTimingAttack does exactly
+            // this; the result is deliberately discarded.
+            passwordEncoder.matches(request.pin(), unknownPhoneHash);
+            throw new UnauthorizedException(INVALID_CREDENTIALS);
+        }
 
         OffsetDateTime now = OffsetDateTime.now();
         // Snapshot taken before the atomic UPDATE runs, so it can be stale under concurrency: if

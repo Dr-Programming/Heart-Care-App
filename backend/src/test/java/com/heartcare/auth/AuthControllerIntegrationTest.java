@@ -9,12 +9,17 @@ import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.OffsetDateTime;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,6 +30,9 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     WebApplicationContext wac;
+
+    @Autowired
+    JdbcTemplate jdbcTemplate;
 
     final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -217,6 +225,56 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
 
         // Streak cleared: four more failures must not lock, because the counter restarted.
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(APPLICATION_JSON).content(wrongPin))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    // The expired-lock branch is the most intricate path in AuthService.login — it resets the
+    // counter mid-request and then keeps going — and it is unreachable from a test that only drives
+    // HTTP, because the window is 15 real minutes. Back-dating locked_until is the only way to
+    // reach it against a real database; without this test the branch is covered solely by
+    // AuthServiceTest, where the repository is a mock and the reset does nothing.
+    @Test
+    void anElapsedLockLetsTheUserBackInAndFullyClearsTheLockoutState() throws Exception {
+        String phone = TestUsers.nextPhone();
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegisterRequest(phone, "1234", "Abebe", "en"))))
+                .andExpect(status().isOk());
+
+        String wrongPin = objectMapper.writeValueAsString(new LoginRequest(phone, "9999"));
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(APPLICATION_JSON).content(wrongPin))
+                    .andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON).content(wrongPin))
+                .andExpect(status().isLocked());
+
+        jdbcTemplate.update(
+                "UPDATE users SET locked_until = ? WHERE phone = ?",
+                OffsetDateTime.now().minusMinutes(1), phone);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(phone, "1234"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.token").exists());
+
+        Map<String, Object> row = jdbcTemplate.queryForMap(
+                "SELECT failed_login_attempts, locked_until FROM users WHERE phone = ?", phone);
+        assertThat(row.get("failed_login_attempts")).isEqualTo(0);
+        assertThat(row.get("locked_until"))
+                .as("a stale locked_until left behind would re-lock the account on the next "
+                        + "single mistake, since the counter is compared against it")
+                .isNull();
+
+        // And the streak really did restart: four fresh failures must not lock.
         for (int attempt = 1; attempt <= 4; attempt++) {
             mockMvc.perform(post("/api/v1/auth/login")
                             .contentType(APPLICATION_JSON).content(wrongPin))

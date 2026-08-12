@@ -69,6 +69,16 @@ covered and needs an edge/gateway rule.
 The move to a 4-digit PIN (same change) is what made this urgent rather than merely advisable: the
 keyspace is 10,000, so an unthrottled endpoint would be exhaustible in minutes.
 
+**Also closed in the same pass — a timing oracle on login.** The whole-branch review found that the
+byte-identical `"Invalid phone or PIN"` message was only half a mitigation: an unknown phone
+returned after one indexed lookup while a wrong PIN on a real account paid a full BCrypt verify, a
+difference of two to three orders of magnitude and comfortably measurable across a network. The
+unknown-phone branch now verifies the submitted PIN against a placeholder hash encoded at startup
+before failing, so both branches spend the same work (the same technique Spring Security's own
+`DaoAuthenticationProvider.mitigateAgainstTimingAttack` uses). `API.md` previously claimed login
+could not be used to enumerate accounts; that claim is now scoped to the `401` path, because `423`
+still distinguishes.
+
 **Residual risks, accepted by the owner on 2026-08-06 — the fix is not risk-free and these were
 not closed silently:**
 
@@ -107,7 +117,7 @@ Raised in impact by the 2026-08-06 auth rework: the login lockout added for M-1 
 
 ### M-3 — Account enumeration on registration — ⚠️ OPEN (accepted tradeoff?)
 
-`AuthService.register` returns `409 "Phone already registered"`. Login is correctly generic (`"Invalid phone or PIN"` for both branches — good), but register leaks which phone numbers have accounts. For a CHD patient app, mere account existence is sensitive. Consider a generic 202 + an SMS confirmation step, or accept the tradeoff explicitly.
+`AuthService.register` returns `409 "Phone already registered"`. Login is correctly generic (`"Invalid phone or PIN"` for both branches, and since 2026-08-06 constant-work as well — good), but register leaks which phone numbers have accounts. For a CHD patient app, mere account existence is sensitive. Consider a generic 202 + an SMS confirmation step, or accept the tradeoff explicitly.
 
 Unchanged by the 2026-08-06 phone+PIN rework: the identifier is now a phone number rather than an email, but the leak is the same shape. Still open.
 

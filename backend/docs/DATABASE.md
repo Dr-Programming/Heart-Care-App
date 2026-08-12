@@ -163,5 +163,17 @@ The migration **truncates `users` first**, cascading to every log table. This is
 The app was pre-release with no production users when V8 was written; any local or Railway dev
 data is lost on upgrade and must be re-registered.
 
-`preferred_language` now exists on both `users` (set at registration, drives the app's UI language)
-and `patient_profiles` (V2). The `users` copy is the one auth reads and returns.
+> The migration's own comment credits the log tables' `ON DELETE CASCADE` clauses for making that
+> work. That reasoning is wrong, though the effect is right: `TRUNCATE ... CASCADE` truncates every
+> referencing table regardless of the foreign key's `ON DELETE` action, and would have done so even
+> against `RESTRICT` keys. The comment is left as-is because editing an applied migration changes
+> its Flyway checksum and breaks validation on every database that already ran it — the correction
+> lives here instead.
+
+⚠️ **`preferred_language` is duplicated and the two copies can diverge.** It now exists on both
+`users` (V8, set at registration) and `patient_profiles` (V2). Auth reads and returns the `users`
+copy; `PUT /api/v1/patients/me` writes the `patient_profiles` copy. Nothing reconciles them, and
+**no endpoint updates the `users` copy at all**, so it is effectively write-once. The column types
+also differ — `users.preferred_language` is `VARCHAR(2)`, `patient_profiles.preferred_language` is
+`VARCHAR(5)`. This needs resolving before the mobile app ships a language toggle; see `API.md`
+under `GET /api/v1/auth/me`.

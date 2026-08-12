@@ -28,8 +28,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -130,6 +133,40 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, "1234")))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Invalid phone or PIN");
+    }
+
+    @Test
+    void loginWithUnknownPhoneStillPaysTheBcryptCost() {
+        // An identical message is only half the mitigation. A wrong PIN on a real account costs a
+        // full BCrypt verify; an unknown phone costs one indexed lookup. That difference is two to
+        // three orders of magnitude and is readable over the network, so the branch has to spend
+        // the same work. Asserting the call rather than the wall-clock keeps this deterministic —
+        // a timing assertion would be flaky on CI.
+        PasswordEncoder spyEncoder = spy(passwordEncoder);
+        AuthService service = new AuthService(userRepository, spyEncoder, tokenProvider, 5, 15);
+        clearInvocations(spyEncoder);   // discard the constructor's one-off encode()
+        when(userRepository.findByPhone(PHONE)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.login(new LoginRequest(PHONE, "1234")))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Invalid phone or PIN");
+
+        verify(spyEncoder).matches(eq("1234"), anyString());
+    }
+
+    @Test
+    void aNonsensicalLockoutConfigFailsAtStartupRatherThanAtRuntime() {
+        // max-attempts below 1 makes every first failure trip the lock; duration-minutes below 1
+        // stamps an already-expired lock, disabling the lockout without any visible symptom.
+        assertThatThrownBy(() ->
+                new AuthService(userRepository, passwordEncoder, tokenProvider, 0, 15))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("max-attempts");
+
+        assertThatThrownBy(() ->
+                new AuthService(userRepository, passwordEncoder, tokenProvider, 5, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("duration-minutes");
     }
 
     @Test

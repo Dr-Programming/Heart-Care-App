@@ -236,16 +236,23 @@ cannot be set by the client. Registration is identity only — medical details a
 | `401` | `"Invalid phone or PIN"` |
 | `423` | `"Too many failed attempts. Try again in N minutes."` |
 
-> The `401` message is identical for an unknown phone and a wrong PIN, so login cannot be used to
-> enumerate accounts.
+> The `401` message is identical for an unknown phone and a wrong PIN, and an unknown phone
+> deliberately spends the same BCrypt work as a real one so the two cannot be told apart by
+> response time either. Note this makes the **`401` path** non-enumerating, not login as a whole —
+> `423` still reveals that an account exists. See `SecurityReview.md` M-1, which records that as an
+> accepted risk, and M-3.
 
 **Lockout.** Five consecutive failed attempts lock that account for 15 minutes. While locked, every
 login returns `423` — including one with the correct PIN, which is what makes the limit real. Any
 successful login resets the counter, and the counter also resets once the window elapses. The limit
 is per account, held in the `users` row; there is no IP-based or global rate limit.
 
-Clients must treat `423` as "wait", not "wrong PIN": re-prompting immediately just burns the
-window. The message carries the remaining minutes.
+Clients must treat `423` as "wait", not "wrong PIN": re-prompting immediately is pointless, but it
+is not harmful — attempts made during a lockout are rejected before the counter is touched, so they
+cannot extend the window. The 15 minutes always run from the attempt that tripped the lock.
+
+The message carries the remaining whole minutes and is singular on the final minute
+(`"Try again in 1 minute."`), so a client must not match on the plural.
 
 ---
 
@@ -272,6 +279,12 @@ Returns the current user.
 
 **Errors:** `401` missing/invalid/expired token · `404` user no longer exists (deleted account with
 a still-valid token).
+
+> ⚠️ **`preferredLanguage` is currently write-once and duplicated.** It is set at registration and
+> **no endpoint updates it** — the `preferredLanguage` on `PUT /api/v1/patients/me` writes a
+> *different* column (`patient_profiles.preferred_language`), which this endpoint does not read.
+> The two can therefore diverge, and an in-app language toggle has nothing to call. Decide which
+> column owns the setting before building that toggle; it needs a backend change either way.
 
 ---
 
