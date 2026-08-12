@@ -21,18 +21,29 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(nullable = false, unique = true, length = 20)
+    private String phone;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "pin_hash", nullable = false)
     @JsonIgnore
-    private String passwordHash;
+    private String pinHash;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column(name = "preferred_language", nullable = false, length = 2)
+    private String preferredLanguage = "en";
+
     @Column(nullable = false, length = 20)
     private String role = "PATIENT";
+
+    /** Consecutive failed login attempts; reset to 0 by any successful login. */
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
+
+    /** When non-null and in the future, login is refused with 423 without checking the PIN. */
+    @Column(name = "locked_until")
+    private OffsetDateTime lockedUntil;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
@@ -41,10 +52,11 @@ public class User {
         // for JPA
     }
 
-    public User(String email, String passwordHash, String fullName) {
-        this.email = email;
-        this.passwordHash = passwordHash;
+    public User(String phone, String pinHash, String fullName, String preferredLanguage) {
+        this.phone = phone;
+        this.pinHash = pinHash;
         this.fullName = fullName;
+        this.preferredLanguage = preferredLanguage;
         this.role = "PATIENT";
     }
 
@@ -59,19 +71,31 @@ public class User {
         return id;
     }
 
-    public String getEmail() {
-        return email;
+    public String getPhone() {
+        return phone;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPinHash() {
+        return pinHash;
     }
 
     public String getFullName() {
         return fullName;
     }
 
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+
     public String getRole() {
         return role;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public OffsetDateTime getLockedUntil() {
+        return lockedUntil;
     }
 }

@@ -1,6 +1,7 @@
 package com.heartcare.activity;
 
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.heartcare.activity.model.ActivityLog;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +24,8 @@ class ActivityRepositoryTest extends AbstractIntegrationTest {
     private UUID seedUser() {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
-                id, id + "@example.com", "x", "Test User");
+                "INSERT INTO users (id, phone, pin_hash, full_name, role) VALUES (?, ?, ?, ?, 'PATIENT')",
+                id, TestUsers.nextPhone(), "x", "Test User");
         return id;
     }
 

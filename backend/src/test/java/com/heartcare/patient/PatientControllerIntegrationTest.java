@@ -3,6 +3,7 @@ package com.heartcare.patient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.heartcare.AbstractIntegrationTest;
+import com.heartcare.TestUsers;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,8 +13,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-
-import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,9 +40,10 @@ class PatientControllerIntegrationTest extends AbstractIntegrationTest {
     /** Registers a fresh user via the real auth endpoint and returns its JWT. */
     private String registerAndGetToken() throws Exception {
         ObjectNode body = objectMapper.createObjectNode();
-        body.put("fullName", "Abebe");
-        body.put("email", UUID.randomUUID() + "@example.com");
-        body.put("password", "password1");
+        body.put("phone", TestUsers.nextPhone());
+        body.put("pin", "1234");
+        body.put("name", "Abebe");
+        body.put("preferredLanguage", "en");
 
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(APPLICATION_JSON).content(body.toString()))
