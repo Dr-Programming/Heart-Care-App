@@ -121,16 +121,19 @@ mobile/
       error/failure.dart               sealed Failure hierarchy
       error/exceptions.dart            datasource-level exceptions
       network/api_response.dart        the {success,data,message,timestamp} envelope
-      network/dio_client.dart          Dio factory + interceptor wiring
+      network/dio_client.dart          Dio factory + HTTP-status → Failure mapping
       network/interceptors/auth_token_interceptor.dart
-      network/interceptors/error_mapping_interceptor.dart
       db/app_database.dart             Drift DB + CachedUsers table
       db/daos/cached_user_dao.dart
       localization/language.dart       AppLanguage enum + persistence
-      router/app_router.dart           go_router + auth-gate redirect
+      router/routes.dart               route path constants
+      router/redirect.dart             the auth-gate rule, as a pure function
+      router/app_router.dart           go_router wiring
       security/jwt.dart                base64url exp decode, no extra dependency
-      providers/core_providers.dart    dio, secureStorage, connectivity, db providers
+      security/token_store.dart        the JWT in the platform keystore
+      providers/core_providers.dart    db, secureStorage, tokenStore, dio, connectivity
     features/auth/
+      auth_providers.dart              datasource + repository providers
       domain/entities/auth_user.dart
       domain/repositories/auth_repository.dart
       domain/usecases/{login,register,get_me,logout}.dart
@@ -148,6 +151,8 @@ mobile/
 ```
 
 **Why these boundaries:** `core/network` knows about HTTP and the envelope but nothing about auth. `features/auth/data` knows about auth JSON but not about widgets. `features/auth/presentation` knows about `AuthRepository` but never about Dio. Each layer is independently testable, which is what makes the task decomposition below hold.
+
+**`core/` never imports `features/`.** The dependency runs one way. That is why the JWT lives in `core/security/token_store.dart` rather than inside the auth feature: `dioProvider` needs to read the token to set the `Authorization` header, and if `core/providers` reached into `features/auth/data` to get it, core and auth would import each other. Auth-specific wiring therefore lives in `features/auth/auth_providers.dart`, not in `core/providers/core_providers.dart`.
 
 ---
 
@@ -320,10 +325,13 @@ Create `mobile/test/core/theme/app_theme_test.dart`:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:libu_care/core/theme/app_colors.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
 
 void main() {
+  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+
   group('AppColors', () {
     test('carries the exact Figma palette', () {
       expect(AppColors.primary, const Color(0xFFFCAB10));
@@ -860,37 +868,39 @@ git commit -m "feat(mobile): add env config, response envelope and failure types
 
 ---
 
-### Task 4: Dio client and interceptors
+### Task 4: Dio client, bearer token, and failure mapping
 
-Turns the envelope and failure types into an HTTP client the rest of the app can use without ever seeing a `DioException`. Two interceptors: one attaches the bearer token, one converts every error into a `Failure`.
+Turns the envelope and failure types into an HTTP client the rest of the app can use. One interceptor attaches the bearer token; a single pure function maps every HTTP status onto the `Failure` vocabulary.
 
 **Files:**
 - Create: `mobile/lib/core/network/interceptors/auth_token_interceptor.dart`
-- Create: `mobile/lib/core/network/interceptors/error_mapping_interceptor.dart`
 - Create: `mobile/lib/core/network/dio_client.dart`
-- Test: `mobile/test/core/network/error_mapping_interceptor_test.dart`
+- Test: `mobile/test/core/network/failure_mapping_test.dart`
 - Test: `mobile/test/core/network/auth_token_interceptor_test.dart`
 
 **Interfaces:**
 - Consumes: `Failure` + `parseLockoutMinutes` (Task 3), `Env.apiBaseUrl`, `ApiEndpoints`.
 - Produces:
   - `AuthTokenInterceptor(Future<String?> Function() readToken)`
-  - `ErrorMappingInterceptor()` — rejects with `DioException.error` set to a `Failure`
   - `Dio buildDio({required String baseUrl, required Future<String?> Function() readToken})`
-  - `Failure failureFromDioException(DioException)` — the helper repositories use to unwrap
+  - `Failure failureFromDioException(DioException)` — the single HTTP-status → `Failure` mapping, called by repositories
+
+> **There is deliberately no `ErrorMappingInterceptor`.** The design doc §3.4 describes error mapping as an interceptor, but an interceptor that classifies an error and re-throws it adds a class without adding behaviour — the repository still has to catch and unwrap. `failureFromDioException` keeps the mapping in exactly one place, which is what §3.4 is actually asking for.
 
 - [ ] **Step 1: Write the failing interceptor tests**
 
-Create `mobile/test/core/network/error_mapping_interceptor_test.dart`:
+Create `mobile/test/core/network/failure_mapping_test.dart`:
 
 ```dart
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/network/dio_client.dart';
-import 'package:libu_care/core/network/interceptors/error_mapping_interceptor.dart';
 
-/// Serves a fixed status + envelope so the interceptor can be exercised
+/// Serves a fixed status + envelope so the mapping can be exercised
 /// without a live server.
 class _StubAdapter implements HttpClientAdapter {
   _StubAdapter(this.statusCode, this.body);
@@ -914,8 +924,7 @@ class _StubAdapter implements HttpClientAdapter {
 }
 
 Dio _dioReturning(int status, String message) {
-  final dio = Dio(BaseOptions(baseUrl: 'http://test.local'))
-    ..interceptors.add(ErrorMappingInterceptor());
+  final dio = Dio(BaseOptions(baseUrl: 'http://test.local'));
   dio.httpClientAdapter = _StubAdapter(status, {
     'success': false,
     'data': null,
@@ -987,13 +996,6 @@ void main() {
 }
 ```
 
-Add the imports the stub needs at the top of that file:
-
-```dart
-import 'dart:convert';
-import 'dart:typed_data';
-```
-
 Create `mobile/test/core/network/auth_token_interceptor_test.dart`:
 
 ```dart
@@ -1060,26 +1062,7 @@ class AuthTokenInterceptor extends Interceptor {
 }
 ```
 
-- [ ] **Step 4: Write the error mapping interceptor**
-
-Create `mobile/lib/core/network/interceptors/error_mapping_interceptor.dart`:
-
-```dart
-import 'package:dio/dio.dart';
-
-/// Marks every failed response so `failureFromDioException` can classify it.
-///
-/// The mapping itself lives in `dio_client.dart` next to the helper that
-/// consumes it, so there is exactly one place that knows status code → Failure.
-class ErrorMappingInterceptor extends Interceptor {
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    handler.next(err);
-  }
-}
-```
-
-- [ ] **Step 5: Write the Dio factory and the failure mapper**
+- [ ] **Step 4: Write the Dio factory and the failure mapper**
 
 Create `mobile/lib/core/network/dio_client.dart`:
 
@@ -1088,7 +1071,6 @@ import 'package:dio/dio.dart';
 
 import '../error/failure.dart';
 import 'interceptors/auth_token_interceptor.dart';
-import 'interceptors/error_mapping_interceptor.dart';
 
 /// Builds the app's single configured Dio instance.
 ///
@@ -1112,33 +1094,37 @@ Dio buildDio({
     ),
   );
 
-  dio.interceptors.addAll(<Interceptor>[
-    AuthTokenInterceptor(readToken),
-    ErrorMappingInterceptor(),
-  ]);
+  dio.interceptors.add(AuthTokenInterceptor(readToken));
 
   return dio;
 }
 
+const String _offlineMessage =
+    'No connection. Check your network and try again.';
+
 /// The single place that knows how an HTTP status becomes a `Failure`.
+///
+/// Written as if/return rather than a switch: Dart forbids falling through a
+/// non-empty `case`, and `unknown` needs to fall through to the status-code
+/// path whenever a response is present.
 Failure failureFromDioException(DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionTimeout:
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
-      return const NetworkFailure('No connection. Check your network and try again.');
+      return const NetworkFailure(_offlineMessage);
     case DioExceptionType.cancel:
       return const UnknownFailure('Request cancelled.');
     case DioExceptionType.badCertificate:
       return const NetworkFailure('Could not establish a secure connection.');
     case DioExceptionType.unknown:
-      if (e.response == null) {
-        return const NetworkFailure('No connection. Check your network and try again.');
-      }
     case DioExceptionType.badResponse:
       break;
   }
+
+  // No response body to classify — treat as a transport failure.
+  if (e.response == null) return const NetworkFailure(_offlineMessage);
 
   final Response<dynamic>? response = e.response;
   final int status = response?.statusCode ?? 0;
@@ -1170,7 +1156,7 @@ String _messageFrom(Response<dynamic>? response) {
 
 > **Why `401` maps to `InvalidCredentialsFailure` rather than `SessionExpiredFailure`:** the status alone cannot tell them apart — a bad PIN and an expired token both return `401`. The auth repository resolves the ambiguity by context (Task 8): a `401` from `login` is bad credentials, a `401` from `me` is an expired session.
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [ ] **Step 5: Run the tests to verify they pass**
 
 ```bash
 cd P:/Heart-Care-App/mobile
@@ -1178,7 +1164,7 @@ flutter test test/core/network/
 ```
 Expected: PASS, 13 tests.
 
-- [ ] **Step 7: Run the full suite and analyze**
+- [ ] **Step 6: Run the full suite and analyze**
 
 ```bash
 cd P:/Heart-Care-App/mobile
@@ -1187,12 +1173,12 @@ flutter test
 ```
 Expected: `No issues found!` and all tests passing.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 cd P:/Heart-Care-App
 git add mobile/lib/core/network mobile/test/core/network
-git commit -m "feat(mobile): add Dio client with token and error-mapping interceptors"
+git commit -m "feat(mobile): add Dio client with bearer-token interceptor and failure mapping"
 ```
 
 ---
@@ -2172,6 +2158,7 @@ Models, both datasources, and the repository that joins them. This is where the 
 
 **Files:**
 - Create: `mobile/lib/core/security/jwt.dart`
+- Create: `mobile/lib/core/security/token_store.dart`
 - Create: `mobile/lib/features/auth/data/models/user_model.dart`
 - Create: `mobile/lib/features/auth/data/models/auth_response_model.dart`
 - Create: `mobile/lib/features/auth/data/datasources/auth_remote_datasource.dart`
@@ -2185,6 +2172,7 @@ Models, both datasources, and the repository that joins them. This is where the 
 - Consumes: `ApiResponse`, `ApiEndpoints`, `failureFromDioException`, `Failure` subclasses (Tasks 3–4); `CachedUserDao`, `CachedUsersCompanion` (Task 5); `AppLanguage` (Task 6); `AuthUser`, `AuthRepository` (Task 7).
 - Produces:
   - `isJwtExpired(String token, {DateTime? now}) → bool`
+  - `TokenStore(FlutterSecureStorage)` → `.read()`, `.write(String)`, `.clear()`
   - `UserModel` (freezed, `.fromJson`, `.toEntity()`, `.toCompanion()`)
   - `AuthResponseModel` (freezed, `.fromJson`) with `token` and `user`
   - `AuthRemoteDataSource(Dio)` → `.register(...)`, `.login(...)`, `.me()`
@@ -2558,15 +2546,35 @@ class AuthRemoteDataSource {
 }
 ```
 
-- [ ] **Step 8: Write the local datasource**
+- [ ] **Step 8: Write the token store and the local datasource**
 
-Create `mobile/lib/features/auth/data/datasources/auth_local_datasource.dart`:
+Create `mobile/lib/core/security/token_store.dart`. This lives in `core/`, not in the auth feature, because `dioProvider` must read the token to set the `Authorization` header — if core reached into `features/auth` for it, core and auth would import each other:
 
 ```dart
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// The bearer token at rest, in the platform keystore.
+class TokenStore {
+  const TokenStore(this._storage);
+
+  static const String _key = 'auth_token';
+
+  final FlutterSecureStorage _storage;
+
+  Future<String?> read() => _storage.read(key: _key);
+
+  Future<void> write(String token) => _storage.write(key: _key, value: token);
+
+  Future<void> clear() => _storage.delete(key: _key);
+}
+```
+
+Create `mobile/lib/features/auth/data/datasources/auth_local_datasource.dart`:
+
+```dart
 import '../../../../core/db/app_database.dart';
 import '../../../../core/db/daos/cached_user_dao.dart';
+import '../../../../core/security/token_store.dart';
 import '../models/user_model.dart';
 
 /// Session storage: the JWT goes in the platform keystore, the user record
@@ -2576,22 +2584,20 @@ import '../models/user_model.dart';
 /// encrypted storage; the user record is ordinary app data the offline launch
 /// path needs to read quickly.
 class AuthLocalDataSource {
-  const AuthLocalDataSource(this._storage, this._users);
+  const AuthLocalDataSource(this._tokens, this._users);
 
-  static const String _tokenKey = 'auth_token';
-
-  final FlutterSecureStorage _storage;
+  final TokenStore _tokens;
   final CachedUserDao _users;
 
   Future<void> saveSession({
     required String token,
     required UserModel user,
   }) async {
-    await _storage.write(key: _tokenKey, value: token);
+    await _tokens.write(token);
     await _users.save(user.toCompanion());
   }
 
-  Future<String?> readToken() => _storage.read(key: _tokenKey);
+  Future<String?> readToken() => _tokens.read();
 
   Future<UserModel?> readUser() async {
     final CachedUser? row = await _users.current();
@@ -2601,7 +2607,7 @@ class AuthLocalDataSource {
   Future<void> cacheUser(UserModel user) => _users.save(user.toCompanion());
 
   Future<void> clear() async {
-    await _storage.delete(key: _tokenKey);
+    await _tokens.clear();
     await _users.clear();
   }
 }
@@ -2964,14 +2970,15 @@ Wires the dependency graph in Riverpod and exposes the single piece of state the
 
 **Files:**
 - Create: `mobile/lib/core/providers/core_providers.dart`
+- Create: `mobile/lib/features/auth/auth_providers.dart`
 - Create: `mobile/lib/features/auth/presentation/controllers/auth_controller.dart`
 - Test: `mobile/test/features/auth/presentation/auth_controller_test.dart`
 
 **Interfaces:**
 - Consumes: everything from Tasks 3–8.
 - Produces:
-  - providers: `appDatabaseProvider`, `secureStorageProvider`, `dioProvider`, `isOnlineProvider`, `languageStoreProvider`
-  - `authRepositoryProvider` → `AuthRepository`
+  - in `core/providers/core_providers.dart`: `appDatabaseProvider`, `secureStorageProvider`, `tokenStoreProvider`, `dioProvider`, `isOnlineProvider`, `languageStoreProvider` — **this file imports nothing from `features/`**
+  - in `features/auth/auth_providers.dart`: `authLocalDataSourceProvider`, `authRemoteDataSourceProvider`, `authRepositoryProvider` → `AuthRepository`
   - sealed `AuthState`: `AuthUnauthenticated()`, `AuthAuthenticated(AuthUser user)`
   - `authControllerProvider` → `AsyncNotifierProvider<AuthController, AuthState>` with `.login()`, `.register()`, `.signOut()`
 
@@ -2984,7 +2991,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/localization/language.dart';
-import 'package:libu_care/core/providers/core_providers.dart';
+import 'package:libu_care/features/auth/auth_providers.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 import 'package:libu_care/features/auth/presentation/controllers/auth_controller.dart';
@@ -3126,12 +3133,12 @@ import '../config/env.dart';
 import '../db/app_database.dart';
 import '../localization/language.dart';
 import '../network/dio_client.dart';
-import '../../features/auth/data/datasources/auth_local_datasource.dart';
-import '../../features/auth/data/datasources/auth_remote_datasource.dart';
-import '../../features/auth/data/repositories/auth_repository_impl.dart';
-import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../security/token_store.dart';
 
 /// Riverpod is the DI container for this app — there is no `get_it`.
+///
+/// This file must not import anything from `features/`. Feature wiring lives
+/// in that feature's own providers file.
 
 final Provider<AppDatabase> appDatabaseProvider = Provider<AppDatabase>((Ref ref) {
   final AppDatabase db = AppDatabase(openDatabaseConnection());
@@ -3144,22 +3151,15 @@ final Provider<FlutterSecureStorage> secureStorageProvider =
           aOptions: AndroidOptions(encryptedSharedPreferences: true),
         ));
 
-final Provider<AuthLocalDataSource> authLocalDataSourceProvider =
-    Provider<AuthLocalDataSource>((Ref ref) => AuthLocalDataSource(
-          ref.watch(secureStorageProvider),
-          ref.watch(appDatabaseProvider).cachedUserDao,
-        ));
+final Provider<TokenStore> tokenStoreProvider =
+    Provider<TokenStore>((Ref ref) => TokenStore(ref.watch(secureStorageProvider)));
 
-/// The Dio instance reads the token through the local datasource, which is how
-/// the interceptor stays ignorant of storage details.
+/// Reads the token straight from the keystore, so the interceptor never needs
+/// to know which feature owns the session.
 final Provider<Dio> dioProvider = Provider<Dio>((Ref ref) {
-  final AuthLocalDataSource local = ref.watch(authLocalDataSourceProvider);
-  return buildDio(baseUrl: Env.apiBaseUrl, readToken: local.readToken);
+  final TokenStore tokens = ref.watch(tokenStoreProvider);
+  return buildDio(baseUrl: Env.apiBaseUrl, readToken: tokens.read);
 });
-
-final Provider<AuthRemoteDataSource> authRemoteDataSourceProvider =
-    Provider<AuthRemoteDataSource>(
-        (Ref ref) => AuthRemoteDataSource(ref.watch(dioProvider)));
 
 final Provider<Future<bool> Function()> isOnlineProvider =
     Provider<Future<bool> Function()>((Ref ref) {
@@ -3171,6 +3171,28 @@ final Provider<Future<bool> Function()> isOnlineProvider =
 
 final Provider<LanguageStore> languageStoreProvider = Provider<LanguageStore>(
     (Ref ref) => LanguageStore(ref.watch(appDatabaseProvider).preferencesDao));
+```
+
+Create `mobile/lib/features/auth/auth_providers.dart`:
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/providers/core_providers.dart';
+import 'data/datasources/auth_local_datasource.dart';
+import 'data/datasources/auth_remote_datasource.dart';
+import 'data/repositories/auth_repository_impl.dart';
+import 'domain/repositories/auth_repository.dart';
+
+final Provider<AuthLocalDataSource> authLocalDataSourceProvider =
+    Provider<AuthLocalDataSource>((Ref ref) => AuthLocalDataSource(
+          ref.watch(tokenStoreProvider),
+          ref.watch(appDatabaseProvider).cachedUserDao,
+        ));
+
+final Provider<AuthRemoteDataSource> authRemoteDataSourceProvider =
+    Provider<AuthRemoteDataSource>(
+        (Ref ref) => AuthRemoteDataSource(ref.watch(dioProvider)));
 
 final Provider<AuthRepository> authRepositoryProvider =
     Provider<AuthRepository>((Ref ref) => AuthRepositoryImpl(
@@ -3188,7 +3210,7 @@ Create `mobile/lib/features/auth/presentation/controllers/auth_controller.dart`:
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/language.dart';
-import '../../../../core/providers/core_providers.dart';
+import '../../auth_providers.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -3285,16 +3307,15 @@ The redirect rule is the heart of the offline story, so it is extracted into a p
 **Files:**
 - Create: `mobile/lib/core/router/routes.dart`
 - Create: `mobile/lib/core/router/redirect.dart`
-- Create: `mobile/lib/core/router/app_router.dart`
 - Test: `mobile/test/core/router/redirect_test.dart`
 
 **Interfaces:**
-- Consumes: `AuthState`, `AuthAuthenticated`, `AuthUnauthenticated`, `authControllerProvider` (Task 9); `LanguageStore` (Task 6).
+- Consumes: nothing (both files are dependency-free).
 - Produces:
-  - `Routes.splash='/splash'`, `.language='/language'`, `.login='/login'`, `.register='/register'`, `.forgotPin='/forgot-pin'`, `.home='/home'`
+  - `Routes.splash='/splash'`, `.language='/language'`, `.login='/login'`, `.register='/register'`, `.forgotPin='/forgot-pin'`, `.home='/home'`, `.public` (a `Set<String>`)
   - `String? resolveRedirect({required String location, required bool sessionResolved, required bool languageChosen, required bool authenticated})`
-  - `goRouterProvider` → `GoRouter`
-  - `languageChosenProvider` → `FutureProvider<bool>`
+
+> **`app_router.dart` is built in Task 11, not here.** It imports the six screens, so creating it now would leave this task's commit unable to compile. The rule it enforces — `resolveRedirect` — is the part worth testing in isolation, and it has no dependencies at all.
 
 - [ ] **Step 1: Write the failing redirect test**
 
@@ -3449,71 +3470,12 @@ flutter test test/core/router/redirect_test.dart
 ```
 Expected: PASS, 9 tests.
 
-- [ ] **Step 5: Write the router**
-
-Create `mobile/lib/core/router/app_router.dart`. Screens are imported in Task 11; until then this file will not compile, which is why Task 11 immediately follows.
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
-import '../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../features/auth/presentation/screens/forgot_pin_screen.dart';
-import '../../features/auth/presentation/screens/home_placeholder_screen.dart';
-import '../../features/auth/presentation/screens/language_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../providers/core_providers.dart';
-import 'redirect.dart';
-import 'routes.dart';
-
-/// Whether the first-run language picker has been completed.
-final FutureProvider<bool> languageChosenProvider =
-    FutureProvider<bool>((Ref ref) => ref.watch(languageStoreProvider).hasChosen());
-
-final Provider<GoRouter> goRouterProvider = Provider<GoRouter>((Ref ref) {
-  return GoRouter(
-    initialLocation: Routes.splash,
-    refreshListenable: _Refresh(ref),
-    redirect: (BuildContext context, GoRouterState state) {
-      final AsyncValue<AuthState> auth = ref.read(authControllerProvider);
-      final AsyncValue<bool> languageChosen = ref.read(languageChosenProvider);
-
-      return resolveRedirect(
-        location: state.matchedLocation,
-        sessionResolved: !auth.isLoading && !languageChosen.isLoading,
-        languageChosen: languageChosen.valueOrNull ?? false,
-        authenticated: auth.valueOrNull is AuthAuthenticated,
-      );
-    },
-    routes: <RouteBase>[
-      GoRoute(path: Routes.splash, builder: (_, __) => const SplashScreen()),
-      GoRoute(path: Routes.language, builder: (_, __) => const LanguageScreen()),
-      GoRoute(path: Routes.login, builder: (_, __) => const LoginScreen()),
-      GoRoute(path: Routes.register, builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: Routes.forgotPin, builder: (_, __) => const ForgotPinScreen()),
-      GoRoute(path: Routes.home, builder: (_, __) => const HomePlaceholderScreen()),
-    ],
-  );
-});
-
-/// Re-runs the redirect whenever auth or the language flag changes.
-class _Refresh extends ChangeNotifier {
-  _Refresh(Ref ref) {
-    ref.listen(authControllerProvider, (_, __) => notifyListeners());
-    ref.listen(languageChosenProvider, (_, __) => notifyListeners());
-  }
-}
-```
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 cd P:/Heart-Care-App
 git add mobile/lib/core/router mobile/test/core/router
-git commit -m "feat(mobile): add go_router auth gate with offline session resolution"
+git commit -m "feat(mobile): add route table and the offline auth-gate rule"
 ```
 
 ---
@@ -3534,7 +3496,9 @@ Builds every screen in the slice against the Figma frames listed in the Global C
 - Create: `mobile/lib/features/auth/presentation/screens/register_screen.dart`
 - Create: `mobile/lib/features/auth/presentation/screens/forgot_pin_screen.dart`
 - Create: `mobile/lib/features/auth/presentation/screens/home_placeholder_screen.dart`
+- Create: `mobile/lib/core/router/app_router.dart`
 - Modify: `mobile/lib/main.dart`
+- Test: `mobile/test/widget/helpers.dart`
 - Test: `mobile/test/widget/login_screen_test.dart`
 - Test: `mobile/test/widget/register_screen_test.dart`
 
@@ -3544,36 +3508,89 @@ Builds every screen in the slice against the Figma frames listed in the Global C
 
 - [ ] **Step 1: Write the failing widget tests**
 
-Create `mobile/test/widget/login_screen_test.dart`:
+First add the test-only dependency the localization harness needs, then write the shared harness:
+
+```bash
+cd P:/Heart-Care-App/mobile
+flutter pub add --dev shared_preferences
+```
+
+Create `mobile/test/widget/helpers.dart`. **Every screen calls `.tr()`, which throws without an `EasyLocalization` ancestor** — pumping a bare `MaterialApp(home: LoginScreen())` fails before a single assertion runs:
 
 ```dart
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:libu_care/core/error/failure.dart';
-import 'package:libu_care/core/providers/core_providers.dart';
-import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
-import 'package:libu_care/features/auth/presentation/screens/login_screen.dart';
-import 'package:mocktail/mocktail.dart';
+import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/core/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class MockAuthRepository extends Mock implements AuthRepository {}
+/// Call once in `setUpAll`. `easy_localization` persists the chosen locale
+/// through shared_preferences, whose platform channel is absent in tests.
+Future<void> initLocalization() async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+  await EasyLocalization.ensureInitialized();
+}
 
-Future<void> pumpLogin(WidgetTester tester, AuthRepository repo) async {
+/// Pumps a screen inside the same localization + theme + provider stack the
+/// real app uses, so widget tests exercise what ships.
+Future<void> pumpScreen(
+  WidgetTester tester,
+  Widget screen, {
+  List<Override> overrides = const <Override>[],
+}) async {
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: <Override>[authRepositoryProvider.overrideWithValue(repo)],
-      child: MaterialApp(
-        localizationsDelegates: const <LocalizationsDelegate<Object>>[],
-        home: const LoginScreen(),
+    EasyLocalization(
+      supportedLocales:
+          AppLanguage.values.map((AppLanguage l) => l.locale).toList(),
+      path: 'assets/translations',
+      fallbackLocale: AppLanguage.en.locale,
+      child: ProviderScope(
+        overrides: overrides,
+        child: Builder(
+          builder: (BuildContext context) => MaterialApp(
+            theme: AppTheme.light(context.locale.languageCode),
+            localizationsDelegates: context.localizationDelegates,
+            supportedLocales: context.supportedLocales,
+            locale: context.locale,
+            home: screen,
+          ),
+        ),
       ),
     ),
   );
   await tester.pumpAndSettle();
 }
+```
+
+Create `mobile/test/widget/login_screen_test.dart`:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:libu_care/core/error/failure.dart';
+import 'package:libu_care/features/auth/auth_providers.dart';
+import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
+import 'package:libu_care/features/auth/presentation/screens/login_screen.dart';
+import 'package:mocktail/mocktail.dart';
+
+import 'helpers.dart';
+
+class MockAuthRepository extends Mock implements AuthRepository {}
+
+Future<void> pumpLogin(WidgetTester tester, AuthRepository repo) => pumpScreen(
+      tester,
+      const LoginScreen(),
+      overrides: <Override>[authRepositoryProvider.overrideWithValue(repo)],
+    );
 
 void main() {
   late MockAuthRepository repo;
+
+  setUpAll(initLocalization);
 
   setUp(() {
     repo = MockAuthRepository();
@@ -3642,15 +3659,19 @@ Create `mobile/test/widget/register_screen_test.dart`:
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:libu_care/core/providers/core_providers.dart';
+import 'package:libu_care/features/auth/auth_providers.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 import 'package:libu_care/features/auth/presentation/screens/register_screen.dart';
 import 'package:mocktail/mocktail.dart';
+
+import 'helpers.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
   late MockAuthRepository repo;
+
+  setUpAll(initLocalization);
 
   setUp(() {
     repo = MockAuthRepository();
@@ -3658,15 +3679,11 @@ void main() {
     when(() => repo.cachedUser()).thenAnswer((_) async => null);
   });
 
-  Future<void> pump(WidgetTester tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
+  Future<void> pump(WidgetTester tester) => pumpScreen(
+        tester,
+        const RegisterScreen(),
         overrides: <Override>[authRepositoryProvider.overrideWithValue(repo)],
-        child: const MaterialApp(home: RegisterScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
+      );
 
   testWidgets('will not submit when the two PINs differ', (tester) async {
     await pump(tester);
