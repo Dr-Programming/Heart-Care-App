@@ -22,5 +22,13 @@ class CachedUserDao extends DatabaseAccessor<AppDatabase>
   Future<CachedUser?> current() =>
       (select(cachedUsers)..limit(1)).getSingleOrNull();
 
+  /// Emits on sign-in, sign-out and profile rename.
+  ///
+  /// The shell greets the user from this rather than from an auth provider,
+  /// which is what lets `core/` render a personalised Home without importing
+  /// the auth feature.
+  Stream<CachedUser?> watchCurrent() =>
+      (select(cachedUsers)..limit(1)).watchSingleOrNull();
+
   Future<void> clear() => delete(cachedUsers).go();
 }

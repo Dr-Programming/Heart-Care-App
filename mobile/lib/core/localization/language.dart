@@ -28,12 +28,20 @@ enum AppLanguage {
   }
 }
 
-/// Device-local language persistence.
+/// Device-local language persistence — and the authoritative one.
 ///
-/// This slice deliberately does not push the language to the server after
-/// registration: `users.preferred_language` has no update endpoint, and there
-/// is no post-login settings screen here for it to diverge from. Ownership of
-/// that column is settled in the patient-profile slice.
+/// Ownership of the language setting is settled: **the device owns it.**
+/// `users.preferred_language` is a registration-time hint with no update
+/// endpoint, and `patient_profiles.preferred_language` is profile data written
+/// through `PUT /patients/me`. Neither is read to decide what the UI renders
+/// in; this store is.
+///
+/// The reasoning: the setting is inherently per-device (the same account on a
+/// borrowed phone should not change that phone's language), the released
+/// backend has no endpoint to update the `users` copy, and the in-app toggle
+/// (FR-LOC-003) has to work offline like everything else. Adding a
+/// `PATCH /users/me/language` would reopen a shipped API for a setting the
+/// server never reads.
 class LanguageStore {
   const LanguageStore(this._prefs);
 

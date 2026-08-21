@@ -10,16 +10,17 @@ class PreferencesDao extends DatabaseAccessor<AppDatabase>
   PreferencesDao(super.db);
 
   Future<String?> get(String key) async {
-    final Preference? row =
-        await (select(preferences)..where(($PreferencesTable t) => t.key.equals(key)))
-            .getSingleOrNull();
+    final Preference? row = await (select(
+      preferences,
+    )..where(($PreferencesTable t) => t.key.equals(key))).getSingleOrNull();
     return row?.value;
   }
 
-  Future<void> set(String key, String value) => into(preferences).insertOnConflictUpdate(
-        PreferencesCompanion.insert(key: key, value: value),
-      );
+  Future<void> set(String key, String value) => into(
+    preferences,
+  ).insertOnConflictUpdate(PreferencesCompanion.insert(key: key, value: value));
 
-  Future<void> remove(String key) =>
-      (delete(preferences)..where(($PreferencesTable t) => t.key.equals(key))).go();
+  Future<void> remove(String key) => (delete(
+    preferences,
+  )..where(($PreferencesTable t) => t.key.equals(key))).go();
 }

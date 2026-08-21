@@ -1,52 +1,137 @@
 {
   "app": { "name": "Libu Care", "tagline": "Heart health care" },
-  "language": {
-    "title": "Choose your language",
-    "subtitle": "You can change this later",
-    "continue": "Continue"
+
+  "common": {
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "done": "Done",
+    "close": "Close",
+    "seeAll": "See all",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "loading": "Loading",
+    "noValue": "—"
   },
-  "login": {
-    "title": "Welcome back",
-    "subtitle": "Sign in to continue",
-    "phone": "Phone number",
-    "phoneHint": "+251 9__ __ __",
-    "pin": "4-digit PIN",
-    "pinHint": "● ● ● ●",
-    "submit": "Sign in",
-    "or": "or",
-    "createAccount": "Create account",
-    "forgotPin": "Forgot PIN?",
-    "worksOffline": "Works offline"
+
+  "nav": {
+    "home": "Home",
+    "medications": "Medicines",
+    "vitals": "Vitals",
+    "checkIn": "Check-in",
+    "learn": "Learn"
   },
-  "register": {
-    "title": "Create account",
-    "subtitle": "Takes less than a minute",
-    "name": "Full name",
-    "nameHint": "Abebe Girma",
-    "confirmPin": "Confirm PIN",
-    "preferredLanguage": "Preferred language",
-    "submit": "Create account",
-    "haveAccount": "Already have an account?",
-    "signIn": "Sign in"
+
+  "sync": {
+    "offline": "You are offline. Anything you record is saved on this phone.",
+    "offlineTitle": "You are offline",
+    "offlineWithPending": "Offline — {count} records waiting to send",
+    "pending": "{count} records waiting to send",
+    "failed": "Could not send your records. They are safe and will be sent again.",
+    "rejected": "{count} records could not be saved on the server.",
+    "syncNow": "Send now",
+    "lastSynced": "Last sent {when}"
   },
-  "forgotPin": {
-    "title": "Forgot your PIN?",
-    "body": "For your security, a PIN cannot be reset inside the app yet.\n\nPlease contact your clinic to have your account restored. They can verify your identity and help you get back in.\n\nIf you entered the wrong PIN five times, your account is locked for 15 minutes. Nothing is lost — just wait and try again.",
-    "back": "Back to sign in"
+
+  "clinical": {
+    "severity": {
+      "none": "Normal",
+      "monitor": "Watch",
+      "urgent": "Urgent",
+      "emergency": "Emergency"
+    },
+    "action": {
+      "none": "No action needed. Keep monitoring.",
+      "monitor": "Self-care. Watch for changes.",
+      "urgent": "Contact your clinician today.",
+      "emergency": "Call your emergency contact now."
+    }
   },
-  "home": { "greeting": "Hello, {name}", "signOut": "Sign out" },
+
+  "home": {
+    "greeting": "Hello, {name}",
+    "greetingAnonymous": "Welcome",
+    "subtitle": "Your heart health today",
+    "emptyTitle": "Nothing to show yet",
+    "emptyBody": "Once you start recording your medicines and readings, they will appear here.",
+    "signOut": "Sign out"
+  },
+
   "errors": {
-    "phoneRequired": "Enter your phone number",
-    "phoneFormat": "Enter a phone number as +251 followed by 9 digits",
-    "pinRequired": "Enter your 4-digit PIN",
-    "pinFormat": "Your PIN must be exactly 4 digits",
-    "pinMismatch": "The two PINs do not match",
-    "nameRequired": "Enter your name",
     "offline": "You need a connection to sign in the first time",
-    "locked": "Too many attempts. Try again in {minutes} min.",
-    "lockedNoTime": "Too many attempts. Please wait and try again.",
-    "invalidCredentials": "Invalid phone or PIN",
-    "phoneTaken": "That phone number is already registered",
-    "generic": "Something went wrong. Please try again."
-  }
+    "generic": "Something went wrong. Please try again.",
+    "required": "This field is required",
+    "invalidNumber": "Enter a number",
+    "outOfRange": "Enter a value between {min} and {max}"
+  },
+
+  "auth": {
+    "language": {
+      "title": "Choose your language",
+      "subtitle": "You can change this later",
+      "continue": "Continue"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue",
+      "phone": "Phone number",
+      "phoneHint": "+251 9__ __ __",
+      "pin": "4-digit PIN",
+      "pinHint": "● ● ● ●",
+      "submit": "Sign in",
+      "or": "or",
+      "createAccount": "Create account",
+      "forgotPin": "Forgot PIN?",
+      "worksOffline": "Works offline"
+    },
+    "register": {
+      "title": "Create account",
+      "subtitle": "Takes less than a minute",
+      "name": "Full name",
+      "nameHint": "Abebe Girma",
+      "confirmPin": "Confirm PIN",
+      "preferredLanguage": "Preferred language",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "forgotPin": {
+      "title": "Forgot your PIN?",
+      "body": "For your security, a PIN cannot be reset inside the app yet.\n\nPlease contact your clinic to have your account restored. They can verify your identity and help you get back in.\n\nIf you entered the wrong PIN five times, your account is locked for 15 minutes. Nothing is lost — just wait and try again.",
+      "back": "Back to sign in"
+    },
+    "errors": {
+      "phoneRequired": "Enter your phone number",
+      "phoneFormat": "Enter a phone number as +251 followed by 9 digits",
+      "pinRequired": "Enter your 4-digit PIN",
+      "pinFormat": "Your PIN must be exactly 4 digits",
+      "pinMismatch": "The two PINs do not match",
+      "nameRequired": "Enter your name",
+      "locked": "Too many attempts. Try again in {minutes} min.",
+      "lockedNoTime": "Too many attempts. Please wait and try again.",
+      "invalidCredentials": "Invalid phone or PIN",
+      "phoneTaken": "That phone number is already registered"
+    }
+  },
+
+  "profile": {
+    "title": "Profile"
+  },
+
+  "meds": {},
+
+  "vitals": {},
+
+  "symptoms": {},
+
+  "activity": {},
+
+  "education": {}
 }

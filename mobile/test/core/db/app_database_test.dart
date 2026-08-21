@@ -15,13 +15,15 @@ void main() {
     });
 
     test('round-trips the cached user', () async {
-      await db.cachedUserDao.save(const CachedUsersCompanion(
-        id: Value('3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b'),
-        name: Value('Abebe Bekele'),
-        phone: Value('+251911234567'),
-        preferredLanguage: Value('am'),
-        role: Value('PATIENT'),
-      ));
+      await db.cachedUserDao.save(
+        const CachedUsersCompanion(
+          id: Value('3f2a9c1e-5b7d-4e8a-9f01-2c3d4e5f6a7b'),
+          name: Value('Abebe Bekele'),
+          phone: Value('+251911234567'),
+          preferredLanguage: Value('am'),
+          role: Value('PATIENT'),
+        ),
+      );
 
       final user = await db.cachedUserDao.current();
       expect(user!.name, 'Abebe Bekele');
@@ -29,35 +31,43 @@ void main() {
       expect(user.preferredLanguage, 'am');
     });
 
-    test('save replaces rather than accumulates, so only one user is ever cached',
-        () async {
-      await db.cachedUserDao.save(const CachedUsersCompanion(
-        id: Value('user-1'),
-        name: Value('First'),
-        phone: Value('+251911111111'),
-        preferredLanguage: Value('en'),
-        role: Value('PATIENT'),
-      ));
-      await db.cachedUserDao.save(const CachedUsersCompanion(
-        id: Value('user-2'),
-        name: Value('Second'),
-        phone: Value('+251922222222'),
-        preferredLanguage: Value('en'),
-        role: Value('PATIENT'),
-      ));
+    test(
+      'save replaces rather than accumulates, so only one user is ever cached',
+      () async {
+        await db.cachedUserDao.save(
+          const CachedUsersCompanion(
+            id: Value('user-1'),
+            name: Value('First'),
+            phone: Value('+251911111111'),
+            preferredLanguage: Value('en'),
+            role: Value('PATIENT'),
+          ),
+        );
+        await db.cachedUserDao.save(
+          const CachedUsersCompanion(
+            id: Value('user-2'),
+            name: Value('Second'),
+            phone: Value('+251922222222'),
+            preferredLanguage: Value('en'),
+            role: Value('PATIENT'),
+          ),
+        );
 
-      expect(await db.select(db.cachedUsers).get(), hasLength(1));
-      expect((await db.cachedUserDao.current())!.name, 'Second');
-    });
+        expect(await db.select(db.cachedUsers).get(), hasLength(1));
+        expect((await db.cachedUserDao.current())!.name, 'Second');
+      },
+    );
 
     test('clear empties the cache on logout', () async {
-      await db.cachedUserDao.save(const CachedUsersCompanion(
-        id: Value('user-1'),
-        name: Value('First'),
-        phone: Value('+251911111111'),
-        preferredLanguage: Value('en'),
-        role: Value('PATIENT'),
-      ));
+      await db.cachedUserDao.save(
+        const CachedUsersCompanion(
+          id: Value('user-1'),
+          name: Value('First'),
+          phone: Value('+251911111111'),
+          preferredLanguage: Value('en'),
+          role: Value('PATIENT'),
+        ),
+      );
       await db.cachedUserDao.clear();
       expect(await db.cachedUserDao.current(), isNull);
     });
@@ -84,7 +94,10 @@ void main() {
 
     test('remove on a key that was never set does not throw', () async {
       await db.preferencesDao.remove(PreferenceKeys.languageChosen);
-      expect(await db.preferencesDao.get(PreferenceKeys.languageChosen), isNull);
+      expect(
+        await db.preferencesDao.get(PreferenceKeys.languageChosen),
+        isNull,
+      );
     });
   });
 }
