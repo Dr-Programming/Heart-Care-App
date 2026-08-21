@@ -14,8 +14,11 @@ class _StubAdapter implements HttpClientAdapter {
   final Map<String, dynamic> body;
 
   @override
-  Future<ResponseBody> fetch(RequestOptions options, Stream<Uint8List>? stream,
-      Future<void>? cancelFuture) async {
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? stream,
+    Future<void>? cancelFuture,
+  ) async {
     return ResponseBody.fromString(
       jsonEncode(body),
       statusCode,
@@ -66,18 +69,28 @@ void main() {
     expect(f, isA<PhoneAlreadyRegisteredFailure>());
   });
 
-  test('423 becomes AccountLockedFailure with the minutes parsed out', () async {
-    final f = await _failureFrom(
-        423, 'Too many failed attempts. Try again in 12 minutes.');
-    expect(f, isA<AccountLockedFailure>());
-    expect((f as AccountLockedFailure).minutesRemaining, 12);
-  });
+  test(
+    '423 becomes AccountLockedFailure with the minutes parsed out',
+    () async {
+      final f = await _failureFrom(
+        423,
+        'Too many failed attempts. Try again in 12 minutes.',
+      );
+      expect(f, isA<AccountLockedFailure>());
+      expect((f as AccountLockedFailure).minutesRemaining, 12);
+    },
+  );
 
-  test('423 on the final minute still parses, despite the singular noun', () async {
-    final f = await _failureFrom(
-        423, 'Too many failed attempts. Try again in 1 minute.');
-    expect((f as AccountLockedFailure).minutesRemaining, 1);
-  });
+  test(
+    '423 on the final minute still parses, despite the singular noun',
+    () async {
+      final f = await _failureFrom(
+        423,
+        'Too many failed attempts. Try again in 1 minute.',
+      );
+      expect((f as AccountLockedFailure).minutesRemaining, 1);
+    },
+  );
 
   test('500 becomes ServerFailure', () async {
     final f = await _failureFrom(500, 'An unexpected error occurred');

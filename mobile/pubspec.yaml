@@ -1,5 +1,5 @@
 name: libu_care
-description: "A new Flutter project."
+description: "Libu Care - offline-first coronary heart disease self-management for patients in Ethiopia."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -49,6 +49,17 @@ dependencies:
   iconsax: ^0.0.8
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
+
+  # Declared up front by the foundation slice even though no shared code
+  # imports them yet. Five feature branches editing this file in parallel is
+  # a guaranteed merge conflict, so every dependency any slice needs is
+  # resolved and locked here once. Do not add to this list on a feature
+  # branch - ask the maintainer instead.
+  uuid: ^4.5.1                    # client_record_id generation (all log slices)
+  intl: ^0.20.2                   # date/number formatting, EN + AM
+  fl_chart: ^1.1.1                # M4 vitals trend charts
+  flutter_local_notifications: ^19.4.2  # M3 medication reminders
+  timezone: ^0.10.1               # scheduling reminders at a local wall clock
 
 dev_dependencies:
   flutter_test:

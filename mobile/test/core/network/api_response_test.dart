@@ -38,10 +38,12 @@ void main() {
     });
 
     test('survives a malformed timestamp rather than throwing', () {
-      final res = ApiResponse.fromJson(
-        {'success': true, 'data': null, 'message': 'OK', 'timestamp': 'not-a-date'},
-        (d) => d,
-      );
+      final res = ApiResponse.fromJson({
+        'success': true,
+        'data': null,
+        'message': 'OK',
+        'timestamp': 'not-a-date',
+      }, (d) => d);
       expect(res.timestamp, isNull);
     });
   });

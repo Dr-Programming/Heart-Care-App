@@ -5,7 +5,9 @@ void main() {
   group('parseLockoutMinutes', () {
     test('reads the plural form', () {
       expect(
-        parseLockoutMinutes('Too many failed attempts. Try again in 15 minutes.'),
+        parseLockoutMinutes(
+          'Too many failed attempts. Try again in 15 minutes.',
+        ),
         15,
       );
     });
@@ -24,7 +26,10 @@ void main() {
 
   group('Failure', () {
     test('AccountLockedFailure carries the remaining minutes', () {
-      const f = AccountLockedFailure('Try again in 4 minutes.', minutesRemaining: 4);
+      const f = AccountLockedFailure(
+        'Try again in 4 minutes.',
+        minutesRemaining: 4,
+      );
       expect(f.minutesRemaining, 4);
       expect(f, isA<Failure>());
     });

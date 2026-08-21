@@ -68,8 +68,10 @@ Failure failureFromDioException(DioException e) {
     404 => UnknownFailure(message),
     409 => PhoneAlreadyRegisteredFailure(message),
     413 => ValidationFailure(message),
-    423 => AccountLockedFailure(message,
-        minutesRemaining: parseLockoutMinutes(message)),
+    423 => AccountLockedFailure(
+      message,
+      minutesRemaining: parseLockoutMinutes(message),
+    ),
     >= 500 => ServerFailure(message),
     _ => UnknownFailure(message),
   };

@@ -25,7 +25,9 @@ abstract final class AppTheme {
         fillColor: AppColors.surface,
         hintStyle: text.bodyLarge?.copyWith(color: AppColors.textTertiary),
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.fieldRadius),
           borderSide: const BorderSide(color: AppColors.border),
