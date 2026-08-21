@@ -1,0 +1,52 @@
+{
+  "app": { "name": "Libu Care", "tagline": "Heart health care" },
+  "language": {
+    "title": "Choose your language",
+    "subtitle": "You can change this later",
+    "continue": "Continue"
+  },
+  "login": {
+    "title": "Welcome back",
+    "subtitle": "Sign in to continue",
+    "phone": "Phone number",
+    "phoneHint": "+251 9__ __ __",
+    "pin": "4-digit PIN",
+    "pinHint": "● ● ● ●",
+    "submit": "Sign in",
+    "or": "or",
+    "createAccount": "Create account",
+    "forgotPin": "Forgot PIN?",
+    "worksOffline": "Works offline"
+  },
+  "register": {
+    "title": "Create account",
+    "subtitle": "Takes less than a minute",
+    "name": "Full name",
+    "nameHint": "Abebe Girma",
+    "confirmPin": "Confirm PIN",
+    "preferredLanguage": "Preferred language",
+    "submit": "Create account",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in"
+  },
+  "forgotPin": {
+    "title": "Forgot your PIN?",
+    "body": "For your security, a PIN cannot be reset inside the app yet.\n\nPlease contact your clinic to have your account restored. They can verify your identity and help you get back in.\n\nIf you entered the wrong PIN five times, your account is locked for 15 minutes. Nothing is lost — just wait and try again.",
+    "back": "Back to sign in"
+  },
+  "home": { "greeting": "Hello, {name}", "signOut": "Sign out" },
+  "errors": {
+    "phoneRequired": "Enter your phone number",
+    "phoneFormat": "Enter a phone number as +251 followed by 9 digits",
+    "pinRequired": "Enter your 4-digit PIN",
+    "pinFormat": "Your PIN must be exactly 4 digits",
+    "pinMismatch": "The two PINs do not match",
+    "nameRequired": "Enter your name",
+    "offline": "You need a connection to sign in the first time",
+    "locked": "Too many attempts. Try again in {minutes} min.",
+    "lockedNoTime": "Too many attempts. Please wait and try again.",
+    "invalidCredentials": "Invalid phone or PIN",
+    "phoneTaken": "That phone number is already registered",
+    "generic": "Something went wrong. Please try again."
+  }
+}
