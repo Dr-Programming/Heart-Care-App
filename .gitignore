@@ -10,9 +10,15 @@
 # =============================================================================
 
 # Claude Code
-.claude/
+# .claude/settings.json IS committed so every contributor runs the same plugin
+# set; everything else under .claude/ (incl. settings.local.json) stays local.
+.claude/*
+!.claude/settings.json
 .auto-memory/
+# The root CLAUDE.md is local-only, but mobile/CLAUDE.md IS committed so the
+# frontend team gets the project rules from a plain clone.
 CLAUDE.md
+!mobile/CLAUDE.md
 docs/superpowers/
 
 # Codebase memory / MCP
@@ -94,8 +100,11 @@ GoogleService-Info.plist
 mobile/build/
 
 # Generated files
-*.g.dart               # Only if NOT checking in generated Drift/Riverpod code
-*.freezed.dart         # Remove this line if your team commits generated files
+# Trailing comments are NOT valid gitignore syntax - patterns stay bare.
+# Generated code is not committed; run:
+#   dart run build_runner build --delete-conflicting-outputs
+*.g.dart
+*.freezed.dart
 
 # Android (inside mobile/)
 mobile/android/.gradle/
