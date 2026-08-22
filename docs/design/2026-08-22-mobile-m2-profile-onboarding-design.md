@@ -253,6 +253,8 @@ Register in `lib/app/app_wiring.dart`, `M2 profile` region: four routes in
 
 ## 7. Files this slice may NOT touch
 
+`backend/**` and `database/**` are **read-only and frozen at `v1.0.0`** — reading the Java is encouraged (this spec asks you to), changing it is not, and CI blocks it.
+
 `lib/core/**` · `lib/main.dart` · `pubspec.yaml` · `tables.dart` ·
 `api_endpoints.dart`. `PatientProfiles`, the `Preferences` keys,
 `ApiEndpoints.patientMe` and `LanguageStore` all already exist.
