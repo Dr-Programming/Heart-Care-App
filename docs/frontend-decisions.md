@@ -8,11 +8,29 @@ Related: per-slice specs in `docs/design/`, architecture in `ARCHITECTURE.md` / 
 
 ## 1. How we build the frontend
 
-**Decomposition — one slice at a time, mirroring the backend.** The whole app is too large for a single spec/plan. Each slice gets its own `docs/design/` spec → implementation plan → build, exactly like the backend did.
+**Changed 2026-08-22: the frontend is team-owned and built in parallel.** The
+backend was built solo, one slice after another, and the frontend was going to
+be. It is not. Five developers each own one feature end to end, so they earn
+real authorship, and the CTO reviews rather than implements. Programme index:
+`docs/design/2026-08-22-mobile-frontend-program.md`.
 
-**First slice = Foundation & Auth** (`docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md`). It scaffolds the project + `core/` layer and delivers the auth feature end-to-end, proving the full vertical stack against the running API. Chosen over "foundation only" (nothing user-visible, doesn't exercise the network/auth stack) and over a bigger multi-feature slice (too much to review at once).
+**Decomposition — a complete foundation first, then five parallel features.**
+Sequential slices could share files freely because one person touched them.
+Parallel slices cannot: five branches editing `app_database.dart`,
+`pubspec.yaml` and `en.json` would spend more time merging than building. So
+the foundation slice declares **every shared file complete up front** — the
+whole database schema, all 18 API paths, every dependency, the full route
+table, the widget kit, the sync engine — and a feature slice then edits only
+its own folder plus one marked region in `lib/app/app_wiring.dart`.
 
-**Execution = contract-first, backend then frontend.** Single developer, so sequential beats parallel: freeze the API contract, implement + test the backend, then build the frontend against real endpoints. Near-zero integration risk.
+**A slice document is now a spec, not a plan.** Each feature gets a
+`docs/design/` spec; writing the implementation plan is the first task of the
+slice and belongs to its owner. That is where their engineering judgement
+shows, and it is what makes the contribution real rather than transcription.
+
+**Execution = contract-first, still.** The backend is frozen at `v1.0.0`, so
+every feature is built against a real, tested API. Integration risk stays near
+zero even with five people working at once.
 
 **Method = TDD, feature-first clean architecture.** Logic first (pure Dart, test-driven), then wire the UI. In an offline-first app the hard part is the data flow, not the pixels — building logic first means screens plug into proven controllers instead of a moving target. Each feature is self-contained with `data / domain / presentation` layers (see `CLAUDE.md` architectural rules).
 
@@ -91,35 +109,101 @@ Mismatches logged during design review (reconcile when each slice is reached):
 
 ## 6. Future planning
 
-### Frontend slice roadmap (tentative order)
-1. **Foundation & Auth** — *designed, next to build.* (backend phone+PIN rework + Flutter foundation + auth)
-2. **Patient profile + onboarding wizard** — the full 3-step Figma onboarding (medical profile, reminders), `GET/PUT /patients/me`, first offline read/write + sync.
-3. **Home dashboard + bottom nav** — the real Home shell (replaces the auth-slice placeholder).
-4. **Medications & dose logs** — Today/Schedule/History, add medication.
-5. **Vitals** — logging + `fl_chart` trends.
-6. **Symptoms** — daily check-in (needs a new screen; backend exists).
-7. **Activity** — session logging (needs a new screen; backend exists).
-8. **Offline sync engine** — Drift `sync_queue`, `POST /api/v1/sync`, conflict handling.
+### Frontend slice map (owners work in parallel)
 
-*(Order may adjust; Home shell could merge into a later feature slice.)*
+| Slice | Branch | Scope |
+|---|---|---|
+| **M0** Foundation & app shell | `mobile` | **Built.** Scaffold, theme, full Drift schema, sync engine, clinical evaluator, router, five-tab shell, widget kit, test helpers, CI. |
+| **M1** Auth & session | `feature/mobile/auth` | Splash/gate, first-run language, login, register, forgot-PIN, logout. |
+| **M2** Profile, onboarding & settings | `feature/mobile/profile` | 3-step wizard, profile view/edit, goals, settings, language toggle, accessibility. |
+| **M3** Medications, dose logs & reminders | `feature/mobile/medications` | Med CRUD, schedule, dose logging, adherence, local notifications. |
+| **M4** Vitals & trend charts | `feature/mobile/vitals` | Five vital types, history, flags, `fl_chart` 7/30-day trends. |
+| **M5** Symptoms, activity & guidance | `feature/mobile/symptoms-activity` | Daily check-in, activity logging, bundled EN/AM education and diet content, quiz. |
+
+Branch from `mobile`, PR into `mobile`; `mobile` → `dev` at milestones.
+
+**M1 is the critical path for manual end-to-end testing** — nothing else can
+reach a real token until login exists. It does not block development: the app
+is offline-first, so every other slice's local path, repository logic and
+widget tests are buildable without a session, and `OpenAuthGate` keeps the
+shell reachable until M1 lands.
 
 ### Deferred items to revisit
-- **Self-service PIN reset.** Options considered: **SMS OTP** (standard, self-service, but needs a paid gateway + connectivity — conflicts with free/offline constraints) or a **recovery code at signup** (offline, free, but weak UX for low-literacy users). Revisit once an SMS path is decided.
-- **Medical-profile onboarding wizard (steps 2–3)** and **reminders** — patient-profile slice. Reminders are device-local notifications; confirm whether any backend is needed (currently none).
-- **Appointments / Alerts screens** — need a backend decision (build vs. drop) before implementing.
-- **Symptoms / Activity screens** — design from scratch against existing backend.
-- **DOB = year only** (per scope decisions) — enforce in the profile slice.
+- **Self-service PIN reset.** Options considered: **SMS OTP** (standard, self-service, but needs a paid gateway + connectivity — conflicts with free/offline constraints) or a **recovery code at signup** (offline, free, but weak UX for low-literacy users). Revisit once an SMS path is decided. M1 ships a guidance screen only.
+- **NFR-004, AES-256 at rest** (SQLCipher or equivalent) — unimplemented; plain Drift today. Deferred rather than dropped: adopting it changes the database setup for every slice at once, so it is a single coordinated change after the features land.
+- **Amharic clinical and educational copy** — written by the implementers, **not yet reviewed by a native speaker**. A release gate, alongside the clinical thresholds.
+- **Appointments** — dropped (D6). The Figma screen has no backend.
+- **Alerts screen** — dropped (D4); severity surfaces inline instead.
+
+Now settled, previously listed here: the onboarding wizard and reminders (M2
+and M3), symptom and activity screens (M5, designed from scratch), DOB as year
+only (M2), and `preferred_language` ownership (D5).
 
 ### Backend security items still open (tracked in `backend/docs/SecurityReview.md`)
-- **M-1 (login rate limiting)** — being closed *by this slice* via PIN lockout.
-- **M-2 (token lifetime / revocation)** — best decided alongside this auth flow; a `token_version` claim is the cheapest path. Revisit during the auth build.
+- **M-1 (login rate limiting)** — **closed** by the PIN lockout shipped in `v1.0.0`.
+- **M-2 (token lifetime / revocation)** — open by decision. The offline auth gate reads the JWT `exp` locally and never calls the server, so a revoked token would still open the app until it expires. Accepted for the MVP; a `token_version` claim remains the cheapest fix.
+- **M-3 (registration reveals whether a phone is in use)** — open by decision.
 - **HTTPS at the platform edge** — deployment concern, confirm on Railway.
 
 ---
 
 ## 7. References
-- Slice spec: `docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md`
+- **Programme index: `docs/design/2026-08-22-mobile-frontend-program.md`**
+- Per-slice specs: `docs/design/2026-08-22-mobile-m1..m5-*-design.md`
+- Team workflow: `mobile/CONTRIBUTING.md` · rules: `mobile/CLAUDE.md`
+- Superseded (kept as history): `docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md` §3, `docs/plans/2026-08-17-slice8-mobile-foundation-auth-frontend.md`
 - Backend API contract: `backend/docs/API.md`
 - Security findings: `backend/docs/SecurityReview.md`
 - Figma file key: `B2D41kike6v4YRjHQMlszS`
 - Architectural rules & stack: `CLAUDE.md`
+
+---
+
+## 8. Team-parallel scope decisions (2026-08-22)
+
+Settled when the frontend became team-owned. Recorded here so a slice owner can
+see the reasoning rather than re-litigating it mid-build.
+
+**D1 — Education, the diet guide and activity guidance are in scope**, in M5,
+as bundled offline EN/AM content, reference links only, no video. Dropping them
+would have left 19 P1 requirements unmet, and they have zero backend coupling
+and zero shared-file contact — the safest possible parallel work.
+
+**D2 — Local notifications are in scope**, in M3, alongside the medication
+schedule. FR-NOT-001/002/003 are all medication-triggered; a separate owner
+would have needed a cross-feature import to reach the schedule.
+
+**D3 — Decision support is in scope** as pure functions in `core/clinical/`,
+built as part of M0. `PROJECT_STRUCTURE.md` already placed the evaluator in
+core, and FR-DEC-011 requires it to work entirely offline, so it is
+client-side by definition. **The thresholds mirror `SymptomAssessment.java`
+and `VitalThresholds.java` exactly** — if the two disagreed, a reading would
+change severity after it synced, which is the worst possible behaviour for
+clinical information.
+
+**D4 — No standalone Alerts screen.** Severity surfaces inline: on entry, as
+chips in history, and on a Home card. The Figma Alerts screen has no backend
+and its clinician-forwarding half (FR-DEC-010) is dropped scope; FR-DEC-009
+only requires the recommended action be displayed.
+
+**D5 — Language is device-local, and this closes the open `preferred_language`
+question.** `core/localization/LanguageStore` is authoritative.
+`users.preferred_language` is a registration-time hint with no update endpoint;
+`patient_profiles.preferred_language` is profile data written through
+`PUT /patients/me`. Neither decides what the UI renders. The setting is
+inherently per-device, the toggle has to work offline, and adding
+`PATCH /users/me/language` would reopen a shipped API for a value the server
+never reads.
+
+**D6 — Appointments stay dropped.** NFR-004 (AES-256 at rest, SQLCipher) is
+deferred and logged as a known gap: adopting SQLCipher would change the Drift
+setup for all five slices at once.
+
+**D7 — Home is assembled from a `HomeCard` registry.** Each feature contributes
+its own card and Home only lays them out, so five people land part of one
+screen without any feature importing another (architectural rule #1).
+
+**Still open, and not for a feature branch to settle:** self-service PIN reset
+(deferred; M1 shows guidance only), SecurityReview **M-2** (7-day tokens, no
+revocation — the offline auth gate accepts this by design) and **M-3**
+(registration reveals whether a phone is in use).
