@@ -105,6 +105,9 @@ Five feature slices, one owner each. The index is
 | **M4** Vitals & trend charts | `feature/mobile/vitals` | `2026-08-22-mobile-m4-vitals-trends-design.md` |
 | **M5** Symptoms, activity & guidance | `feature/mobile/symptoms-activity` | `2026-08-22-mobile-m5-symptoms-activity-guidance-design.md` |
 
+Who owns which slice is in [SLICE_OWNERS.md](SLICE_OWNERS.md) — keep the
+Status column there current as you go.
+
 Build **only** what your spec covers. Needing something from another slice is
 a signal you are about to break rule 1 below.
 
