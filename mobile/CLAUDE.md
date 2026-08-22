@@ -110,6 +110,26 @@ TDD. Logic first (pure Dart, test-driven), then wire the UI.
 - Cover the offline path explicitly: a repository test that proves the write
   landed locally and no request was made.
 
+## Toolchain gotchas
+
+These cost real time to diagnose. All of them will recur.
+
+- **Riverpod 3:** `Override` is exported from `package:flutter_riverpod/misc.dart`,
+  not the main barrel. `StreamProvider.stream` no longer exists — watch the
+  underlying provider instead. `WidgetRef` is not a `Ref`; put anything needing
+  a real `Ref` in a provider.
+- **Drift:** a `where` callback is typed with the *generated* table class
+  (`($MedicationsTable t) => ...`), not the `Table` subclass — otherwise
+  `equalsValue` and the typed columns are not found.
+- **Widget tests hang with no output** unless `setUpWidgetTests()` and
+  `pumpApp()` are used. Three independent causes, all handled there; see the
+  comments in `test/helpers/pump_app.dart` before writing your own harness.
+- **Windows:** killing a test run orphans `flutter_tester`, which locks
+  `build/native_assets/windows/sqlite3.dll` and breaks every later run. Fix
+  with `Get-Process flutter_tester | Stop-Process -Force`.
+- Do not pass `--delete-conflicting-outputs` to build_runner — removed from
+  this version, it only prints a warning.
+
 ## Before every commit
 
 ```bash
