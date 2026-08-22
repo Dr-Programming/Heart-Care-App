@@ -130,6 +130,7 @@ shell reachable until M1 lands.
 
 ### Deferred items to revisit
 - **Self-service PIN reset.** Options considered: **SMS OTP** (standard, self-service, but needs a paid gateway + connectivity — conflicts with free/offline constraints) or a **recovery code at signup** (offline, free, but weak UX for low-literacy users). Revisit once an SMS path is decided. M1 ships a guidance screen only.
+- **Poppins is fetched at runtime, not bundled.** `google_fonts` downloads and caches the font on first use, so a first-ever launch with no connection renders in a fallback face — contradicting offline-first and the exact-fonts agreement. Fix is to bundle Poppins and Noto Sans Ethiopic as assets (~1 MB against NFR-007's 50 MB budget). Surfaced by `mobile/test/app_boot_test.dart`.
 - **NFR-004, AES-256 at rest** (SQLCipher or equivalent) — unimplemented; plain Drift today. Deferred rather than dropped: adopting it changes the database setup for every slice at once, so it is a single coordinated change after the features land.
 - **Amharic clinical and educational copy** — written by the implementers, **not yet reviewed by a native speaker**. A release gate, alongside the clinical thresholds.
 - **Appointments** — dropped (D6). The Figma screen has no backend.

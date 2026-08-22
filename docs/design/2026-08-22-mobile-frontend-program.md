@@ -171,6 +171,27 @@ Still open, and not for a feature branch to settle: self-service PIN reset
 (deferred, M1 shows guidance only), SecurityReview **M-2** (7-day tokens, no
 revocation) and **M-3** (registration reveals whether a phone is in use).
 
+### Known gaps in the foundation
+
+Maintainer's to-do, not a slice's. Raise them rather than fixing them on a
+feature branch.
+
+- **Poppins is fetched at runtime, not bundled.** `google_fonts` downloads the
+  font on first use and caches it. A patient whose *first ever* launch is
+  offline gets a fallback face instead of the design font — which contradicts
+  both offline-first and the "colours and fonts are exact" agreement with the
+  designer. The fix is to bundle Poppins and Noto Sans Ethiopic as assets;
+  roughly 1 MB against a 50 MB budget (NFR-007). Surfaced by
+  `test/app_boot_test.dart`.
+- **NFR-004, AES-256 at rest**, is unimplemented — plain Drift today. Deferred
+  deliberately: adopting SQLCipher changes the database setup for all five
+  slices at once, so it is one coordinated change after the features land.
+- **`assets/content/`** is not yet declared in `pubspec.yaml`. M5 needs it
+  before starting the education work.
+- **The Amharic copy** in `assets/translations/*.json` was written by the
+  implementers and has **not been reviewed by a native speaker**. A release
+  gate, alongside the clinical thresholds.
+
 ---
 
 ## 7. Definition of done for the programme
