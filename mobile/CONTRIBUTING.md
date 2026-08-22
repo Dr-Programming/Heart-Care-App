@@ -62,7 +62,7 @@ physical device use your machine's LAN IP.
 ## 2. Branches
 
 ```
-main                                  protected, release only
+main                                  release only
 └── dev                               integration
     └── mobile                        the foundation + where your work lands
         ├── feature/mobile/auth
@@ -80,6 +80,15 @@ git checkout -b feature/mobile/<your-slice>
 
 Branch from `mobile`, PR into `mobile`. Never PR into `dev` or `main`. Merge
 `mobile` into your branch regularly — a week-old branch is a week of conflicts.
+
+**No branch is mechanically protected.** Branch protection needs a paid plan
+on a private repository, so nothing stops a bad merge except us. Two rules
+follow, and they are not optional:
+
+- **Never merge a red PR.** CI runs a boundaries check and the full suite on
+  every PR into `mobile`. A red X means it would break someone else's slice.
+- **Never push directly to `mobile`, `dev` or `main`.** Those are the
+  maintainer's. Your work reaches `mobile` through a PR, always.
 
 ---
 
