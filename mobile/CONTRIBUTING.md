@@ -75,12 +75,60 @@ Branch from `mobile`, PR into `mobile`. Never PR into `dev` or `main`. Merge
 
 ## 3. Your slice
 
-Five feature slices, one owner each. Your spec is
-`docs/design/2026-08-22-mobile-m<N>-*-design.md`; the index is
+Five feature slices, one owner each. The index is
 `docs/design/2026-08-22-mobile-frontend-program.md`.
+
+| Slice | Your branch | Your spec (in `docs/design/`) |
+|---|---|---|
+| **M1** Auth & session | `feature/mobile/auth` | `2026-08-22-mobile-m1-auth-design.md` |
+| **M2** Profile, onboarding & settings | `feature/mobile/profile` | `2026-08-22-mobile-m2-profile-onboarding-design.md` |
+| **M3** Medications, dose logs & reminders | `feature/mobile/medications` | `2026-08-22-mobile-m3-medications-reminders-design.md` |
+| **M4** Vitals & trend charts | `feature/mobile/vitals` | `2026-08-22-mobile-m4-vitals-trends-design.md` |
+| **M5** Symptoms, activity & guidance | `feature/mobile/symptoms-activity` | `2026-08-22-mobile-m5-symptoms-activity-guidance-design.md` |
 
 Build **only** what your spec covers. Needing something from another slice is
 a signal you are about to break rule 1 below.
+
+### Your first session
+
+Before writing any code, get your assistant oriented. Ask the maintainer for
+the plugin configuration, then open the repository and start with something
+like this — substituting your own slice number, name, branch and spec file:
+
+```text
+I am building slice M4 (Vitals & Trend Charts) of the Libu Care Flutter app,
+on branch feature/mobile/vitals. Five developers are each building one slice
+in parallel off the `mobile` branch.
+
+Before anything else, read these three files in full:
+  - mobile/CONTRIBUTING.md                                   (the rules I must follow)
+  - docs/design/2026-08-22-mobile-frontend-program.md        (how the slices fit together)
+  - docs/design/2026-08-22-mobile-m4-vitals-trends-design.md (my slice spec)
+
+Then explore lib/core/ so you know what the foundation already provides —
+especially core/db/tables.dart, core/sync/, core/clinical/, core/widgets/,
+core/router/routes.dart and test/helpers/.
+
+Then write a CLAUDE.md at the repository root capturing what a future session
+needs: the architecture rules, the shared files I may not edit, the
+offline-first write path, the API contract traps, the testing helpers and
+toolchain gotchas, and — most importantly — the specifics of MY slice: which
+tables, endpoints, routes, translation namespace and core helpers are mine,
+and what belongs to other slices. Keep it concise; it is loaded into every
+prompt.
+
+Do not write any feature code yet. After CLAUDE.md, stop and confirm your
+understanding of my slice's scope and boundaries.
+```
+
+`CLAUDE.md` is gitignored at every depth, so the file this produces stays on
+your machine and cannot be committed by accident. Write your own rather than
+copying someone else's: a file that says *"`VitalsLogs` is yours; `SymptomLogs`
+belongs to M5 — read the table directly, never import their code"* is what
+actually stops boundary violations.
+
+Regenerate it if your understanding of the slice changes materially. It is
+notes to your future self, not a deliverable.
 
 ---
 
