@@ -4,11 +4,12 @@ name: Mobile CI
 # where all five feature slices land. Generated code is not committed, so the
 # build_runner step is what makes the checkout compile at all.
 on:
+  # Deliberately no `paths:` filter on pull_request. These checks are required
+  # by branch protection, and a required check that never runs is reported as
+  # perpetually pending - a PR that happened to touch only docs would be
+  # unmergeable with no way to fix it from the PR.
   pull_request:
     branches: [mobile, dev]
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
   push:
     branches: [mobile]
     paths:
