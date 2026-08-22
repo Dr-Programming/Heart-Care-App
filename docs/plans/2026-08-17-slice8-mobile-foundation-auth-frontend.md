@@ -1,5 +1,23 @@
 # Mobile Foundation & Auth (Frontend Half) Implementation Plan
 
+> ## SUPERSEDED - 2026-08-22. Do not execute this plan.
+>
+> The frontend is no longer built solo, slice after slice. It is owned by the
+> team, one feature per developer, working in parallel. That changed the
+> decomposition: shared files are now declared complete up front by the
+> foundation so five branches never edit the same file.
+>
+> Tasks 1-6 of this plan (scaffold, theme, config and failures, Dio, Drift,
+> localization) were built and are the foundation on the `mobile` branch.
+> Tasks 7-9 (the auth vertical) were built and then deliberately removed:
+> auth is a team-owned slice now. Tasks 10-12 were never built.
+>
+> **Where to go instead:**
+> `docs/design/2026-08-22-mobile-frontend-program.md` for the programme, and
+> `docs/design/2026-08-22-mobile-m1-auth-design.md` for this plan's subject.
+>
+> Kept in the repository as the record of how the foundation was built.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stand up the Flutter app — project scaffold, `core/` layer, and the auth feature end-to-end — so a patient can register with phone + PIN, be auto-logged-in, land on Home, and reopen the app offline without signing in again.
