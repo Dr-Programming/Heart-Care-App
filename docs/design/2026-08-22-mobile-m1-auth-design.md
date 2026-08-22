@@ -256,6 +256,8 @@ routes to `topLevel`, and override `authGateProvider` with your implementation.
 
 ## 7. Files this slice may NOT touch
 
+`backend/**` and `database/**` are **read-only and frozen at `v1.0.0`** — reading the Java is encouraged (this spec asks you to), changing it is not, and CI blocks it.
+
 `lib/core/**` · `lib/main.dart` · `pubspec.yaml` · `lib/core/db/tables.dart`
 · `api_endpoints.dart` — all owned by M0 and already complete. The three auth
 paths, `CachedUsers`, `Preferences`, `TokenStore`, `jwt.dart`, the

@@ -264,6 +264,8 @@ sub-routes, plus your Home card.
 
 ## 7. Files this slice may NOT touch
 
+`backend/**` and `database/**` are **read-only and frozen at `v1.0.0`** — reading the Java is encouraged (this spec asks you to), changing it is not, and CI blocks it.
+
 `lib/core/**` · `lib/main.dart` · `pubspec.yaml` · `tables.dart` ·
 `api_endpoints.dart`. `VitalsLogs`, `ApiEndpoints.vitals`, `fl_chart` and the
 whole clinical evaluator already exist.

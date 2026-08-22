@@ -7,9 +7,19 @@ The Flutter client for Heart-Care-App: offline-first coronary heart disease
 self-management for patients in Ethiopia. Bilingual English / አማርኛ. Patient
 role only — no clinician, no appointments, no real-time alerting.
 
-The backend is **finished and frozen** at `v1.0.0` (253 tests, 18 endpoints).
-`backend/docs/API.md` is the contract. Do not change backend code to make a
-frontend problem easier; raise it with the maintainer.
+The backend is **finished, frozen at `v1.0.0`, and read-only to you**
+(253 tests, 18 endpoints). `backend/docs/API.md` is the contract.
+
+Read-only means exactly that — **reading it is encouraged**. When your spec
+says the client must mirror `SymptomAssessment.java` or `VitalThresholds.java`,
+open them. Understanding why the server answers the way it does is often the
+fastest route to a frontend bug.
+
+What you must never do is **change** anything under `backend/` or `database/`,
+for any reason, including "it was a one-line fix". CI blocks it. If the
+backend is genuinely wrong or missing something, that is a conversation with
+the maintainer — reopening a released API affects all five slices and 253
+passing tests.
 
 ---
 
@@ -166,11 +176,13 @@ Needing a change to one of these is a request to the maintainer, not an edit
 on your branch. The next person needs it too, and the same helper landing
 twice in two places is worse than waiting a day.
 
+- `backend/**` and `database/**` — **read-only**, frozen at `v1.0.0`
 - `lib/core/**` — theme, db schema, network, sync, router, widgets, shell
 - `lib/core/db/tables.dart`, `app_database.dart` — every table you need exists
 - `lib/core/constants/api_endpoints.dart`
 - `pubspec.yaml` — every dependency any slice needs is already resolved
 - `lib/main.dart`
+- `android/**`, `ios/**` — platform config; a permission entry is a request
 
 Two you *may* edit, inside your own marked region only:
 
@@ -408,6 +420,7 @@ Before you open it:
 - [ ] `flutter test` green
 - [ ] you ran the app and used the feature, including with the radio off
 - [ ] no edits to shared files outside your marked region
+- [ ] nothing under `backend/` or `database/` changed
 - [ ] no AI co-author trailer on any commit
 
 Request review from the maintainer plus `j444cky`. The maintainer merges.
@@ -421,4 +434,6 @@ Request review from the maintainer plus `j444cky`. The maintainer merges.
 - You need something from `core/` that isn't there → ask. Do not add it on
   your branch.
 - You need a backend change → almost certainly no, but ask. The API is frozen
-  at `v1.0.0` and reopening it affects everyone.
+  at `v1.0.0`, the backend is read-only to you, and reopening it affects all
+  five slices. In most cases what looks like a missing endpoint is a shape the
+  client should derive locally instead.

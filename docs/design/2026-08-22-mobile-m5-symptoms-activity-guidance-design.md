@@ -319,6 +319,8 @@ tab, the learn tab, and both Home cards.
 
 ## 7. Files this slice may NOT touch
 
+`backend/**` and `database/**` are **read-only and frozen at `v1.0.0`** — reading the Java is encouraged (this spec asks you to), changing it is not, and CI blocks it.
+
 `lib/core/**` · `lib/main.dart` · `pubspec.yaml` · `tables.dart` ·
 `api_endpoints.dart`. `SymptomLogs`, `ActivityLogs`, both endpoint pairs and
 the whole clinical evaluator already exist.

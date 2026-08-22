@@ -122,10 +122,21 @@ a widget a second slice would also want, a helper, a route — ask the
 maintainer. Do not add it on your branch: the next person needs it too, and
 the same helper landing twice in two places is worse than waiting a day.
 
+**The backend is read-only.** `backend/**` and `database/**` are frozen at
+`v1.0.0`. Reading the Java is encouraged — M4 and M5 are explicitly asked to
+mirror `VitalThresholds.java` and `SymptomAssessment.java` — but nothing there
+changes on a feature branch, for any reason. CI blocks it.
+
 The only shared things you may touch:
 
 - `lib/app/app_wiring.dart` — your marked region: routes, Home card, overrides
 - `assets/translations/*.json` — your own top-level namespace only
+
+A PR into `mobile` runs a boundaries check before the tests: it fails if the
+diff touches `backend/`, `database/`, `mobile/lib/core/`, `pubspec.yaml`,
+`main.dart`, or the platform folders. Review would catch these too, but not
+reliably — and a foundation change merged by accident is felt by every other
+slice at once.
 
 ---
 

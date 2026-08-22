@@ -261,6 +261,8 @@ file, initialised from your providers — not in `main.dart`.
 
 ## 7. Files this slice may NOT touch
 
+`backend/**` and `database/**` are **read-only and frozen at `v1.0.0`** — reading the Java is encouraged (this spec asks you to), changing it is not, and CI blocks it.
+
 `lib/core/**` · `lib/main.dart` · `pubspec.yaml` · `tables.dart` ·
 `api_endpoints.dart`. `Medications`, `DoseLogs`, all six medication paths, the
 sync enqueuer and `hasConsecutiveMissedDoses` already exist.
