@@ -1,24 +1,38 @@
 # Contributing — Libu Care mobile
 
-Read this once before your first commit. `mobile/CLAUDE.md` has the
-architectural rules; this has the workflow.
+The one document you need before writing code. Read it once end to end; it is
+the contract a reviewer will hold you to.
+
+The Flutter client for Heart-Care-App: offline-first coronary heart disease
+self-management for patients in Ethiopia. Bilingual English / አማርኛ. Patient
+role only — no clinician, no appointments, no real-time alerting.
+
+The backend is **finished and frozen** at `v1.0.0` (253 tests, 18 endpoints).
+`backend/docs/API.md` is the contract. Do not change backend code to make a
+frontend problem easier; raise it with the maintainer.
+
+---
 
 ## 1. Set up
 
 ```bash
 git clone https://github.com/Dr-Programming/Heart-Care-App.git
-cd Heart-Care-App/mobile
+cd Heart-Care-App
+git checkout mobile
+cd mobile
 flutter pub get
-dart run build_runner build          # REQUIRED - see below
+dart run build_runner build          # REQUIRED
 flutter analyze                      # expect: No issues found!
 flutter test                         # expect: all green
 ```
 
 **`build_runner` is not optional.** Generated files (`*.g.dart`,
 `*.freezed.dart`) are gitignored, so a fresh clone will not compile until you
-run it. Re-run it any time you add or change a freezed model or a Drift table.
+run it. Re-run it whenever you add or change a freezed model. Do **not** pass
+`--delete-conflicting-outputs` — it was removed from this build_runner version
+and only prints a warning.
 
-Run the app against a local backend:
+Run against a local backend:
 
 ```bash
 # from the repo root, in another terminal
@@ -32,6 +46,8 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 
 `10.0.2.2` is the Android emulator's alias for your machine's localhost. On a
 physical device use your machine's LAN IP.
+
+---
 
 ## 2. Branches
 
@@ -52,46 +68,140 @@ git pull
 git checkout -b feature/mobile/<your-slice>
 ```
 
-Branch from `mobile`, PR into `mobile`. Never PR into `dev` or `main`.
-Rebase or merge `mobile` into your branch regularly — a week-old branch is a
-week of conflicts.
+Branch from `mobile`, PR into `mobile`. Never PR into `dev` or `main`. Merge
+`mobile` into your branch regularly — a week-old branch is a week of conflicts.
 
-## 3. How to build your slice
+---
 
-Your spec is `docs/design/2026-08-22-mobile-m<N>-*-design.md`. It is a design
-document, not a plan — turning it into a plan is your first job, and it is
-where your judgement shows.
+## 3. Your slice
 
-With Claude Code, run the same pipeline the backend was built with:
+Five feature slices, one owner each. Your spec is
+`docs/design/2026-08-22-mobile-m<N>-*-design.md`; the index is
+`docs/design/2026-08-22-mobile-frontend-program.md`.
 
-1. `/superpowers:brainstorming` — work through the spec, resolve what it left
-   open, write down decisions.
-2. `/superpowers:writing-plans` — produce a task-by-task plan in
+Build **only** what your spec covers. Needing something from another slice is
+a signal you are about to break rule 1 below.
+
+---
+
+## 4. Architecture — the rules
+
+Feature-first clean architecture. Every feature is self-contained:
+
+```
+lib/features/<feature>/
+  data/         models (freezed/json) · datasources (local Drift, remote Dio) · repositories
+  domain/       entities · repository interfaces · use cases
+  presentation/ controllers (Riverpod) · screens · widgets
+```
+
+**A reviewer will reject violations of these.**
+
+1. **Features never import each other.** Not the entity, not the provider, not
+   the widget. Cross-feature data goes through a `core/db` table (they belong
+   to nobody) or the Home card registry.
+2. **`core/` never imports `features/`.** If core seems to need a feature, the
+   dependency is inverted — declare an interface in core and implement it in
+   the feature. `AuthGate` is the worked example.
+3. **Local and remote datasources are always separate classes.** No
+   `if (online)` inside a datasource. The repository decides.
+4. **All API URLs live in `core/constants/api_endpoints.dart`.** Never write a
+   path literal in a datasource. All 18 are already declared.
+5. **Shared files are complete already** — the Drift schema, every API path,
+   every dependency, the whole route table. You edit only your own folder.
+   This is what makes five parallel branches possible.
+6. **`lib/app/app_wiring.dart` is the only place features meet.**
+
+### Shared files you must not edit
+
+Needing a change to one of these is a request to the maintainer, not an edit
+on your branch. The next person needs it too, and the same helper landing
+twice in two places is worse than waiting a day.
+
+- `lib/core/**` — theme, db schema, network, sync, router, widgets, shell
+- `lib/core/db/tables.dart`, `app_database.dart` — every table you need exists
+- `lib/core/constants/api_endpoints.dart`
+- `pubspec.yaml` — every dependency any slice needs is already resolved
+- `lib/main.dart`
+
+Two you *may* edit, inside your own marked region only:
+
+- `lib/app/app_wiring.dart` — your routes, Home card, provider overrides
+- `assets/translations/en.json` and `am.json` — your own top-level namespace
+  (`meds.*`, `vitals.*`, …). Never another slice's block, and never the shared
+  `common.*` / `errors.*` / `clinical.*` blocks.
+
+---
+
+## 5. Offline-first is not a feature, it is the default
+
+The device is the source of truth. Every user action must work with the radio
+off.
+
+- Write to Drift **first**, then enqueue for sync. Never await the network on
+  a user action.
+- Mint a `client_record_id` with `newClientRecordId()` at capture time. It is
+  the server's idempotency key — never regenerate it on retry.
+- Enqueue through `SyncEnqueuer` (`syncEnqueuerProvider`). Do not call
+  `POST /api/v1/sync` yourself; `core/sync` owns draining the queue.
+- Reads come from Drift, not the API. A screen that shows a spinner when
+  offline is a bug.
+
+The one exception in the whole app is first-time login, which genuinely cannot
+work offline.
+
+---
+
+## 6. Stack and design fidelity
+
+Riverpod (state **and** DI — no `get_it`) · go_router · Drift · Dio ·
+flutter_secure_storage · connectivity_plus · easy_localization · google_fonts
+(Poppins) · iconsax · freezed + json_serializable · fl_chart ·
+flutter_local_notifications · mocktail.
+
+Colours and fonts from the Figma file are **exact and contractual**; layout
+and composition are yours. Never write a raw hex — use `AppColors`. Never set
+a font — use the theme. Build screens out of `core/widgets/` so five people's
+work still looks like one app.
+
+Amharic needs Noto Sans Ethiopic; Poppins has no Ethiopic glyphs. The theme
+handles it. Check at least one screen in Amharic — the strings are longer and
+overflow layouts tuned to English.
+
+---
+
+## 7. How to build your slice
+
+Your spec is a design document. Turning it into a plan is your first task, and
+it is where your judgement shows.
+
+With Claude Code and the plugin set the maintainer shares with you:
+
+1. `/superpowers:brainstorming` — work through the spec, settle what it leaves
+   open, record decisions.
+2. `/superpowers:writing-plans` — produce
    `docs/plans/2026-XX-XX-mobile-m<N>-<slice>.md`. Bite-sized TDD tasks, each
    ending green and committed.
 3. `/superpowers:subagent-driven-development` — execute it task by task.
-4. `/superpowers:requesting-code-review` — review your own branch before you
-   ask a human to.
+4. `/superpowers:requesting-code-review` — review your own branch first.
 5. `/superpowers:finishing-a-development-branch` — push and open the PR.
 
-The plugin set is committed in `.claude/settings.json`, so everyone runs the
-same tools.
-
-## 4. Order of work
+### Order of work
 
 Build bottom-up. It is tempting to start with screens; don't.
 
-1. **domain** — entity, repository interface, use cases. Pure Dart, fully
-   testable, no Flutter import.
+1. **domain** — entity, repository interface, use cases. Pure Dart, no Flutter
+   import, fully testable.
 2. **data** — freezed models, remote datasource (Dio), local datasource
    (Drift), repository implementation. This is where offline-first lives and
    where the hard bugs are.
 3. **presentation** — controller, then screens.
 
 In an offline-first app the hard part is the data flow, not the pixels.
-Screens plug into proven controllers instead of a moving target.
 
-## 5. The canonical layer template
+---
+
+## 8. The canonical layer template
 
 Copy this shape. Names change, structure does not.
 
@@ -139,12 +249,12 @@ class VitalsRepositoryImpl implements VitalsRepository {
 class VitalsController extends AsyncNotifier<VitalsState> { ... }
 ```
 
-Note what the repository does **not** do: it does not check connectivity, and
-it does not call the API. Writes go local-then-queue, unconditionally. The one
-exception in the whole app is first-time login, which genuinely cannot work
-offline.
+Note what the repository does **not** do: it does not check connectivity and
+it does not call the API. Writes go local-then-queue, unconditionally.
 
-## 6. Traps in the API contract
+---
+
+## 9. Traps in the API contract
 
 From `backend/docs/API.md`. Each of these has bitten someone already.
 
@@ -156,11 +266,87 @@ From `backend/docs/API.md`. Each of these has bitten someone already.
 - `404` also means "exists but belongs to another user". Never `403`.
 - `GET /dose-logs?medicationId=<unknown-but-valid-uuid>` returns `200 []`.
 - The `423` lockout message is singular on the final minute ("1 minute").
-  Parse with `parseLockoutMinutes`, which already handles it.
+  Parse with `parseLockoutMinutes`, which handles it.
 - Retry only `500`. `400/404/405/409/413` are permanent; `423` is temporary
   but must not be retried on a timer.
 
-## 7. Pull requests
+---
+
+## 10. Testing
+
+TDD. Logic first (pure Dart, test-driven), then wire the UI.
+
+- `test/helpers/` has everything: `testDatabase()`, `FakeDio`, `pumpApp()`.
+  **Use them** — see the gotchas below for why.
+- Real in-memory Drift, never a mocked database.
+- `FakeDio` over a mocked Dio: the real client keeps its interceptors and
+  error mapping, which is the code most likely to be wrong.
+- `mocktail` for mocks. No build_runner-generated mocks.
+- Cover the offline path explicitly — a repository test proving the write
+  landed locally and **no request was made**.
+
+### Toolchain gotchas
+
+These cost real time to diagnose, and each presents as something other than
+what it is.
+
+- **Widget tests hang with no output at all** — not a failure, no message —
+  unless `setUpWidgetTests()` and `pumpApp()` are used. Three independent
+  causes (google_fonts fetching the font at runtime, Drift's cleanup timer,
+  easy_localization's real async). All handled there; read the comments in
+  `test/helpers/pump_app.dart` before writing your own harness.
+- **Riverpod 3:** `Override` is exported from
+  `package:flutter_riverpod/misc.dart`, not the main barrel.
+  `StreamProvider.stream` no longer exists — watch the underlying provider.
+  `WidgetRef` is not a `Ref`; anything needing a real `Ref` goes in a provider.
+- **Drift:** a `where` callback is typed with the *generated* table class
+  (`($MedicationsTable t) => ...`), not the `Table` subclass — otherwise
+  `equalsValue` and the typed columns are "not found".
+- **Windows:** killing a test run orphans `flutter_tester`, which locks
+  `build/native_assets/windows/sqlite3.dll`. Every later run then fails with
+  a file-permission error that points nowhere near the real cause. Fix:
+  `Get-Process flutter_tester | Stop-Process -Force`.
+
+---
+
+## 11. Clinical content
+
+Thresholds in `core/clinical/alert_evaluator.dart` mirror the backend
+(`SymptomAssessment.java`, `VitalThresholds.java`) **exactly**. Do not invent
+a threshold and do not "improve" one: if the client and server disagree, a
+reading changes severity after it syncs, which is the worst possible
+behaviour for clinical information.
+
+They are documented defaults **pending clinical sign-off** — not approved
+clinical guidance. Amharic clinical copy needs native-speaker review before
+release; flag new strings rather than assuming they are final.
+
+The app must not diagnose and must not tell anyone not to seek help. Use the
+approved action strings; do not improvise clinical instructions.
+
+---
+
+## 12. Before every commit
+
+```bash
+cd mobile
+dart run build_runner build          # if you touched a freezed/json model
+flutter analyze                      # must print: No issues found!
+flutter test                         # must be all green
+```
+
+`flutter analyze` fails on info-level lints too, and CI additionally runs
+`dart format --set-exit-if-changed lib test`.
+
+Conventional commits, scope `mobile`: `feat(mobile): …`, `test(mobile): …`,
+`fix(mobile): …`, `chore(mobile): …`.
+
+**Never add an AI co-author trailer to a commit.** The author is the human
+whose branch it is.
+
+---
+
+## 13. Pull requests
 
 Title: `feat(mobile): M<N> — <slice name>`. In the description:
 
@@ -178,12 +364,13 @@ Before you open it:
 
 Request review from the maintainer plus `j444cky`. The maintainer merges.
 
-## 8. When you are stuck
+---
+
+## 14. When you are stuck
 
 - The spec is wrong or incomplete → say so in the PR or an issue. Specs are
   drafts, not scripture.
 - You need something from `core/` that isn't there → ask. Do not add it on
-  your branch; the next person needs it too, and two people adding the same
-  helper in two places is worse than waiting a day.
+  your branch.
 - You need a backend change → almost certainly no, but ask. The API is frozen
   at `v1.0.0` and reopening it affects everyone.

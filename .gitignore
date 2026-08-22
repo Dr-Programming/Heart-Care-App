@@ -10,15 +10,13 @@
 # =============================================================================
 
 # Claude Code
-# .claude/settings.json IS committed so every contributor runs the same plugin
-# set; everything else under .claude/ (incl. settings.local.json) stays local.
-.claude/*
-!.claude/settings.json
+# Nothing AI-assistant-related is committed. CLAUDE.md is a slash-less pattern,
+# so it matches at every depth - mobile/CLAUDE.md included, deliberately.
+# Team rules that contributors genuinely need live in mobile/CONTRIBUTING.md,
+# which is an ordinary developer doc. Assistant config is shared out of band.
+.claude/
 .auto-memory/
-# The root CLAUDE.md is local-only, but mobile/CLAUDE.md IS committed so the
-# frontend team gets the project rules from a plain clone.
 CLAUDE.md
-!mobile/CLAUDE.md
 docs/superpowers/
 
 # Codebase memory / MCP

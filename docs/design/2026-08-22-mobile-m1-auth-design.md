@@ -18,7 +18,7 @@ This is a design document, not a plan. Your first task is to turn it into one.
 4. `/superpowers:requesting-code-review`, then
    `/superpowers:finishing-a-development-branch` — PR into `mobile`.
 
-Read `mobile/CLAUDE.md` and `mobile/CONTRIBUTING.md` first. Build bottom-up:
+Read `mobile/CONTRIBUTING.md` first. Build bottom-up:
 domain → data → presentation.
 
 ---
