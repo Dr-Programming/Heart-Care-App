@@ -34,14 +34,20 @@ it is yours. See §5.
 
 ## 2. The slices
 
-| Slice | Branch | Owner |
-|---|---|---|
-| **M0** Foundation & app shell | `mobile` | maintainer — **done** |
-| **M1** [Auth & session](2026-08-22-mobile-m1-auth-design.md) | `feature/mobile/auth` | |
-| **M2** [Profile, onboarding & settings](2026-08-22-mobile-m2-profile-onboarding-design.md) | `feature/mobile/profile` | |
-| **M3** [Medications, dose logs & reminders](2026-08-22-mobile-m3-medications-reminders-design.md) | `feature/mobile/medications` | |
-| **M4** [Vitals & trend charts](2026-08-22-mobile-m4-vitals-trends-design.md) | `feature/mobile/vitals` | |
-| **M5** [Symptoms, activity & guidance](2026-08-22-mobile-m5-symptoms-activity-guidance-design.md) | `feature/mobile/symptoms-activity` | |
+Six slices for six developers. **M0 is the maintainer's** and is already
+built — it is the foundation the other five plug into.
+
+| Slice | Branch |
+|---|---|
+| **M0** Foundation & app shell — *done* | `mobile` |
+| **M1** [Auth & session](2026-08-22-mobile-m1-auth-design.md) | `feature/mobile/auth` |
+| **M2** [Profile, onboarding & settings](2026-08-22-mobile-m2-profile-onboarding-design.md) | `feature/mobile/profile` |
+| **M3** [Medications, dose logs & reminders](2026-08-22-mobile-m3-medications-reminders-design.md) | `feature/mobile/medications` |
+| **M4** [Vitals & trend charts](2026-08-22-mobile-m4-vitals-trends-design.md) | `feature/mobile/vitals` |
+| **M5** [Symptoms, activity & guidance](2026-08-22-mobile-m5-symptoms-activity-guidance-design.md) | `feature/mobile/symptoms-activity` |
+
+**Who owns which slice lives in `mobile/SLICE_OWNERS.md`**, not here — one
+place to update, and it carries a note on what each slice is like to build.
 
 ### Sequencing
 
