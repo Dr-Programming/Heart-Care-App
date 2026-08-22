@@ -151,7 +151,7 @@ only (M2), and `preferred_language` ownership (D5).
 ## 7. References
 - **Programme index: `docs/design/2026-08-22-mobile-frontend-program.md`**
 - Per-slice specs: `docs/design/2026-08-22-mobile-m1..m5-*-design.md`
-- Team workflow: `mobile/CONTRIBUTING.md` · rules: `mobile/CLAUDE.md`
+- Team workflow, rules and gotchas: `mobile/CONTRIBUTING.md`
 - Superseded (kept as history): `docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md` §3, `docs/plans/2026-08-17-slice8-mobile-foundation-auth-frontend.md`
 - Backend API contract: `backend/docs/API.md`
 - Security findings: `backend/docs/SecurityReview.md`

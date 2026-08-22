@@ -109,7 +109,7 @@ widget test hang with no output at all.
 
 ## 4. Boundaries
 
-The rules in `mobile/CLAUDE.md` are the contract. The two that cause the most
+The rules in `mobile/CONTRIBUTING.md` are the contract. The two that cause the most
 trouble in parallel work:
 
 **Features never import each other.** If M4's Home card wants the patient's
@@ -136,7 +136,7 @@ first task, and it is where your engineering judgement shows — the spec
 deliberately leaves screen composition, state modelling and task breakdown to
 you.
 
-With Claude Code and the committed plugin set (`.claude/settings.json`):
+With the assistant tooling the maintainer shares with you:
 
 1. **`/superpowers:brainstorming`** — work through the spec, settle what it
    left open, record decisions and rejected alternatives.

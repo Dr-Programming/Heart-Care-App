@@ -63,7 +63,7 @@ test/
 ```
 
 `core/` is owned by the foundation and is not edited on a feature branch. See
-[CLAUDE.md](CLAUDE.md) for the architectural rules and the list of shared
+[CONTRIBUTING.md](CONTRIBUTING.md) for the architectural rules and the list of shared
 files.
 
 ## Notes
