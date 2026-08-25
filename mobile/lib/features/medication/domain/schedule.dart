@@ -7,14 +7,29 @@ import 'entities/scheduled_dose.dart';
 /// Whether [medication] counts as active on [day] — i.e. whether any of its
 /// scheduled times on that day are due at all.
 ///
-/// **Known limitation, accepted deliberately:** the schema (owned by the
-/// foundation, not editable by this slice) has no `deactivatedAt` column —
-/// only `active` and a generic `updatedAt` that changes on *any* edit. When
-/// `active` is false, `updatedAt` is used as a best-effort proxy for "the day
-/// it stopped being due". A medication edited (not deactivated) shortly
-/// before being deactivated could therefore lose one day of adherence
-/// history at the boundary. Documented here rather than silently accepted;
-/// revisit if the schema ever grows a dedicated column.
+/// **Known limitations, accepted deliberately:**
+///
+/// 1. **Single-transition edge case:** The schema (owned by the foundation,
+/// not editable by this slice) has no `deactivatedAt` column — only `active`
+/// and a generic `updatedAt` that changes on *any* edit. When `active` is
+/// false, `updatedAt` is used as a best-effort proxy for "the day it stopped
+/// being due". A medication edited (not deactivated) shortly before being
+/// deactivated could therefore lose one day of adherence history at the
+/// boundary.
+///
+/// 2. **Multi-transition/reactivation gap (latent, not currently exploitable):**
+/// When a medication is deactivated and later reactivated (flipping `active`
+/// back to `true`), this function treats every day from `createdAt` onward as
+/// active — it consults only `createdAt`, never checks whether `updatedAt`
+/// marks a deactivation somewhere in the middle. This means `computeAdherence`
+/// will incorrectly count the inactive gap-days as due-but-unlogged,
+/// undercounting adherence for that period. **This cannot be fixed without an
+/// activation-history column added to the schema**, which is outside this
+/// slice's authority. No UI in this plan currently exposes medication
+/// reactivation, so this bug is latent rather than exploitable today.
+///
+/// Revisit both if the schema ever grows dedicated deactivation and activation
+/// history columns.
 bool isActiveOn(Medication medication, DateTime day) {
   final DateTime dayStart = DateFormatter.startOfDay(day);
   final DateTime createdDay = DateFormatter.startOfDay(medication.createdAt);
