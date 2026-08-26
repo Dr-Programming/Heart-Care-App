@@ -57,6 +57,15 @@ class MedicationRepositoryImpl implements MedicationRepository {
   /// silently drop it on save. Chaining every mutation through this future
   /// forces them to run strictly one after another, regardless of which
   /// caller (a direct edit or a fire-and-forget replay) triggered them.
+  ///
+  /// Always kept in a completed-successfully state, even when the operation
+  /// that produced it failed: `_markPendingEdit`/`_clearPendingEdit` chain
+  /// onto this field but reassign it to an error-swallowed copy of the
+  /// result they hand back to their own caller. `Future.then` skips its
+  /// callback entirely once its source future has errored, so without that,
+  /// a single transient `preferences` failure would permanently wedge this
+  /// field in an errored state and silently disable every later mark/clear
+  /// for the lifetime of this repository instance.
   Future<void> _pendingEditsLock = Future<void>.value();
 
   @override
@@ -308,16 +317,24 @@ class MedicationRepositoryImpl implements MedicationRepository {
   }
 
   Future<void> _markPendingEdit(String clientRecordId) {
-    return _pendingEditsLock = _pendingEditsLock.then((_) async {
+    final Future<void> result = _pendingEditsLock.then((_) async {
       final Set<String> ids = await _pendingEditIds()..add(clientRecordId);
       await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
     });
+    // The chain itself must never see this operation's error — `catchError`
+    // here swallows it only for `_pendingEditsLock`'s own purposes, so the
+    // next queued mark/clear still runs. `result`, what THIS call returns to
+    // its own caller, is untouched and still carries the real error.
+    _pendingEditsLock = result.catchError((_) {});
+    return result;
   }
 
   Future<void> _clearPendingEdit(String clientRecordId) {
-    return _pendingEditsLock = _pendingEditsLock.then((_) async {
+    final Future<void> result = _pendingEditsLock.then((_) async {
       final Set<String> ids = await _pendingEditIds()..remove(clientRecordId);
       await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
     });
+    _pendingEditsLock = result.catchError((_) {});
+    return result;
   }
 }
