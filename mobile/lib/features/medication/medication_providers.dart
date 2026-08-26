@@ -25,6 +25,7 @@ final Provider<MedicationRepository> medicationRepositoryProvider =
         local: ref.watch(medicationLocalDataSourceProvider),
         remote: ref.watch(medicationRemoteDataSourceProvider),
         syncEnqueuer: ref.watch(syncEnqueuerProvider),
+        syncQueueDao: ref.watch(syncQueueDaoProvider),
         preferences: ref.watch(appDatabaseProvider).preferencesDao,
         isOnline: ref.watch(isOnlineProvider),
       ),

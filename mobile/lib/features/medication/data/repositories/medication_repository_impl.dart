@@ -35,6 +35,7 @@ class MedicationRepositoryImpl implements MedicationRepository {
     required this.local,
     required this.remote,
     required this.syncEnqueuer,
+    required this.syncQueueDao,
     required this.preferences,
     required this.isOnline,
   });
@@ -42,6 +43,12 @@ class MedicationRepositoryImpl implements MedicationRepository {
   final MedicationLocalDataSource local;
   final MedicationRemoteDataSource remote;
   final SyncEnqueuer syncEnqueuer;
+
+  /// Read-only use of a `core/` dao: the sync engine parks the server id it
+  /// got back for a record on `sync_queue_entries.serverId` rather than
+  /// writing into feature tables, so a feature that needs its own rows'
+  /// server ids has to harvest them from there. See [_harvestServerIds].
+  final SyncQueueDao syncQueueDao;
   final PreferencesDao preferences;
   final Future<bool> Function() isOnline;
 
@@ -139,6 +146,10 @@ class MedicationRepositoryImpl implements MedicationRepository {
     String? scheduledTime,
     String? note,
   }) async {
+    // The medication's create may have synced since it was written locally;
+    // if it has, `medicationId` (not `medicationClientRecordId`) is what the
+    // dose-log payload should carry (Decision 3).
+    await _harvestServerIds(<String>[medicationClientRecordId]);
     final Medication? medication = await local.findMedication(
       medicationClientRecordId,
     );
@@ -251,17 +262,48 @@ class MedicationRepositoryImpl implements MedicationRepository {
   Future<void> replayPendingEdits() async {
     if (!await isOnline()) return;
     final Set<String> ids = await _pendingEditIds();
+    if (ids.isEmpty) return;
+    // One batch query for the whole pending set, so `_tryReplaySingle` below
+    // never has to harvest per-record.
+    await _harvestServerIds(ids);
     for (final String id in ids) {
       await _tryReplaySingle(id);
     }
   }
 
+  /// Copies server ids the sync engine resolved onto this feature's own rows.
+  ///
+  /// `SyncService` records the id the server assigned on the *queue* row
+  /// (`sync_queue_entries.serverId`), deliberately not reaching into feature
+  /// tables. Without this harvest a medication's `serverId` stays null
+  /// forever, which silently disables both the pending-edit replay (there is
+  /// no id to `PUT` to) and the `medicationId` branch of a dose-log payload.
+  Future<void> _harvestServerIds(Iterable<String> clientRecordIds) async {
+    final Map<String, String> resolved = await syncQueueDao.serverIds(
+      clientRecordIds,
+    );
+    for (final MapEntry<String, String> entry in resolved.entries) {
+      await local.setServerId(entry.key, entry.value);
+    }
+  }
+
   Future<void> _tryReplaySingle(String clientRecordId) async {
     if (!await isOnline()) return;
-    final Medication? medication = await local.findMedication(clientRecordId);
+    Medication? medication = await local.findMedication(clientRecordId);
     if (medication == null) {
       await _clearPendingEdit(clientRecordId);
       return;
+    }
+    if (medication.serverId == null) {
+      // `edit()` fires this directly, without going through
+      // `replayPendingEdits`'s batch harvest — so try once here before
+      // giving up on this pass.
+      await _harvestServerIds(<String>[clientRecordId]);
+      medication = await local.findMedication(clientRecordId);
+      if (medication == null) {
+        await _clearPendingEdit(clientRecordId);
+        return;
+      }
     }
     final String? serverId = medication.serverId;
     // Still waiting on the original create to sync — nothing to PUT yet.

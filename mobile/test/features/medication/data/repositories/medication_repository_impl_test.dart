@@ -129,6 +129,7 @@ void main() {
   late FakeDio fakeDio;
   late MedicationRemoteDataSource remote;
   late _FakeSyncEnqueuer enqueuer;
+  late SyncQueueDao syncQueueDao;
   late bool online;
   late MedicationRepositoryImpl repository;
 
@@ -138,17 +139,42 @@ void main() {
     fakeDio = FakeDio();
     remote = MedicationRemoteDataSource(fakeDio.dio);
     enqueuer = _FakeSyncEnqueuer();
+    // A real dao over the real in-memory database ("never mock the
+    // database"): the repository reads resolved server ids back out of the
+    // queue, so the queue rows have to actually exist.
+    syncQueueDao = SyncQueueDao(db);
     online = false;
     repository = MedicationRepositoryImpl(
       local: local,
       remote: remote,
       syncEnqueuer: enqueuer,
+      syncQueueDao: syncQueueDao,
       preferences: db.preferencesDao,
       isOnline: () async => online,
     );
   });
 
   tearDown(() => db.close());
+
+  /// Stands in for the sync engine having pushed [clientRecordId] and been
+  /// handed [serverId] back: the queue row exists and carries the server id,
+  /// exactly as `SyncService` leaves it.
+  Future<void> resolveInQueue(String clientRecordId, String serverId) async {
+    await syncQueueDao.enqueue(
+      clientRecordId: clientRecordId,
+      entityType: SyncEntityType.medication,
+      payload: const <String, dynamic>{},
+      recordedAt: DateTime.now().toUtc(),
+    );
+    final SyncQueueEntry entry = (await syncQueueDao.pending()).firstWhere(
+      (SyncQueueEntry e) => e.clientRecordId == clientRecordId,
+    );
+    await syncQueueDao.markResult(
+      entry.id,
+      status: LocalSyncStatus.synced,
+      serverId: serverId,
+    );
+  }
 
   test('adding a medication offline writes to Drift, enqueues MEDICATION, and makes no request', () async {
     final Medication created = await repository.add(
@@ -212,6 +238,75 @@ void main() {
     expect(doseCall.payload['medicationId'], 'srv-1');
     expect(doseCall.payload.containsKey('medicationClientRecordId'), isFalse);
   });
+
+  test(
+    'logDose harvests a server id the sync engine resolved and sends '
+    'medicationId — without anyone calling setServerId by hand',
+    () async {
+      // Regression test for review finding C1: `Medication.serverId` was only
+      // ever written by `setServerId`, which nothing in production called, so
+      // the queue's resolved ids were never picked up and this branch was
+      // dead code.
+      final Medication med = await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+      await resolveInQueue(med.clientRecordId, 'srv-9');
+
+      await repository.logDose(
+        medicationClientRecordId: med.clientRecordId,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+      );
+
+      expect((await local.findMedication(med.clientRecordId))!.serverId, 'srv-9');
+      final _RecordedEnqueue doseCall = enqueuer.calls.firstWhere(
+        (_RecordedEnqueue c) => c.entityType == SyncEntityType.doseLog,
+      );
+      expect(doseCall.payload['medicationId'], 'srv-9');
+      expect(doseCall.payload.containsKey('medicationClientRecordId'), isFalse);
+    },
+  );
+
+  test(
+    'replayPendingEdits harvests the resolved server id and PUTs the edit',
+    () async {
+      final Medication med = await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+
+      await repository.edit(med.copyWith(name: 'Aspirin 100mg'));
+      expect(fakeDio.requests, isEmpty); // offline, and no server id yet
+
+      // The sync engine drains the queue and the server answers with an id.
+      // Nothing writes that id into `medications` — the replay has to find it.
+      await resolveInQueue(med.clientRecordId, 'srv-1');
+      online = true;
+      fakeDio.stub(
+        '/api/v1/medications/srv-1',
+        FakeResponse.ok(<String, dynamic>{
+          'id': 'srv-1',
+          'name': 'Aspirin 100mg',
+          'doseMg': 75.0,
+          'frequency': 'ONCE_DAILY',
+          'scheduleTimes': <String>['08:00'],
+          'active': true,
+          'clientRecordId': med.clientRecordId,
+        }),
+      );
+
+      await repository.replayPendingEdits();
+
+      expect(fakeDio.requests.single.method, 'PUT');
+      expect(fakeDio.requests.single.json['name'], 'Aspirin 100mg');
+    },
+  );
 
   test('upserting the same dose log client id twice does not produce two rows', () async {
     final DoseLogModel model = DoseLogModel(
@@ -335,6 +430,7 @@ void main() {
         local: local,
         remote: remote,
         syncEnqueuer: enqueuer,
+        syncQueueDao: syncQueueDao,
         preferences: flakyPreferences,
         isOnline: () async => online,
       );
@@ -398,6 +494,7 @@ void main() {
         local: local,
         remote: remote,
         syncEnqueuer: enqueuer,
+        syncQueueDao: syncQueueDao,
         preferences: raceDao,
         isOnline: () async => online,
       );
