@@ -179,6 +179,72 @@ void main() {
     expect(container.read(medicationFormControllerProvider).scheduleTimes.first, '08:00');
   });
 
+  test(
+    'a second visit to the form starts clean instead of inheriting the first '
+    'visit\'s medication (C4)',
+    () async {
+      final _FakeRepository repo = _FakeRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final ProviderContainer container = _container(repo, db);
+      addTearDown(container.dispose);
+
+      // Visit 1 — open the form on an existing medication and save it.
+      // `container.listen` stands in for the screen being mounted: it is what
+      // keeps the auto-disposed controller alive for the duration of a visit.
+      final ProviderSubscription<MedicationFormState> firstVisit = container
+          .listen(
+            medicationFormControllerProvider,
+            (MedicationFormState? _, MedicationFormState _) {},
+          );
+      final MedicationFormController first = container.read(
+        medicationFormControllerProvider.notifier,
+      );
+      first.loadForEdit(_stored);
+      expect(await first.save(), isTrue);
+      expect(repo.edited?.clientRecordId, 'm1');
+
+      // Navigating away pops the screen, which drops the last listener.
+      firstVisit.close();
+      // Riverpod tears an auto-disposed provider down on the next turn of the
+      // event loop, not synchronously.
+      await Future<void>.delayed(Duration.zero);
+
+      // Visit 2 — the "Add" route. Before this fix the controller was a plain
+      // (kept-alive) NotifierProvider, so this state was still medication A's
+      // and `_editingClientRecordId` still pointed at it.
+      final ProviderSubscription<MedicationFormState> secondVisit = container
+          .listen(
+            medicationFormControllerProvider,
+            (MedicationFormState? _, MedicationFormState _) {},
+          );
+      addTearDown(secondVisit.close);
+
+      final MedicationFormState fresh = container.read(
+        medicationFormControllerProvider,
+      );
+      expect(fresh.name, isEmpty);
+      expect(fresh.doseMg, isEmpty);
+      expect(fresh.scheduleTimes, isEmpty);
+      // `saved` sticking at true is what silently broke the screen's
+      // close-on-save listener on every visit after the first.
+      expect(fresh.saved, isFalse);
+
+      // ...and Save now adds rather than editing medication A again.
+      repo.edited = null;
+      final MedicationFormController second = container.read(
+        medicationFormControllerProvider.notifier,
+      );
+      second.setName('Bisoprolol');
+      second.setDoseMg('5');
+      second.setScheduleTimes(const <String>['08:00']);
+
+      expect(await second.save(), isTrue);
+      expect(repo.added?.name, 'Bisoprolol');
+      expect(repo.edited, isNull);
+    },
+  );
+
   test('save() resets isSaving to false (not stuck) after the repository throws', () async {
     final _ThrowingAddRepository repo = _ThrowingAddRepository();
     final AppDatabase db = testDatabase();

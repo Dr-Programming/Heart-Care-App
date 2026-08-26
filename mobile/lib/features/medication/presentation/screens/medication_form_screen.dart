@@ -44,6 +44,21 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   void initState() {
     super.initState();
     _loaded = widget.editingId == null;
+
+    // Pins the auto-disposed form controller to this screen's lifetime.
+    //
+    // Without it there is a window with no listener at all: in edit mode the
+    // only touch before `_FormBody` mounts is a `ref.read(...).loadForEdit()`
+    // from a post-frame callback, and a `read` schedules disposal as soon as
+    // it returns — so the just-loaded medication could be thrown away before
+    // the form body ever watched it. Holding a subscription for as long as
+    // the screen is mounted closes that window, while still letting the
+    // controller dispose (and so reset) the moment the screen is popped,
+    // which is the whole point of making it auto-dispose.
+    ref.listenManual<MedicationFormState>(
+      medicationFormControllerProvider,
+      (MedicationFormState? _, MedicationFormState _) {},
+    );
   }
 
   @override
