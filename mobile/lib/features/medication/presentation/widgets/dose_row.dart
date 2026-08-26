@@ -23,7 +23,19 @@ class DoseRow extends StatelessWidget {
 
     return Row(
       children: <Widget>[
-        Expanded(
+        // Capped with a maximum width instead of `Expanded`/proportional
+        // `Flexible` on purpose: an even flex split reserves the same share
+        // for the leading column regardless of how little its actual content
+        // needs, starving the trailing status widget even when the
+        // medication name is short (the common case). A `ConstrainedBox`
+        // still protects this column from its own overflow on a long name
+        // (it wraps within the cap instead of demanding unbounded width, the
+        // same failure mode `Flexible` on the trailing side exists to avoid
+        // below) while giving back whatever it doesn't use to the trailing
+        // `Flexible`, which is the tighter, higher-priority constraint —
+        // three tap targets versus one line of descriptive text.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -37,10 +49,11 @@ class DoseRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         // Wrapped in `Flexible` (rather than left as a bare trailing child)
         // so the trailing status widget can shrink or wrap instead of
-        // forcing a hard `RenderFlex` overflow once the leading `Expanded`
-        // column has given up all the space it can: the leading column can
-        // shrink to zero without erroring, so it alone can't protect this
-        // row from an over-wide trailing child.
+        // forcing a hard `RenderFlex` overflow: it is the sole flex child in
+        // this row, so it is offered the entire remainder left over after
+        // the capped leading column — not a fixed 50/50 share — and can
+        // still render smaller than that ceiling (a `StatusChip` pill keeps
+        // hugging its own text rather than stretching to fill it).
         Flexible(
           child: dose.status == ScheduledDoseStatus.logged
               ? StatusChip(
