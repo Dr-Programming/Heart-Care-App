@@ -153,10 +153,29 @@ class MedicationRepositoryImpl implements MedicationRepository {
     final Medication? medication = await local.findMedication(
       medicationClientRecordId,
     );
+
+    // Idempotency (I8): a dose slot is medication + date + time, and logging
+    // the same slot twice must not produce two rows — a double-tap, a
+    // retried write, or a patient correcting Taken to Missed all have to land
+    // on the one row. Reusing the existing row's `clientRecordId` turns
+    // `upsertDoseLog`'s `insertOnConflictUpdate` (keyed on that id) into the
+    // update it already knows how to do.
+    //
+    // Known limitation: `SyncEnqueuer.enqueue` is `insertOrIgnore` on
+    // (entityType, clientRecordId) and a feature may add to the sync queue
+    // but not rewrite it, so a *correction* re-enqueued under the same id is
+    // a no-op — the server keeps the status from the first push. The local
+    // record, which is what the UI reads, is always the corrected one.
+    final DoseLog? existing = await local.findDoseLogForSlot(
+      medicationClientRecordId: medicationClientRecordId,
+      scheduledDate: scheduledDate,
+      scheduledTime: scheduledTime,
+    );
+
     final DateTime now = DateTime.now().toUtc();
     final DoseLog entity = DoseLog(
-      clientRecordId: newClientRecordId(),
-      serverId: null,
+      clientRecordId: existing?.clientRecordId ?? newClientRecordId(),
+      serverId: existing?.serverId,
       medicationClientRecordId: medicationClientRecordId,
       medicationServerId: medication?.serverId,
       status: status,
