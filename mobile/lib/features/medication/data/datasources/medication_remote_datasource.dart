@@ -28,7 +28,7 @@ class MedicationRemoteDataSource {
         'frequency': frequency,
         'scheduleTimes': scheduleTimes,
         'active': active,
-        if (clientRecordId != null) 'clientRecordId': clientRecordId,
+        if (clientRecordId != null) ...{'clientRecordId': clientRecordId},
       },
     );
     return _unwrap(response, MedicationModel.fromJson);
@@ -86,10 +86,10 @@ class MedicationRemoteDataSource {
       data: <String, dynamic>{
         'status': status,
         'scheduledDate': scheduledDate,
-        if (scheduledTime != null) 'scheduledTime': scheduledTime,
-        if (loggedAt != null) 'loggedAt': loggedAt,
-        if (note != null) 'note': note,
-        if (clientRecordId != null) 'clientRecordId': clientRecordId,
+        if (scheduledTime != null) ...{'scheduledTime': scheduledTime},
+        if (loggedAt != null) ...{'loggedAt': loggedAt},
+        if (note != null) ...{'note': note},
+        if (clientRecordId != null) ...{'clientRecordId': clientRecordId},
       },
     );
     return _unwrap(response, DoseLogModel.fromJson);
@@ -103,9 +103,9 @@ class MedicationRemoteDataSource {
     final Response<dynamic> response = await _dio.get<dynamic>(
       ApiEndpoints.doseLogs,
       queryParameters: <String, dynamic>{
-        if (from != null) 'from': from,
-        if (to != null) 'to': to,
-        if (medicationId != null) 'medicationId': medicationId,
+        if (from != null) ...{'from': from},
+        if (to != null) ...{'to': to},
+        if (medicationId != null) ...{'medicationId': medicationId},
       },
     );
     return _unwrapList(response, DoseLogModel.fromJson);
