@@ -137,6 +137,11 @@
     "deactivateTitle": "መውሰድ ያቁሙ?",
     "deactivateBody": "ማስታወሻዎቹ ይቆማሉ። የመድሃኒት ታሪክዎ ግን ይቀመጣል።",
     "deactivateConfirm": "አዎ፣ አቁም",
+    "alert": {
+      "missedRunTitle": "ተከታታይ መጠኖች ታልፈዋል",
+      "missedRunChip": "ትኩረት ይስጡ",
+      "missedRunBody": "{name} ሁለት ጊዜ በተከታታይ ታልፏል። ይህ የሚቀጥል ከሆነ የጤና ባለሙያዎን ያሳውቁ።"
+    },
     "status": {
       "taken": "ተወስዷል",
       "missed": "ታልፏል",

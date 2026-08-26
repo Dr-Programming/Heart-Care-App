@@ -13,6 +13,7 @@ import '../../domain/entities/dose_log.dart';
 import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
 import '../widgets/medication_card.dart';
+import '../widgets/missed_run_alert.dart';
 
 class MedicationsScreen extends ConsumerWidget {
   const MedicationsScreen({super.key});
@@ -78,6 +79,10 @@ class _Content extends ConsumerWidget {
         AppSpacing.xxl,
       ),
       children: <Widget>[
+        if (state.hasMissedRunAlert) ...<Widget>[
+          MissedRunAlert(medications: state.missedRunAlerts),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         Text('meds.today'.tr(), style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppSpacing.md),
         if (state.todaysDoses.isEmpty)

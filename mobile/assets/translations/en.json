@@ -137,6 +137,11 @@
     "deactivateTitle": "Stop taking this?",
     "deactivateBody": "Reminders stop. Your dose history is kept.",
     "deactivateConfirm": "Stop taking it",
+    "alert": {
+      "missedRunTitle": "Doses missed in a row",
+      "missedRunChip": "Check in",
+      "missedRunBody": "{name} was missed twice in a row. Tell your health worker if this keeps happening."
+    },
     "status": {
       "taken": "Taken",
       "missed": "Missed",
