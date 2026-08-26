@@ -216,6 +216,124 @@ void main() {
     expect(doseCall.payload.containsKey('medicationId'), isFalse);
   });
 
+  test(
+    'logging the same dose slot twice keeps one row, with the second status '
+    'winning (I8)',
+    () async {
+      final Medication med = await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+
+      // A double-tap, or a patient correcting themselves.
+      final DoseLog first = await repository.logDose(
+        medicationClientRecordId: med.clientRecordId,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+      );
+      final DoseLog second = await repository.logDose(
+        medicationClientRecordId: med.clientRecordId,
+        status: DoseStatus.missed,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        note: 'ran out',
+      );
+
+      final List<DoseLog> stored = await local.doseLogsForDate('2026-08-25');
+      expect(stored, hasLength(1));
+      expect(stored.single.status, DoseStatus.missed);
+      expect(stored.single.note, 'ran out');
+      // Same id both times — that is what makes the write an update rather
+      // than an insert, locally and again server-side via
+      // UNIQUE (user_id, client_record_id).
+      expect(second.clientRecordId, first.clientRecordId);
+    },
+  );
+
+  test('a different slot of the same medication is still its own row (I8)', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.bid,
+      scheduleTimes: const <String>['08:00', '20:00'],
+    );
+
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+    );
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '20:00',
+    );
+    // ...and the same time on a different day.
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-26',
+      scheduledTime: '08:00',
+    );
+
+    expect(await local.doseLogsForDate('2026-08-25'), hasLength(2));
+    expect(await local.doseLogsForDate('2026-08-26'), hasLength(1));
+  });
+
+  test('an untimed dose does not collide with a timed one (I8)', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+    );
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+    );
+
+    expect(await local.doseLogsForDate('2026-08-25'), hasLength(2));
+  });
+
+  test('doseHistory orders same-day rows by their slot, latest first (I5)', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.tid,
+      scheduleTimes: const <String>['08:00', '14:00', '20:00'],
+    );
+
+    // Logged out of order, as a patient catching up would.
+    for (final String time in <String>['14:00', '08:00', '20:00']) {
+      await repository.logDose(
+        medicationClientRecordId: med.clientRecordId,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-25',
+        scheduledTime: time,
+      );
+    }
+
+    final List<DoseLog> history = await repository.doseHistory();
+
+    expect(
+      history.map((DoseLog l) => l.scheduledTime).toList(),
+      <String>['20:00', '14:00', '08:00'],
+    );
+  });
+
   test('logging a dose enqueues medicationId once the medication has a server id', () async {
     final Medication med = await repository.add(
       name: 'Aspirin',
