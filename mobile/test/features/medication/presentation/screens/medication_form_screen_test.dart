@@ -1,13 +1,17 @@
-import 'dart:ui';
-
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
+import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
+import 'package:libu_care/features/medication/medication_providers.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
+import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
 
 import '../../../../helpers/pump_app.dart';
+import '../../helpers/fake_medication_repository.dart';
 
 class _FakeFormController extends MedicationFormController {
   _FakeFormController(this._state);
@@ -24,6 +28,50 @@ class _FakeFormController extends MedicationFormController {
     _state = _state.copyWith(nameError: 'meds.errors.nameRequired');
     state = _state;
     return false;
+  }
+}
+
+/// The form pushed onto a real (miniature) `GoRouter` stack.
+///
+/// `MedicationFormScreen` closes itself with `context.pop()` — on save and on
+/// deactivate — which needs a GoRouter above it and something underneath to
+/// pop back to. Two nested routes give it both, and let a test assert that the
+/// screen actually closed rather than only that the controller was called.
+Widget _routedForm({String? editingId}) {
+  return MaterialApp.router(
+    routerConfig: GoRouter(
+      initialLocation: '/edit',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/',
+          builder: (BuildContext _, GoRouterState _) =>
+              const Scaffold(body: Text('behind the form')),
+          routes: <RouteBase>[
+            GoRoute(
+              path: 'edit',
+              builder: (BuildContext _, GoRouterState _) =>
+                  MedicationFormScreen(editingId: editingId),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// Records what the deactivate action asked the list controller to do.
+class _SpyListController extends MedicationListController {
+  String? deactivatedId;
+
+  @override
+  Future<MedicationListState> build() async => const MedicationListState(
+    todaysDoses: <ScheduledDose>[],
+    medications: <Medication>[],
+  );
+
+  @override
+  Future<void> deactivate(String clientRecordId) async {
+    deactivatedId = clientRecordId;
   }
 }
 
@@ -85,4 +133,87 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('offers no deactivate action in add mode (C3)', (tester) async {
+    await pumpApp(
+      tester,
+      const MedicationFormScreen(),
+      overrides: <Override>[
+        medicationFormControllerProvider.overrideWith(
+          () => _FakeFormController(const MedicationFormState()),
+        ),
+      ],
+    );
+
+    expect(find.text('meds.deactivate'.tr()), findsNothing);
+  });
+
+  testWidgets(
+    'deactivating in edit mode confirms first, then deactivates that '
+    'medication (C3)',
+    (tester) async {
+      final _SpyListController listController = _SpyListController();
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          medicationListControllerProvider.overrideWith(() => listController),
+        ],
+      );
+
+      await tester.tap(find.text('meds.deactivate'.tr()));
+      await tester.pumpAndSettle();
+
+      // Spec §3: the sheet has to say plainly that history is kept.
+      expect(find.text('meds.deactivateTitle'.tr()), findsOneWidget);
+      expect(find.text('meds.deactivateBody'.tr()), findsOneWidget);
+      expect(listController.deactivatedId, isNull, reason: 'not yet confirmed');
+
+      await tester.tap(find.text('meds.deactivateConfirm'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(listController.deactivatedId, 'm1');
+      expect(find.text('behind the form'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('dismissing the confirm sheet deactivates nothing (C3)', (
+    tester,
+  ) async {
+    final _SpyListController listController = _SpyListController();
+
+    await pumpApp(
+      tester,
+      _routedForm(editingId: 'm1'),
+      overrides: <Override>[
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(
+            medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+          ),
+        ),
+        medicationFormControllerProvider.overrideWith(
+          () => _FakeFormController(const MedicationFormState()),
+        ),
+        medicationListControllerProvider.overrideWith(() => listController),
+      ],
+    );
+
+    await tester.tap(find.text('meds.deactivate'.tr()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('common.cancel'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(listController.deactivatedId, isNull);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -133,6 +133,10 @@
     "yourMedications": "የእርስዎ መድሃኒቶች",
     "emptyTitle": "እስካሁን መድሃኒት የለም",
     "emptyBody": "መከታተል ለመጀመር የመጀመሪያ መድሃኒትዎን ያክሉ።",
+    "deactivate": "ይህን መውሰድ አቁም",
+    "deactivateTitle": "መውሰድ ያቁሙ?",
+    "deactivateBody": "ማስታወሻዎቹ ይቆማሉ። የመድሃኒት ታሪክዎ ግን ይቀመጣል።",
+    "deactivateConfirm": "አዎ፣ አቁም",
     "status": {
       "taken": "ተወስዷል",
       "missed": "ታልፏል",

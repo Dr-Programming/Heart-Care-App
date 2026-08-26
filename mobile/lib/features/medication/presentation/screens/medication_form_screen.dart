@@ -9,6 +9,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/medication.dart';
 import '../../medication_providers.dart';
 import '../controllers/medication_form_controller.dart';
+import '../controllers/medication_list_controller.dart';
 import '../widgets/time_list_field.dart';
 
 // `FutureProvider.autoDispose.family<StateT, ArgT>(...)` returns
@@ -65,12 +66,16 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         },
       );
     }
-    return const _FormBody();
+    return _FormBody(editingId: widget.editingId);
   }
 }
 
 class _FormBody extends ConsumerWidget {
-  const _FormBody();
+  const _FormBody({required this.editingId});
+
+  /// Null in add mode. Drives the deactivate action, which only makes sense
+  /// for a medication that already exists (spec §3).
+  final String? editingId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,8 +135,42 @@ class _FormBody extends ConsumerWidget {
             isLoading: state.isSaving,
             onPressed: controller.save,
           ),
+          if (editingId != null) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'meds.deactivate'.tr(),
+              variant: AppButtonVariant.danger,
+              onPressed: () => _confirmDeactivate(context, ref, editingId!),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Deactivating is a soft stop, never a delete (Decision 1) — the confirm
+  /// sheet says so in as many words, because "delete" is what the button
+  /// looks like it does.
+  Future<void> _confirmDeactivate(
+    BuildContext context,
+    WidgetRef ref,
+    String clientRecordId,
+  ) async {
+    final bool confirmed = await ConfirmSheet.show(
+      context,
+      title: 'meds.deactivateTitle'.tr(),
+      message: 'meds.deactivateBody'.tr(),
+      confirmLabel: 'meds.deactivateConfirm'.tr(),
+      isDestructive: true,
+    );
+    if (!confirmed) return;
+
+    // `MedicationListController.deactivate` also cancels this medication's
+    // pending reminders, which is why the call goes through the controller
+    // rather than straight to the repository.
+    await ref
+        .read(medicationListControllerProvider.notifier)
+        .deactivate(clientRecordId);
+    if (context.mounted) context.pop();
   }
 }
