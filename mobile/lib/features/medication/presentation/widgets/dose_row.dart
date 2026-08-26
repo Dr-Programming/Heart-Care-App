@@ -35,13 +35,20 @@ class DoseRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.md),
-        if (dose.status == ScheduledDoseStatus.logged)
-          StatusChip(
-            severity: dose.doseLog!.status == DoseStatus.taken ? Severity.none : Severity.monitor,
-            label: 'meds.status.${dose.doseLog!.status.name}'.tr(),
-          )
-        else
-          StatusSelector(onSelected: onLog),
+        // Wrapped in `Flexible` (rather than left as a bare trailing child)
+        // so the trailing status widget can shrink or wrap instead of
+        // forcing a hard `RenderFlex` overflow once the leading `Expanded`
+        // column has given up all the space it can: the leading column can
+        // shrink to zero without erroring, so it alone can't protect this
+        // row from an over-wide trailing child.
+        Flexible(
+          child: dose.status == ScheduledDoseStatus.logged
+              ? StatusChip(
+                  severity: dose.doseLog!.status == DoseStatus.taken ? Severity.none : Severity.monitor,
+                  label: 'meds.status.${dose.doseLog!.status.name}'.tr(),
+                )
+              : StatusSelector(onSelected: onLog),
+        ),
       ],
     );
   }

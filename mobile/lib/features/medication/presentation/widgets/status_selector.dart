@@ -14,13 +14,20 @@ class StatusSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // A `Wrap` (rather than a `Row`) lets the three chips flow onto a second
+    // line instead of demanding a single line's worth of unbounded width —
+    // a plain `Row` lays out non-flexible children at their full intrinsic
+    // width regardless of the space actually available, which is what
+    // produces a hard `RenderFlex` overflow once labels are long enough
+    // (longer Amharic translations, a larger text-scale factor, or a
+    // narrower device than the Figma reference frame).
+    return Wrap(
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         _Chip(label: 'meds.status.taken'.tr(), color: AppColors.success, onTap: () => onSelected(DoseStatus.taken)),
-        const SizedBox(width: AppSpacing.xs),
         _Chip(label: 'meds.status.missed'.tr(), color: AppColors.critical, onTap: () => onSelected(DoseStatus.missed)),
-        const SizedBox(width: AppSpacing.xs),
         _Chip(label: 'meds.status.skipped'.tr(), color: AppColors.textSecondary, onTap: () => onSelected(DoseStatus.skipped)),
       ],
     );

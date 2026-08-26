@@ -1,5 +1,3 @@
-import 'dart:ui' show Size;
-
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
@@ -49,18 +47,6 @@ void main() {
   });
 
   testWidgets('shows today\'s doses and the medication list when loaded', (tester) async {
-    // `StatusSelector`'s chip labels also fall back to their literal (long)
-    // translation keys under the same unpopulated `meds` namespace, which
-    // overflows `DoseRow`'s Row at the default 800x600 test surface. Widen
-    // the surface so the fallback strings fit — with the real short labels
-    // ("Taken"/"Missed"/"Skipped") this row fits comfortably on any real
-    // device width, so this is purely a test-environment accommodation for
-    // the not-yet-populated namespace, not a production layout fix.
-    tester.view.physicalSize = const Size(1200, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
     const ScheduledDose dose = ScheduledDose(
       medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
       scheduledDate: '2026-08-25', scheduledTime: '08:00',

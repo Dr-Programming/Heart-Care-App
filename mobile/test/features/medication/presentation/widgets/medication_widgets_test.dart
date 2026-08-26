@@ -52,6 +52,112 @@ void main() {
     expect(selected, DoseStatus.taken);
   });
 
+  testWidgets(
+    'DoseRow does not overflow a narrow row with long status labels (pending)',
+    (tester) async {
+      // Worst-case simulation of the real bug: `meds.status.*` is still an
+      // unpopulated translation namespace, so `.tr()` falls back to the raw
+      // key string ("meds.status.taken" etc.) — already longer than the
+      // real English/Amharic copy will be. Constraining the row to 220px
+      // (narrower than any realistic phone's available content width, e.g.
+      // ~360dp minus screen padding) simulates the combination this bug
+      // needs: long label text + a physically narrow device. Before the
+      // fix (bare trailing `StatusSelector`, inner `Row` instead of `Wrap`)
+      // this throws a `RenderFlex overflowed` FlutterError during pump.
+      const ScheduledDose pending = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'A very long medication name that keeps going',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
+      );
+
+      await pumpApp(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 220,
+              child: DoseRow(dose: pending, onLog: (_) {}),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(StatusSelector), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'DoseRow does not overflow a narrow row with long status labels (logged)',
+    (tester) async {
+      // Same worst case as above, but for the `StatusChip` branch (a dose
+      // already logged) — the trailing widget differs but the same
+      // `Flexible` wrap in DoseRow must protect it too.
+      final ScheduledDose logged = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'A very long medication name that keeps going',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.logged,
+        doseLog: DoseLog(
+          clientRecordId: 'd1',
+          serverId: null,
+          medicationClientRecordId: 'm1',
+          medicationServerId: null,
+          status: DoseStatus.taken,
+          scheduledDate: '2026-08-25',
+          scheduledTime: '08:00',
+          loggedAt: DateTime(2026, 8, 25, 8, 5),
+          note: null,
+        ),
+      );
+
+      await pumpApp(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 220,
+              child: DoseRow(dose: logged, onLog: (_) {}),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'StatusSelector does not overflow an even narrower width',
+    (tester) async {
+      // StatusSelector directly, at 200px — narrower still than the DoseRow
+      // scenario above, to isolate the `Wrap` fix (as opposed to the
+      // `Flexible` fix in DoseRow) as sufficient on its own.
+      await pumpApp(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 200,
+              child: StatusSelector(onSelected: (_) {}),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('TimeListField renders a chip per time and adds one via the picker', (tester) async {
     List<String> current = const <String>['08:00'];
     await pumpApp(
