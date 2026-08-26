@@ -179,6 +179,8 @@
       "overall7": "ያለፉት 7 ቀናት",
       "overall30": "ያለፉት 30 ቀናት",
       "count": "{taken} ከ{due} መጠኖች",
+      "countWithPercent": "{taken} ከ{due} መጠኖች ({percent}%)",
+      "perMedication": "በመድሃኒት",
       "noData": "እስካሁን በቂ መረጃ የለም"
     },
     "reminders": {

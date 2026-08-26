@@ -10,12 +10,23 @@ class AdherenceState {
     required this.overall30,
     required this.perMedication7,
     required this.perMedication30,
+    this.medications = const <Medication>[],
   });
 
   final Adherence overall7;
   final Adherence overall30;
+
+  /// Keyed by `Medication.clientRecordId`.
   final Map<String, Adherence> perMedication7;
   final Map<String, Adherence> perMedication30;
+
+  /// The medications the per-window maps are keyed by, in display order.
+  ///
+  /// The maps alone carry only client record ids, which are UUIDs — the
+  /// screen needs the names to render them at all (I4). Defaults to empty so
+  /// a test that only exercises the overall figures does not have to supply
+  /// it.
+  final List<Medication> medications;
 }
 
 class AdherenceController extends AsyncNotifier<AdherenceState> {
@@ -45,6 +56,7 @@ class AdherenceController extends AsyncNotifier<AdherenceState> {
       overall30: overall30,
       perMedication7: per7,
       perMedication30: per30,
+      medications: medications,
     );
   }
 }
