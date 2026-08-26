@@ -1,5 +1,11 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/core/theme/app_spacing.dart';
+import 'package:libu_care/core/theme/app_theme.dart';
+import 'package:libu_care/core/widgets/widgets.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
@@ -9,6 +15,69 @@ import 'package:libu_care/features/medication/presentation/widgets/status_select
 import 'package:libu_care/features/medication/presentation/widgets/time_list_field.dart';
 
 import '../../../../helpers/pump_app.dart';
+
+/// Serves the real short English labels ("Taken"/"Missed"/"Skipped") for the
+/// `meds.status.*` keys instead of loading `assets/translations/*.json`
+/// (where the `meds` namespace is still `{}` until a later task). Lets a test
+/// exercise `StatusSelector`'s real widget tree — real `.tr()` calls, no
+/// production code changed — under realistic-length copy rather than the
+/// long raw-key fallback text the rest of this file necessarily uses.
+class _ShortLabelAssetLoader extends AssetLoader {
+  const _ShortLabelAssetLoader();
+
+  @override
+  Future<Map<String, dynamic>> load(String path, Locale locale) =>
+      Future<Map<String, dynamic>>.value(const <String, dynamic>{
+        'meds': <String, dynamic>{
+          'status': <String, dynamic>{
+            'taken': 'Taken',
+            'missed': 'Missed',
+            'skipped': 'Skipped',
+          },
+        },
+      });
+}
+
+/// Same shape as `pumpApp` (helpers/pump_app.dart), but with the real short
+/// `meds.status.*` labels loaded in place of the empty translation asset —
+/// duplicated here rather than added as a parameter to the shared helper,
+/// since this is a one-off need for this file's realistic-label tests.
+Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) async {
+  final ProviderContainer container = ProviderContainer();
+  addTearDown(container.dispose);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: EasyLocalization(
+          supportedLocales: AppLanguage.values.map((AppLanguage l) => l.locale).toList(growable: false),
+          path: 'assets/translations',
+          fallbackLocale: AppLanguage.en.locale,
+          startLocale: AppLanguage.en.locale,
+          useFallbackTranslations: true,
+          assetLoader: const _ShortLabelAssetLoader(),
+          child: Builder(
+            builder: (BuildContext context) => MaterialApp(
+              theme: AppTheme.light(context.locale.languageCode),
+              localizationsDelegates: context.localizationDelegates,
+              supportedLocales: context.supportedLocales,
+              locale: context.locale,
+              home: child,
+            ),
+          ),
+        ),
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  });
+
+  await tester.pumpAndSettle(
+    const Duration(milliseconds: 100),
+    EnginePhase.sendSemanticsUpdate,
+    const Duration(seconds: 10),
+  );
+}
 
 void main() {
   setUpWidgetTests();
@@ -155,6 +224,121 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'DoseRow gives the trailing status widget the actual leftover width, not a blind 50/50 split',
+    (tester) async {
+      // The original fix wrapped the trailing widget in a plain `Flexible`
+      // (default flex: 1) next to the leading `Expanded` (also flex: 1) — an
+      // even 50/50 split of the row regardless of how little the leading
+      // column's actual content needs, which starves the trailing chips even
+      // when the medication name is short (the common case).
+      //
+      // This test proves the fix is now content-driven rather than a fixed
+      // proportion: it pumps the *same* DoseRow content at two different
+      // container widths and checks how the extra space is distributed.
+      // Under a proportional 50/50 flex split, widening the container by
+      // 200px would hand ~100px of that increase to the leading column too.
+      // Under the leading `ConstrainedBox` + sole-flex-child trailing
+      // `Flexible` in the fixed `dose_row.dart`, the leading column's actual
+      // rendered width stays essentially unchanged (it only ever claims what
+      // its text content needs, up to its cap) and virtually all of the
+      // extra space goes to the trailing widget instead.
+      //
+      // Widths are kept under 800 (the default `flutter test` surface) so
+      // neither is clamped by the outer `Material`/`MediaQuery` — clamping
+      // was confirmed empirically while calibrating this test (a requested
+      // SizedBox width of 900 rendered at ~800 instead).
+      const ScheduledDose pending = ScheduledDose(
+        medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
+        scheduledDate: '2026-08-25', scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending, doseLog: null,
+      );
+
+      Future<void> pumpAt(double width) => _pumpWithRealisticLabels(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                child: SectionCard(child: DoseRow(dose: pending, onLog: (_) {})),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // The leading column, scoped to inside DoseRow specifically —
+      // SectionCard has its own outer Column that must not be matched here.
+      Finder leadingColumn() => find.descendant(of: find.byType(DoseRow), matching: find.byType(Column));
+
+      await pumpAt(500);
+      expect(tester.takeException(), isNull);
+      final double leadingWidthAt500 = tester.renderObject<RenderBox>(leadingColumn()).size.width;
+      final double trailingWidthAt500 = tester.renderObject<RenderBox>(find.byType(StatusSelector)).size.width;
+
+      await pumpAt(700);
+      expect(tester.takeException(), isNull);
+      final double leadingWidthAt700 = tester.renderObject<RenderBox>(leadingColumn()).size.width;
+      final double trailingWidthAt700 = tester.renderObject<RenderBox>(find.byType(StatusSelector)).size.width;
+
+      // Leading barely moves: it is sized to its own content, not a
+      // proportional share of a wider row.
+      expect(
+        (leadingWidthAt700 - leadingWidthAt500).abs(),
+        lessThan(5),
+        reason: 'leading column width should be content-driven (roughly constant), not proportional to row width',
+      );
+      // Trailing absorbs virtually the entire 200px increase — the opposite
+      // of what a 50/50 flex split would do (~100px each).
+      expect(
+        trailingWidthAt700 - trailingWidthAt500,
+        greaterThan(150),
+        reason: 'trailing widget should absorb the leftover width instead of a fixed 50% share',
+      );
+    },
+  );
+
+  testWidgets(
+    'StatusSelector does not overflow under a larger accessibility text scale',
+    (tester) async {
+      // A larger text-scale factor inflates each chip's own intrinsic width
+      // simultaneously — a different stress than a narrow container, since
+      // it's the scenario where a single chip's width (not just the sum of
+      // three) can approach its allotted share. 1.4x is within the common
+      // "Large" end of Android/iOS accessibility text-size settings.
+      const ScheduledDose pending = ScheduledDose(
+        medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
+        scheduledDate: '2026-08-25', scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending, doseLog: null,
+      );
+
+      await _pumpWithRealisticLabels(
+        tester,
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
+          child: Material(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 360,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                  child: SectionCard(child: DoseRow(dose: pending, onLog: (_) {})),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(StatusSelector), findsOneWidget);
     },
   );
 
