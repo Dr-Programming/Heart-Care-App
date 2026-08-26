@@ -47,6 +47,18 @@ class MedicationRepositoryImpl implements MedicationRepository {
 
   static const String _pendingEditsKey = 'm3_pending_medication_edits';
 
+  /// Serializes every read-modify-write against the pending-edits blob.
+  ///
+  /// `edit()` fires `_tryReplaySingle` unawaited, so a second `edit()` call
+  /// (for a different medication) can otherwise land its own
+  /// `_markPendingEdit` read-modify-write while the first edit's replay is
+  /// still awaiting the network and its own eventual `_clearPendingEdit`.
+  /// Without this, the later write's read would miss the earlier write and
+  /// silently drop it on save. Chaining every mutation through this future
+  /// forces them to run strictly one after another, regardless of which
+  /// caller (a direct edit or a fire-and-forget replay) triggered them.
+  Future<void> _pendingEditsLock = Future<void>.value();
+
   @override
   Future<List<Medication>> activeMedications() => local.activeMedications();
 
@@ -257,9 +269,36 @@ class MedicationRepositoryImpl implements MedicationRepository {
         active: medication.active,
       );
       await _clearPendingEdit(clientRecordId);
-    } on DioException {
-      // Leave it pending; the next reconnect or screen visit retries it.
+    } on DioException catch (e) {
+      if (_isRetryableFailure(e)) {
+        // Transport failure or a 5xx — leave it pending; the next reconnect
+        // or screen visit retries it.
+        return;
+      }
+      // A permanent rejection (working notes: "Retry only 500. 400/404/405/
+      // 409/413 are permanent" — e.g. 409 because the record changed
+      // server-side, or 404 because the medication was deleted there).
+      // Retrying this forever would just re-fail forever. The local edit
+      // already succeeded and is visible to the user; only the sync of it is
+      // abandoned. There is no UI in this plan for surfacing a failed-sync
+      // state — dropping the pending marker is the whole fix.
+      await _clearPendingEdit(clientRecordId);
     }
+  }
+
+  /// Mirrors the split `core/network/dio_client.dart`'s
+  /// `failureFromDioException` draws between transient and permanent
+  /// failures (working notes: "Retry only 500. 400/404/405/409/413 are
+  /// permanent."), without depending on that file's `Failure` hierarchy —
+  /// it's shaped for user-facing error messages, not this internal
+  /// retry-or-drop decision.
+  bool _isRetryableFailure(DioException e) {
+    final int? status = e.response?.statusCode;
+    // No response at all (timeout, connection error) is a transport
+    // failure — always retryable. A 5xx status is a transient server
+    // condition — also retryable. Every other status (400/404/405/409/413
+    // and any other 4xx) is a permanent rejection.
+    return status == null || status >= 500;
   }
 
   Future<Set<String>> _pendingEditIds() async {
@@ -268,13 +307,17 @@ class MedicationRepositoryImpl implements MedicationRepository {
     return (jsonDecode(raw) as List<dynamic>).cast<String>().toSet();
   }
 
-  Future<void> _markPendingEdit(String clientRecordId) async {
-    final Set<String> ids = await _pendingEditIds()..add(clientRecordId);
-    await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
+  Future<void> _markPendingEdit(String clientRecordId) {
+    return _pendingEditsLock = _pendingEditsLock.then((_) async {
+      final Set<String> ids = await _pendingEditIds()..add(clientRecordId);
+      await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
+    });
   }
 
-  Future<void> _clearPendingEdit(String clientRecordId) async {
-    final Set<String> ids = await _pendingEditIds()..remove(clientRecordId);
-    await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
+  Future<void> _clearPendingEdit(String clientRecordId) {
+    return _pendingEditsLock = _pendingEditsLock.then((_) async {
+      final Set<String> ids = await _pendingEditIds()..remove(clientRecordId);
+      await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
+    });
   }
 }
