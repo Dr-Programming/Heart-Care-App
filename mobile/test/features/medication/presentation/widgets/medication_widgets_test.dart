@@ -535,4 +535,127 @@ void main() {
 
     expect(find.text('08:00'), findsOneWidget);
   });
+
+  // Kept last in the file on purpose: `pumpApp(language:)` switches
+  // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
+  // the tests above read. Running the Amharic cases at the end keeps that
+  // switch from leaking into them.
+
+  testWidgets(
+    'DoseRow renders real Amharic on a phone-width row without overflowing (I9)',
+    (tester) async {
+      // Bilingual UI is a hard project constraint (CLAUDE.md), and Amharic
+      // copy runs longer than its English counterpart — the row's status
+      // labels are the slice's tightest fixed-width spot, and the logged
+      // branch is the widest of the two (status chip + note action). 360dp is
+      // a common low-end Android width, so this is the real device case
+      // rather than a synthetic squeeze.
+      final ScheduledDose logged = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'Atorvastatin',
+        doseMg: 20,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.logged,
+        doseLog: DoseLog(
+          clientRecordId: 'd1',
+          serverId: null,
+          medicationClientRecordId: 'm1',
+          medicationServerId: null,
+          status: DoseStatus.skipped,
+          scheduledDate: '2026-08-25',
+          scheduledTime: '08:00',
+          loggedAt: DateTime(2026, 8, 25, 8, 5),
+          note: null,
+        ),
+      );
+
+      await pumpApp(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 360,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                child: SectionCard(
+                  child: DoseRow(dose: logged, onLog: (_, {String? note}) {}),
+                ),
+              ),
+            ),
+          ),
+        ),
+        language: AppLanguage.am,
+      );
+
+      // Real Amharic from assets/translations/am.json — not the English
+      // fallback, and not the raw key.
+      final String skipped = 'meds.status.skipped'.tr();
+      final String addNote = 'meds.note.add'.tr();
+      expect(skipped, isNot('Skipped'));
+      expect(skipped, isNot('meds.status.skipped'));
+      expect(addNote, isNot('Add a note'));
+      expect(addNote, isNot('meds.note.add'));
+
+      expect(find.text(skipped), findsOneWidget);
+      expect(find.text(addNote), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'the Amharic note sheet opens and returns what was typed (I9)',
+    (tester) async {
+      // The note sheet is the newest piece of UI in the slice (I6), so it is
+      // the one with no Amharic mileage at all — this pumps it in Amharic and
+      // drives it end to end.
+      String? loggedNote;
+      final ScheduledDose logged = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'Atorvastatin',
+        doseMg: 20,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.logged,
+        doseLog: DoseLog(
+          clientRecordId: 'd1',
+          serverId: null,
+          medicationClientRecordId: 'm1',
+          medicationServerId: null,
+          status: DoseStatus.taken,
+          scheduledDate: '2026-08-25',
+          scheduledTime: '08:00',
+          loggedAt: DateTime(2026, 8, 25, 8, 5),
+          note: null,
+        ),
+      );
+
+      await pumpApp(
+        tester,
+        Material(
+          child: DoseRow(
+            dose: logged,
+            onLog: (_, {String? note}) => loggedNote = note,
+          ),
+        ),
+        language: AppLanguage.am,
+      );
+
+      await tester.tap(find.text('meds.note.add'.tr()));
+      await tester.pumpAndSettle();
+
+      final String sheetTitle = 'meds.note.title'.tr();
+      expect(sheetTitle, isNot('Note'));
+      expect(find.text(sheetTitle), findsOneWidget);
+      expect(find.text('meds.note.hint'.tr()), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'ማዞር ተሰማኝ');
+      await tester.tap(find.text('meds.note.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(loggedNote, 'ማዞር ተሰማኝ');
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
