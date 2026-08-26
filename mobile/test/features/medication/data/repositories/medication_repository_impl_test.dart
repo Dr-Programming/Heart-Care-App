@@ -103,6 +103,26 @@ class _RaceInducingPreferencesDao extends PreferencesDao {
   }
 }
 
+/// A [PreferencesDao] whose [set] throws once, on its first call, then
+/// behaves normally forever after — for proving a single transient
+/// `preferences` failure doesn't permanently wedge
+/// `_pendingEditsLock`'s chain (review Finding: "the chained-Future lock has
+/// no error isolation").
+class _FlakyPreferencesDao extends PreferencesDao {
+  _FlakyPreferencesDao(super.db);
+
+  bool _hasThrownOnce = false;
+
+  @override
+  Future<void> set(String key, String value) async {
+    if (!_hasThrownOnce) {
+      _hasThrownOnce = true;
+      throw StateError('transient preferences failure');
+    }
+    return super.set(key, value);
+  }
+}
+
 void main() {
   late AppDatabase db;
   late MedicationLocalDataSource local;
@@ -297,6 +317,63 @@ void main() {
     await repository.replayPendingEdits();
     expect(fakeDio.requests, hasLength(2));
   });
+
+  test(
+    'a transient preferences failure does not permanently wedge the '
+    'pending-edits lock for later, unrelated edits',
+    () async {
+      // Regression test for the error-isolation gap in `_pendingEditsLock`:
+      // `_markPendingEdit`/`_clearPendingEdit` chain onto that shared future
+      // via `.then()`. Without isolating each call's own error from the
+      // chain, a single failed `preferences.set` would leave the shared
+      // future permanently errored, and `Future.then` skips its callback
+      // entirely once its source has errored — so every later mark/clear,
+      // for any medication, would silently stop running its body for the
+      // rest of this repository instance's lifetime.
+      final _FlakyPreferencesDao flakyPreferences = _FlakyPreferencesDao(db);
+      final MedicationRepositoryImpl flakyRepository = MedicationRepositoryImpl(
+        local: local,
+        remote: remote,
+        syncEnqueuer: enqueuer,
+        preferences: flakyPreferences,
+        isOnline: () async => online,
+      );
+
+      final Medication medA = await flakyRepository.add(
+        name: 'Medication A',
+        doseMg: 10,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+
+      // A's mark hits the flaky `set`'s one-time throw. The immediate
+      // caller — this `edit()` call — must still see that failure.
+      await expectLater(
+        () => flakyRepository.edit(medA.copyWith(name: 'Medication A updated')),
+        throwsStateError,
+      );
+
+      final Medication medB = await flakyRepository.add(
+        name: 'Medication B',
+        doseMg: 20,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['09:00'],
+      );
+
+      // A second, unrelated edit must still succeed — proving the shared
+      // lock recovered rather than staying permanently poisoned by A's
+      // earlier failure.
+      await flakyRepository.edit(medB.copyWith(name: 'Medication B updated'));
+
+      final String? raw = await db.preferencesDao.get(
+        'm3_pending_medication_edits',
+      );
+      final Set<String> remaining = raw == null
+          ? <String>{}
+          : (jsonDecode(raw) as List<dynamic>).cast<String>().toSet();
+      expect(remaining, <String>{medB.clientRecordId});
+    },
+  );
 
   test(
     'a second edit for a different medication does not lose its pending marker '
