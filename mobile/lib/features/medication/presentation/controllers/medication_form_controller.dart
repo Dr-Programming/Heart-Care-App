@@ -140,8 +140,21 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   }
 }
 
+/// Auto-disposed, and that is load-bearing rather than a micro-optimisation.
+///
+/// A form's state is scoped to one visit to the form. Kept alive across
+/// visits, editing medication A and then opening "Add" would prefill A's name
+/// and dose *and* still hold `_editingClientRecordId`, so Save would silently
+/// call `edit(A)` instead of `add()`. `saved` would also stay true forever
+/// after the first successful save, which breaks `MedicationFormScreen`'s
+/// close-on-save `ref.listen` (it is gated on `!previous.saved`) on every
+/// visit after the first.
+///
+/// `MedicationFormScreen` holds the only listener for as long as it is
+/// mounted — see its `initState` — so a fresh instance is built each time the
+/// screen is entered.
 final NotifierProvider<MedicationFormController, MedicationFormState>
 medicationFormControllerProvider =
-    NotifierProvider<MedicationFormController, MedicationFormState>(
+    NotifierProvider.autoDispose<MedicationFormController, MedicationFormState>(
       MedicationFormController.new,
     );
