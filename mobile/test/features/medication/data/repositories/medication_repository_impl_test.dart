@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 // `app_database.dart` re-exports `tables.dart`, whose Drift-generated row
 // classes for the `Medications`/`DoseLogs` tables are named `Medication` and
@@ -6,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 // ambiguous-import compile error; this file only needs `AppDatabase`,
 // `SyncEnqueuer` and `SyncEntityType` from this import.
 import 'package:libu_care/core/db/app_database.dart' hide Medication, DoseLog;
+import 'package:libu_care/core/db/daos/preferences_dao.dart';
 import 'package:libu_care/core/sync/sync_queue_dao.dart';
 import 'package:libu_care/features/medication/data/datasources/medication_local_datasource.dart';
 import 'package:libu_care/features/medication/data/datasources/medication_remote_datasource.dart';
@@ -35,6 +39,67 @@ class _FakeSyncEnqueuer implements SyncEnqueuer {
     required DateTime recordedAt,
   }) async {
     calls.add(_RecordedEnqueue(clientRecordId, entityType, payload));
+  }
+}
+
+/// A [PreferencesDao] that can pause the *next* call to [set] right before
+/// it writes (i.e. strictly after the `get` that preceded it, and after the
+/// mutation was computed from that read) — to deterministically stage
+/// exactly the "stale read, delayed write" sequence review Finding 2
+/// describes, and to observe whether a second logical operation is able to
+/// run its own complete `get`-then-`set` concurrently.
+///
+/// A test arms a pause with [pauseNextSet] right after one full
+/// `_markPendingEdit`/`_clearPendingEdit` sequence has completed (so it is
+/// guaranteed to land on the *next* one, whichever of two concurrently-fired
+/// sequences reaches it first), then waits a bounded real-time window —
+/// never on a completer the *other* side must satisfy, which would deadlock
+/// against a correctly-serialized implementation — and inspects [callLog]:
+///
+///  * **Unsynchronized** `_markPendingEdit`/`_clearPendingEdit`: nothing
+///    stops the *other* concurrently-fired sequence from running its own
+///    complete `get`-then-`set` during that window — `callLog` grows by a
+///    full extra `get`/`set` pair. Releasing the paused `set` afterwards then
+///    lets its stale-computed write land *last* and clobber that change.
+///  * **Serialized** (the fix): every mutation is chained through a single
+///    lock future, so nothing else can even start its own `get` until the
+///    paused one's entire enclosing operation (including the pause)
+///    resolves — `callLog` stays exactly as it was the instant the pause
+///    landed, for as long as the pause is held.
+class _RaceInducingPreferencesDao extends PreferencesDao {
+  _RaceInducingPreferencesDao(super.db);
+
+  final List<String> callLog = <String>[];
+
+  /// Armed by [pauseNextSet]; consumed (and moved to [_activePause]) by the
+  /// next [set] call so [releasePausedSet] can still reach the exact
+  /// completer that call is awaiting, even after it has cleared this field.
+  Completer<void>? _pauseNextSet;
+  Completer<void>? _activePause;
+
+  void pauseNextSet() => _pauseNextSet = Completer<void>();
+
+  void releasePausedSet() {
+    _activePause?.complete();
+    _activePause = null;
+  }
+
+  @override
+  Future<String?> get(String key) async {
+    callLog.add('get');
+    return super.get(key);
+  }
+
+  @override
+  Future<void> set(String key, String value) async {
+    callLog.add('set');
+    final Completer<void>? pause = _pauseNextSet;
+    if (pause != null) {
+      _pauseNextSet = null;
+      _activePause = pause;
+      await pause.future;
+    }
+    return super.set(key, value);
   }
 }
 
@@ -175,6 +240,179 @@ void main() {
     expect(fakeDio.requests.single.method, 'PUT');
     expect(fakeDio.requests.single.json['name'], 'Aspirin 100mg');
   });
+
+  test('a permanently rejected edit (e.g. 409 conflict) is cleared, not retried forever', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    // Track the edit as pending while offline, exactly like the existing
+    // offline-edit test — this keeps the first replay attempt fully under
+    // this test's control instead of racing edit()'s own unawaited replay.
+    await repository.edit(med.copyWith(name: 'Aspirin 100mg'));
+    expect(fakeDio.requests, isEmpty);
+
+    await local.setServerId(med.clientRecordId, 'srv-1');
+    online = true;
+    fakeDio.stub(
+      '/api/v1/medications/srv-1',
+      FakeResponse.error(409, 'Medication was modified elsewhere'),
+    );
+
+    await repository.replayPendingEdits();
+    expect(fakeDio.requests, hasLength(1));
+    expect(fakeDio.requests.single.method, 'PUT');
+
+    // A second replay pass must not re-send a permanently rejected edit —
+    // the pending marker should have been cleared rather than left to
+    // retry (and re-fail) forever.
+    await repository.replayPendingEdits();
+    expect(fakeDio.requests, hasLength(1));
+  });
+
+  test('a transient server failure (500) stays pending and is retried', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    await repository.edit(med.copyWith(name: 'Aspirin 100mg'));
+    await local.setServerId(med.clientRecordId, 'srv-1');
+    online = true;
+    fakeDio.stub(
+      '/api/v1/medications/srv-1',
+      FakeResponse.error(500, 'Internal server error'),
+    );
+
+    await repository.replayPendingEdits();
+    expect(fakeDio.requests, hasLength(1));
+
+    // Unlike a permanent rejection, a 500 must leave the edit pending so the
+    // next replay pass retries it.
+    await repository.replayPendingEdits();
+    expect(fakeDio.requests, hasLength(2));
+  });
+
+  test(
+    'a second edit for a different medication does not lose its pending marker '
+    'to a concurrent stale-read write',
+    () async {
+      // Direct, deterministic reproduction of the race described in review
+      // Finding 2: `_markPendingEdit`/`_clearPendingEdit` each do an
+      // unsynchronized get-decode-mutate-set round trip, so if two of these
+      // sequences overlap, the one that writes *last* wins outright — even
+      // if it was computed from a read that predates the other's write,
+      // silently discarding that other mutation. See
+      // `_RaceInducingPreferencesDao`'s doc comment for how pausing right
+      // before a write, plus a bounded wait, distinguishes the two cases
+      // without ever deadlocking (a plain concurrent `Future.wait` against
+      // real Drift/fake-HTTP timing turned out not to reproduce the race
+      // reliably on its own, even against a deliberately reverted,
+      // unsynchronized implementation).
+      final _RaceInducingPreferencesDao raceDao = _RaceInducingPreferencesDao(
+        db,
+      );
+      final MedicationRepositoryImpl raceRepository = MedicationRepositoryImpl(
+        local: local,
+        remote: remote,
+        syncEnqueuer: enqueuer,
+        preferences: raceDao,
+        isOnline: () async => online,
+      );
+
+      // Medication A already has a server id and is online, so editing it
+      // triggers an immediate, successful replay that clears its own
+      // pending marker. Medication B has no server id, so editing it only
+      // marks it pending — it never itself makes a network call, isolating
+      // the effect under test to the mark/clear interaction rather than a
+      // second network race.
+      final Medication medA = await raceRepository.add(
+        name: 'Medication A',
+        doseMg: 10,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+      await local.setServerId(medA.clientRecordId, 'srv-a');
+      fakeDio.stub(
+        '/api/v1/medications/srv-a',
+        FakeResponse.ok(<String, dynamic>{
+          'id': 'srv-a',
+          'name': 'Medication A updated',
+          'doseMg': 10.0,
+          'frequency': 'ONCE_DAILY',
+          'scheduleTimes': <String>['08:00'],
+          'active': true,
+          'clientRecordId': medA.clientRecordId,
+        }),
+      );
+      final Medication medAWithServerId = (await local.findMedication(
+        medA.clientRecordId,
+      ))!;
+      final Medication medB = await raceRepository.add(
+        name: 'Medication B',
+        doseMg: 20,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['09:00'],
+      );
+      online = true;
+
+      // A's own mark (`get`+`set`) completes uninterrupted here — it
+      // establishes the {A} baseline both the clear and B's mark will read
+      // from. `edit()` awaits its own mark before returning, so this line
+      // blocks until exactly that; A's replay (and its eventual clear) is
+      // then running unawaited in the background, not yet at its own `get`.
+      await raceRepository.edit(
+        medAWithServerId.copyWith(name: 'Medication A updated'),
+      );
+      expect(raceDao.callLog, <String>['get', 'set']); // A's mark, only
+
+      // Arm the pause for whichever `set` call happens next — either A's
+      // still-in-flight clear, or B's mark below, whichever gets there
+      // first (it will already have done its own `get` and computed its
+      // write by the time it's paused here) — then fire B's edit
+      // concurrently with A's replay.
+      raceDao.pauseNextSet();
+      final Future<Medication> editBFuture = raceRepository.edit(
+        medB.copyWith(name: 'Medication B updated'),
+      );
+
+      // Bounded window, not a wait on the other side's completion (which,
+      // under a correct/serialized implementation, never happens while this
+      // pause is held — see the DAO's doc comment). Comfortably longer than
+      // the few in-memory/fake-HTTP hops either side needs.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      // Release the paused write — this is where, on the unsynchronized
+      // implementation, the paused call's stale-computed write lands *last*
+      // and clobbers whatever the other, already-finished sequence wrote
+      // during the window above.
+      raceDao.releasePausedSet();
+      await editBFuture;
+      // Let whichever chain owned the just-released `set` (clear's
+      // `_tryReplaySingle`, if that's the one that was paused) finish
+      // unwinding.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(fakeDio.requests, hasLength(1)); // only A ever had a server id
+      expect(fakeDio.requests.single.method, 'PUT');
+
+      // A replayed successfully and should be cleared; B has no server id
+      // yet, so it must still be pending — never silently dropped by the
+      // race between its own mark and A's clear.
+      final String? raw = await db.preferencesDao.get(
+        'm3_pending_medication_edits',
+      );
+      final Set<String> remaining = raw == null
+          ? <String>{}
+          : (jsonDecode(raw) as List<dynamic>).cast<String>().toSet();
+      expect(remaining, <String>{medB.clientRecordId});
+    },
+  );
 
   test('todaysDoses derives from active medications and today\'s logs', () async {
     await repository.add(
