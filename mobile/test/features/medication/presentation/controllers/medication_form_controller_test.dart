@@ -7,6 +7,7 @@ import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/domain/repositories/medication_repository.dart';
+import 'package:libu_care/features/medication/domain/schedule.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
 import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
 import 'package:libu_care/features/medication/notifications/notification_scheduler.dart';
@@ -178,6 +179,86 @@ void main() {
     expect(container.read(medicationFormControllerProvider).scheduleTimes, hasLength(2));
     expect(container.read(medicationFormControllerProvider).scheduleTimes.first, '08:00');
   });
+
+  test('setFrequency never produces duplicate schedule times (I3)', () {
+    final _FakeRepository repo = _FakeRepository();
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+
+    // Every reachable transition, including from the untouched default empty
+    // state — which is what used to pad with '08:00' repeated.
+    for (final List<String> start in <List<String>>[
+      const <String>[],
+      const <String>['08:00'],
+      const <String>['09:30'],
+      const <String>['08:00', '20:00'],
+    ]) {
+      for (final MedicationFrequency frequency in MedicationFrequency.values) {
+        final ProviderContainer container = _container(repo, db);
+        addTearDown(container.dispose);
+        final MedicationFormController controller = container.read(
+          medicationFormControllerProvider.notifier,
+        );
+
+        if (start.isNotEmpty) controller.setScheduleTimes(start);
+        controller.setFrequency(frequency);
+
+        final List<String> times =
+            container.read(medicationFormControllerProvider).scheduleTimes;
+        expect(
+          times.toSet(),
+          hasLength(times.length),
+          reason: 'start=$start frequency=${frequency.name} -> $times',
+        );
+        expect(times.length, greaterThanOrEqualTo(frequency.suggestedTimeCount));
+      }
+    }
+  });
+
+  test(
+    'a BID schedule built by setFrequency counts two due doses a day, not one '
+    '(I3)',
+    () {
+      final _FakeRepository repo = _FakeRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final ProviderContainer container = _container(repo, db);
+      addTearDown(container.dispose);
+      final MedicationFormController controller = container.read(
+        medicationFormControllerProvider.notifier,
+      );
+
+      controller.setFrequency(MedicationFrequency.bid);
+      final List<String> times =
+          container.read(medicationFormControllerProvider).scheduleTimes;
+
+      final DateTime created = DateTime(2026, 8, 25);
+      final Medication medication = Medication(
+        clientRecordId: 'm1',
+        serverId: null,
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.bid,
+        scheduleTimes: times,
+        active: true,
+        createdAt: created,
+        updatedAt: created,
+      );
+
+      final Adherence adherence = computeAdherence(
+        medications: <Medication>[medication],
+        allLogs: const <DoseLog>[],
+        windowStart: created,
+        // End of the same day, so both slots have come due.
+        now: DateTime(2026, 8, 25, 23, 59),
+        windowDays: 1,
+      );
+
+      // With the old duplicate-'08:00' padding both slots matched the same
+      // time, so a single day reported one due dose instead of two.
+      expect(adherence.due, 2);
+    },
+  );
 
   test(
     'a second visit to the form starts clean instead of inheriting the first '

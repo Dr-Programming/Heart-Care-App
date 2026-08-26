@@ -80,16 +80,35 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   void setDoseMg(String value) =>
       state = state.copyWith(doseMg: value, doseError: validateDoseMg(value));
 
+  /// Sensibly spaced suggestions, keyed by how many slots the frequency wants.
+  ///
+  /// Distinct values are not cosmetic. `scheduledDosesFor` and
+  /// `computeAdherence` both match a dose log to a slot by `scheduledTime`
+  /// alone, so two slots at the same time collapse into one: a single log
+  /// satisfies both, and the day's denominator silently halves. `TimeListField`
+  /// also deletes by value, so removing one of two identical chips removes
+  /// both. The exact hours are not spec-mandated — only that they differ.
+  static const Map<int, List<String>> _suggestedTimes = <int, List<String>>{
+    1: <String>['08:00'],
+    2: <String>['08:00', '20:00'],
+    3: <String>['08:00', '14:00', '20:00'],
+  };
+
   /// Soft suggestion only (never enforced) — mirrors the backend's
   /// deliberate non-validation of schedule-time count against frequency.
   void setFrequency(MedicationFrequency value) {
     final int suggested = value.suggestedTimeCount;
-    final List<String> times = state.scheduleTimes.length >= suggested
-        ? state.scheduleTimes
-        : <String>[
-            ...state.scheduleTimes,
-            for (int i = state.scheduleTimes.length; i < suggested; i++) '08:00',
-          ];
+    final List<String> times = <String>[...state.scheduleTimes];
+
+    for (final String candidate in _suggestedTimes[suggested] ?? const <String>[]) {
+      if (times.length >= suggested) break;
+      // Never re-add a time the user already has: the defaults for N slots
+      // hold N distinct values, so skipping the ones already present still
+      // leaves enough to reach `suggested`.
+      if (times.contains(candidate)) continue;
+      times.add(candidate);
+    }
+
     state = state.copyWith(frequency: value, scheduleTimes: times);
   }
 
