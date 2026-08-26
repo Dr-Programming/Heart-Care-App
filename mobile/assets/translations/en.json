@@ -133,6 +133,10 @@
     "yourMedications": "Your medications",
     "emptyTitle": "No medications yet",
     "emptyBody": "Add your first medication to start tracking doses and reminders.",
+    "deactivate": "Stop taking this",
+    "deactivateTitle": "Stop taking this?",
+    "deactivateBody": "Reminders stop. Your dose history is kept.",
+    "deactivateConfirm": "Stop taking it",
     "status": {
       "taken": "Taken",
       "missed": "Missed",
