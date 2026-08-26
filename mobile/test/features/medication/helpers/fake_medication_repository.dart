@@ -15,11 +15,17 @@ class FakeMedicationRepository implements MedicationRepository {
   FakeMedicationRepository({
     List<Medication> medications = const <Medication>[],
     List<DoseLog> history = const <DoseLog>[],
+    List<ScheduledDose> todays = const <ScheduledDose>[],
   }) : medications = <Medication>[...medications],
-       history = <DoseLog>[...history];
+       history = <DoseLog>[...history],
+       todays = <ScheduledDose>[...todays];
 
   final List<Medication> medications;
   final List<DoseLog> history;
+
+  /// What `todaysDoses` answers with — supply it to drive a screen that
+  /// renders today's rows.
+  final List<ScheduledDose> todays;
 
   /// Every `doseHistory` call's filter, in order — lets a test assert that a
   /// filter control actually reached the repository.
@@ -103,7 +109,7 @@ class FakeMedicationRepository implements MedicationRepository {
 
   @override
   Future<List<ScheduledDose>> todaysDoses({DateTime? now}) async =>
-      const <ScheduledDose>[];
+      <ScheduledDose>[...todays];
 
   @override
   Future<List<DoseLog>> doseHistory({

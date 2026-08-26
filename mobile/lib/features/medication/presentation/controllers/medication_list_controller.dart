@@ -90,17 +90,22 @@ class MedicationListController extends AsyncNotifier<MedicationListState> {
         .toList();
   }
 
+  /// [note] is the optional free-text note (FR-MED-008). Because `logDose` is
+  /// idempotent per dose slot (I8), calling this again for the same slot with
+  /// a note attaches it to the log already there rather than adding a second.
   Future<void> logDose({
     required String medicationClientRecordId,
     required DoseStatus status,
     required String scheduledDate,
     String? scheduledTime,
+    String? note,
   }) async {
     await ref.read(medicationRepositoryProvider).logDose(
       medicationClientRecordId: medicationClientRecordId,
       status: status,
       scheduledDate: scheduledDate,
       scheduledTime: scheduledTime,
+      note: note,
     );
     ref.invalidateSelf();
   }
