@@ -11,6 +11,7 @@ import '../../domain/entities/dose_log.dart';
 import '../../medication_providers.dart';
 import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
+import '../widgets/missed_run_alert.dart';
 
 /// Today's doses, order 100 — the today's-actions band (`HomeCard.order`).
 ///
@@ -66,36 +67,52 @@ class _CardState extends ConsumerState<_Card> {
       ),
       error: (Object _, StackTrace _) =>
           SectionCard(title: 'meds.today'.tr(), child: Text('common.noValue'.tr())),
-      data: (MedicationListState data) => SectionCard(
-        title: 'meds.today'.tr(),
-        action: AppButton(
-          label: 'common.seeAll'.tr(),
-          variant: AppButtonVariant.text,
-          expand: false,
-          onPressed: () => context.pushNamed(AppRoutes.medications),
-        ),
-        child: data.todaysDoses.isEmpty
-            ? Text('meds.todayEmpty'.tr(), style: Theme.of(context).textTheme.bodyMedium)
-            : Column(
-                children: <Widget>[
-                  for (final dose in data.todaysDoses.take(3))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: DoseRow(
-                        dose: dose,
-                        onLog: (DoseStatus status) => ref
-                            .read(medicationListControllerProvider.notifier)
-                            .logDose(
-                              medicationClientRecordId: dose.medicationClientRecordId,
-                              status: status,
-                              scheduledDate: dose.scheduledDate,
-                              scheduledTime: dose.scheduledTime,
-                            ),
-                      ),
-                    ),
-                ],
-              ),
+      data: (MedicationListState data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // Two consecutive misses (FR-DEC-002) surface on Home as well as on
+          // the tab: Home is the screen the patient actually opens.
+          if (data.hasMissedRunAlert) ...<Widget>[
+            MissedRunAlert(medications: data.missedRunAlerts),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          _todayCard(context, data),
+        ],
       ),
+    );
+  }
+
+  Widget _todayCard(BuildContext context, MedicationListState data) {
+    return SectionCard(
+      title: 'meds.today'.tr(),
+      action: AppButton(
+        label: 'common.seeAll'.tr(),
+        variant: AppButtonVariant.text,
+        expand: false,
+        onPressed: () => context.pushNamed(AppRoutes.medications),
+      ),
+      child: data.todaysDoses.isEmpty
+          ? Text('meds.todayEmpty'.tr(), style: Theme.of(context).textTheme.bodyMedium)
+          : Column(
+              children: <Widget>[
+                for (final dose in data.todaysDoses.take(3))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: DoseRow(
+                      dose: dose,
+                      onLog: (DoseStatus status) => ref
+                          .read(medicationListControllerProvider.notifier)
+                          .logDose(
+                            medicationClientRecordId: dose.medicationClientRecordId,
+                            status: status,
+                            scheduledDate: dose.scheduledDate,
+                            scheduledTime: dose.scheduledTime,
+                          ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
 }
