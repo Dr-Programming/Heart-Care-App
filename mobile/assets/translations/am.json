@@ -125,7 +125,65 @@
     "title": "መገለጫ"
   },
 
-  "meds": {},
+  "meds": {
+    "title": "መድሃኒቶች",
+    "add": "መድሃኒት ጨምር",
+    "today": "ዛሬ",
+    "todayEmpty": "አሁን የሚወሰድ የለም",
+    "yourMedications": "የእርስዎ መድሃኒቶች",
+    "emptyTitle": "እስካሁን መድሃኒት የለም",
+    "emptyBody": "መከታተል ለመጀመር የመጀመሪያ መድሃኒትዎን ያክሉ።",
+    "status": {
+      "taken": "ተወስዷል",
+      "missed": "ታልፏል",
+      "skipped": "ታልፏል በፈቃድ"
+    },
+    "form": {
+      "title": "መድሃኒት",
+      "name": "ስም",
+      "nameHint": "ለምሳሌ Atorvastatin",
+      "doseMg": "መጠን (mg)",
+      "scheduleTimes": "ሰዓቶች"
+    },
+    "frequency": {
+      "onceDaily": "በቀን አንድ ጊዜ",
+      "bid": "በቀን ሁለት ጊዜ",
+      "tid": "በቀን ሶስት ጊዜ",
+      "custom": "ሌላ"
+    },
+    "errors": {
+      "nameRequired": "የመድሃኒት ስም ያስገቡ",
+      "nameTooLong": "ስሙ በጣም ረጅም ነው",
+      "doseRequired": "መጠን ያስገቡ",
+      "doseInvalid": "ቁጥር ያስገቡ",
+      "dosePositive": "መጠኑ ከ0 በላይ መሆን አለበት",
+      "scheduleRequired": "ቢያንስ አንድ ሰዓት ያክሉ",
+      "scheduleFormat": "ትክክለኛ ሰዓት ያስገቡ"
+    },
+    "history": {
+      "title": "የመድሃኒት ታሪክ",
+      "emptyTitle": "እስካሁን የተመዘገበ የለም",
+      "emptyBody": "የተመዘገቡ መጠኖች እዚህ ይታያሉ።"
+    },
+    "adherence": {
+      "title": "ተገዢነት",
+      "overall7": "ያለፉት 7 ቀናት",
+      "overall30": "ያለፉት 30 ቀናት",
+      "count": "{taken} ከ{due} መጠኖች",
+      "noData": "እስካሁን በቂ መረጃ የለም"
+    },
+    "reminders": {
+      "title": "ማስታወሻዎች",
+      "enabled": "የመድሃኒት ማስታወሻዎች",
+      "followUp": "ካልተመዘገበ በ1 ሰዓት ውስጥ ተከታይ ማሳሰቢያ"
+    },
+    "notifications": {
+      "doseTitle": "የመድሃኒት ጊዜ ደርሷል",
+      "doseBody": "{name} የመውሰጃ ጊዜዎ ነው። ለመመዝገብ ይንኩ።",
+      "followUpTitle": "መጠን ገና አልመዘገቡም?",
+      "followUpBody": "{name} ገና አልመዘገቡትም — ለመመዝገብ ይንኩ።"
+    }
+  },
 
   "vitals": {},
 

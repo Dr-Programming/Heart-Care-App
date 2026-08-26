@@ -125,7 +125,65 @@
     "title": "Profile"
   },
 
-  "meds": {},
+  "meds": {
+    "title": "Medications",
+    "add": "Add medication",
+    "today": "Today",
+    "todayEmpty": "Nothing due right now",
+    "yourMedications": "Your medications",
+    "emptyTitle": "No medications yet",
+    "emptyBody": "Add your first medication to start tracking doses and reminders.",
+    "status": {
+      "taken": "Taken",
+      "missed": "Missed",
+      "skipped": "Skipped"
+    },
+    "form": {
+      "title": "Medication",
+      "name": "Name",
+      "nameHint": "e.g. Atorvastatin",
+      "doseMg": "Dose (mg)",
+      "scheduleTimes": "Times"
+    },
+    "frequency": {
+      "onceDaily": "Once daily",
+      "bid": "Twice daily",
+      "tid": "Three times daily",
+      "custom": "Custom"
+    },
+    "errors": {
+      "nameRequired": "Enter a medication name",
+      "nameTooLong": "Name is too long",
+      "doseRequired": "Enter a dose",
+      "doseInvalid": "Enter a number",
+      "dosePositive": "Dose must be greater than 0",
+      "scheduleRequired": "Add at least one time",
+      "scheduleFormat": "Enter a valid time"
+    },
+    "history": {
+      "title": "Dose history",
+      "emptyTitle": "No doses logged yet",
+      "emptyBody": "Logged doses will appear here."
+    },
+    "adherence": {
+      "title": "Adherence",
+      "overall7": "Last 7 days",
+      "overall30": "Last 30 days",
+      "count": "{taken} of {due} doses",
+      "noData": "Not enough data yet"
+    },
+    "reminders": {
+      "title": "Reminders",
+      "enabled": "Medication reminders",
+      "followUp": "1 hour follow-up if not logged"
+    },
+    "notifications": {
+      "doseTitle": "Time for your medication",
+      "doseBody": "It's time to take {name}. Tap to log it.",
+      "followUpTitle": "Still need to log a dose?",
+      "followUpBody": "You have not logged {name} yet — tap to record it."
+    }
+  },
 
   "vitals": {},
 

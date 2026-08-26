@@ -1,10 +1,18 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` lives in flutter_riverpod's `misc.dart`, not its main barrel.
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
 import '../core/router/app_router.dart';
+import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
+import '../features/medication/presentation/home/todays_doses_card.dart';
+import '../features/medication/presentation/screens/adherence_screen.dart';
+import '../features/medication/presentation/screens/dose_history_screen.dart';
+import '../features/medication/presentation/screens/medication_form_screen.dart';
+import '../features/medication/presentation/screens/medications_screen.dart';
+import '../features/medication/presentation/screens/reminder_settings_screen.dart';
 
 // ---------------------------------------------------------------------------
 // THE ONE FILE WHERE FEATURES MEET.
@@ -40,8 +48,8 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
 
 /// Everything the five slices plug into the router.
 FeatureRoutes buildFeatureRoutes() {
-  return const FeatureRoutes(
-    topLevel: <RouteBase>[
+  return FeatureRoutes(
+    topLevel: const <RouteBase>[
       // ── M1 auth ────────────────────────────────────────────────────────
       // splash, language picker, login, register, forgot-PIN
       //
@@ -50,23 +58,58 @@ FeatureRoutes buildFeatureRoutes() {
     ],
 
     // ── M3 medications ───────────────────────────────────────────────────
-    medications: TabRoutes(),
+    medications: TabRoutes(
+      root: (BuildContext context) => const MedicationsScreen(),
+      children: <RouteBase>[
+        GoRoute(
+          path: 'new',
+          name: AppRoutes.medicationNew,
+          builder: (BuildContext context, GoRouterState state) =>
+              const MedicationFormScreen(),
+        ),
+        GoRoute(
+          path: ':id/edit',
+          name: AppRoutes.medicationEdit,
+          builder: (BuildContext context, GoRouterState state) =>
+              MedicationFormScreen(editingId: state.pathParameters['id']),
+        ),
+        GoRoute(
+          path: 'history',
+          name: AppRoutes.doseHistory,
+          builder: (BuildContext context, GoRouterState state) =>
+              const DoseHistoryScreen(),
+        ),
+        GoRoute(
+          path: 'adherence',
+          name: AppRoutes.adherence,
+          builder: (BuildContext context, GoRouterState state) =>
+              const AdherenceScreen(),
+        ),
+        GoRoute(
+          path: 'reminders',
+          name: AppRoutes.reminderSettings,
+          builder: (BuildContext context, GoRouterState state) =>
+              const ReminderSettingsScreen(),
+        ),
+      ],
+    ),
 
     // ── M4 vitals ────────────────────────────────────────────────────────
-    vitals: TabRoutes(),
+    vitals: const TabRoutes(),
 
     // ── M5 symptoms & activity ───────────────────────────────────────────
-    checkIn: TabRoutes(),
+    checkIn: const TabRoutes(),
 
     // ── M5 education & diet ──────────────────────────────────────────────
-    learn: TabRoutes(),
+    learn: const TabRoutes(),
   );
 }
 
 /// Cards on the Home dashboard, in whatever order; Home sorts them by
 /// [HomeCard.order].
-const List<HomeCard> _homeCards = <HomeCard>[
+final List<HomeCard> _homeCards = <HomeCard>[
   // ── M3 medications ──── today's doses, order 100
+  todaysDosesHomeCard(),
   // ── M5 check-in ─────── today's check-in prompt, order 110
   // ── M4 vitals ───────── latest readings, order 200
   // ── M5 activity ─────── today's activity, order 210

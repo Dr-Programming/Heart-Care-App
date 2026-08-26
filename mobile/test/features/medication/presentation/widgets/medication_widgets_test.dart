@@ -105,17 +105,16 @@ void main() {
   });
 
   testWidgets('tapping Taken in StatusSelector calls onSelected with DoseStatus.taken', (tester) async {
-    // 'meds.status.taken' is not yet populated in assets/translations/*.json
-    // (Task 20's scope). easy_localization's .tr() falls back to the raw key
-    // string for a missing key, so the rendered label is the key itself
-    // rather than "Taken" — match on that until Task 20 adds the real copy.
+    // Task 20 populated `meds.status.taken` in assets/translations/*.json, so
+    // easy_localization's .tr() now resolves to the real copy ("Taken")
+    // instead of falling back to the raw key string — match on that.
     DoseStatus? selected;
     await pumpApp(
       tester,
       Material(child: StatusSelector(onSelected: (s) => selected = s)),
     );
 
-    await tester.tap(find.text('meds.status.taken'));
+    await tester.tap(find.text('Taken'));
     await tester.pump();
 
     expect(selected, DoseStatus.taken);
