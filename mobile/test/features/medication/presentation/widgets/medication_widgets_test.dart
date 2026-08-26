@@ -17,11 +17,12 @@ import 'package:libu_care/features/medication/presentation/widgets/time_list_fie
 import '../../../../helpers/pump_app.dart';
 
 /// Serves the real short English labels ("Taken"/"Missed"/"Skipped") for the
-/// `meds.status.*` keys instead of loading `assets/translations/*.json`
-/// (where the `meds` namespace is still `{}` until a later task). Lets a test
-/// exercise `StatusSelector`'s real widget tree — real `.tr()` calls, no
-/// production code changed — under realistic-length copy rather than the
-/// long raw-key fallback text the rest of this file necessarily uses.
+/// `meds.status.*` keys directly, bypassing `assets/translations/*.json`.
+/// Used where a test wants deterministic short copy independent of future
+/// wording edits to the real translation files (e.g. to isolate a
+/// proportional-width assertion from unrelated copy changes) — not a
+/// workaround for a missing translation namespace; `meds.status.*` has been
+/// populated with real short copy since Task 20.
 class _ShortLabelAssetLoader extends AssetLoader {
   const _ShortLabelAssetLoader();
 
@@ -38,11 +39,36 @@ class _ShortLabelAssetLoader extends AssetLoader {
       });
 }
 
-/// Same shape as `pumpApp` (helpers/pump_app.dart), but with the real short
-/// `meds.status.*` labels loaded in place of the empty translation asset —
-/// duplicated here rather than added as a parameter to the shared helper,
-/// since this is a one-off need for this file's realistic-label tests.
-Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) async {
+/// Serves deliberately long placeholder strings for the `meds.status.*`
+/// keys — the same length class as the pre-Task-20 accidental worst case,
+/// back when the `meds` namespace was still `{}` and `.tr()` fell back to
+/// the ~17-19 character raw key text ("meds.status.taken" etc.). Task 20
+/// populated the real (short: "Taken"/"Missed"/"Skipped") copy, so that long
+/// text no longer shows up by accident. This loader reproduces it on
+/// purpose so the overflow-regression tests below keep exercising the
+/// long-label-on-a-narrow-device scenario they were built to catch,
+/// independent of how long the real copy happens to be in any language.
+class _LongLabelAssetLoader extends AssetLoader {
+  const _LongLabelAssetLoader();
+
+  @override
+  Future<Map<String, dynamic>> load(String path, Locale locale) =>
+      Future<Map<String, dynamic>>.value(const <String, dynamic>{
+        'meds': <String, dynamic>{
+          'status': <String, dynamic>{
+            'taken': 'meds.status.taken',
+            'missed': 'meds.status.missed',
+            'skipped': 'meds.status.skipped',
+          },
+        },
+      });
+}
+
+/// Same shape as `pumpApp` (helpers/pump_app.dart), but with [loader] in
+/// place of the real translation asset — duplicated here rather than added
+/// as a parameter to the shared helper, since this is a one-off need for
+/// this file's fixed-copy-length tests.
+Future<void> _pumpWithAssetLoader(WidgetTester tester, Widget child, AssetLoader loader) async {
   final ProviderContainer container = ProviderContainer();
   addTearDown(container.dispose);
 
@@ -56,7 +82,7 @@ Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) async {
           fallbackLocale: AppLanguage.en.locale,
           startLocale: AppLanguage.en.locale,
           useFallbackTranslations: true,
-          assetLoader: const _ShortLabelAssetLoader(),
+          assetLoader: loader,
           child: Builder(
             builder: (BuildContext context) => MaterialApp(
               theme: AppTheme.light(context.locale.languageCode),
@@ -78,6 +104,18 @@ Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) async {
     const Duration(seconds: 10),
   );
 }
+
+/// Pumps [child] with the real short `meds.status.*` labels loaded (see
+/// [_ShortLabelAssetLoader]).
+Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) =>
+    _pumpWithAssetLoader(tester, child, const _ShortLabelAssetLoader());
+
+/// Pumps [child] with deliberately long `meds.status.*` labels loaded (see
+/// [_LongLabelAssetLoader]) — for the overflow-regression tests that need to
+/// exercise the long-label worst case regardless of how short the real
+/// translated copy is.
+Future<void> _pumpWithLongLabels(WidgetTester tester, Widget child) =>
+    _pumpWithAssetLoader(tester, child, const _LongLabelAssetLoader());
 
 void main() {
   setUpWidgetTests();
@@ -123,15 +161,17 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (pending)',
     (tester) async {
-      // Worst-case simulation of the real bug: `meds.status.*` is still an
-      // unpopulated translation namespace, so `.tr()` falls back to the raw
-      // key string ("meds.status.taken" etc.) — already longer than the
-      // real English/Amharic copy will be. Constraining the row to 220px
-      // (narrower than any realistic phone's available content width, e.g.
-      // ~360dp minus screen padding) simulates the combination this bug
-      // needs: long label text + a physically narrow device. Before the
-      // fix (bare trailing `StatusSelector`, inner `Row` instead of `Wrap`)
-      // this throws a `RenderFlex overflowed` FlutterError during pump.
+      // Worst-case simulation of the real bug: pumps deliberately long
+      // placeholder status labels via `_pumpWithLongLabels` (see
+      // `_LongLabelAssetLoader`) rather than the app's real, now-short
+      // `meds.status.*` copy — long label text is the actual risk this fix
+      // guards against, independent of how long the real copy is in any
+      // given language. Constraining the row to 220px (narrower than any
+      // realistic phone's available content width, e.g. ~360dp minus screen
+      // padding) simulates the combination this bug needs: long label text
+      // + a physically narrow device. Before the fix (bare trailing
+      // `StatusSelector`, inner `Row` instead of `Wrap`) this throws a
+      // `RenderFlex overflowed` FlutterError during pump.
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -142,7 +182,7 @@ void main() {
         doseLog: null,
       );
 
-      await pumpApp(
+      await _pumpWithLongLabels(
         tester,
         Material(
           child: Align(
@@ -163,7 +203,8 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (logged)',
     (tester) async {
-      // Same worst case as above, but for the `StatusChip` branch (a dose
+      // Same worst case as above (long placeholder labels via
+      // `_pumpWithLongLabels`), but for the `StatusChip` branch (a dose
       // already logged) — the trailing widget differs but the same
       // `Flexible` wrap in DoseRow must protect it too.
       final ScheduledDose logged = ScheduledDose(
@@ -186,7 +227,7 @@ void main() {
         ),
       );
 
-      await pumpApp(
+      await _pumpWithLongLabels(
         tester,
         Material(
           child: Align(
@@ -208,8 +249,11 @@ void main() {
     (tester) async {
       // StatusSelector directly, at 200px — narrower still than the DoseRow
       // scenario above, to isolate the `Wrap` fix (as opposed to the
-      // `Flexible` fix in DoseRow) as sufficient on its own.
-      await pumpApp(
+      // `Flexible` fix in DoseRow) as sufficient on its own. Uses
+      // `_pumpWithLongLabels` for the same reason as the DoseRow overflow
+      // tests above — long labels are the actual risk, not whatever the
+      // real translated copy's length happens to be today.
+      await _pumpWithLongLabels(
         tester,
         Material(
           child: Align(
