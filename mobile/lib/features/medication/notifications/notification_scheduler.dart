@@ -82,6 +82,12 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
       _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
+      // See Task 11's header note: this same-time match makes every
+      // notification — including the 1-hour follow-up — repeat daily. It
+      // cannot be suppressed on days the dose was already logged without
+      // OS-level background work outside a local-notifications package's
+      // reach, so a patient who already logged today's dose may still see
+      // the follow-up fire.
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }

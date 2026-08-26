@@ -5,8 +5,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../domain/entities/dose_log.dart';
 
-/// Three inline chips — Taken / Missed / Skipped — one tap logs a dose
-/// (Decision 6).
+/// Taken / Missed / Skipped chips — one tap logs a dose (Decision 6). Laid
+/// out in a `Wrap`, not a `Row`, so the three chips can flow onto a second
+/// line instead of overflowing when labels run long (longer Amharic
+/// translations, a larger accessibility text-scale factor, or a narrow
+/// device) — see the layout note in [build].
 class StatusSelector extends StatelessWidget {
   const StatusSelector({required this.onSelected, super.key});
 
