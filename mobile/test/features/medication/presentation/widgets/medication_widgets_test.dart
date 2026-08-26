@@ -138,7 +138,7 @@ void main() {
       scheduledDate: '2026-08-25', scheduledTime: '08:00',
       status: ScheduledDoseStatus.pending, doseLog: null,
     );
-    await pumpApp(tester, Material(child: DoseRow(dose: pending, onLog: (_) {})));
+    await pumpApp(tester, Material(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})));
     expect(find.byType(StatusSelector), findsOneWidget);
   });
 
@@ -189,7 +189,7 @@ void main() {
             alignment: Alignment.topLeft,
             child: SizedBox(
               width: 220,
-              child: DoseRow(dose: pending, onLog: (_) {}),
+              child: DoseRow(dose: pending, onLog: (_, {String? note}) {}),
             ),
           ),
         ),
@@ -234,7 +234,7 @@ void main() {
             alignment: Alignment.topLeft,
             child: SizedBox(
               width: 220,
-              child: DoseRow(dose: logged, onLog: (_) {}),
+              child: DoseRow(dose: logged, onLog: (_, {String? note}) {}),
             ),
           ),
         ),
@@ -309,7 +309,7 @@ void main() {
               width: width,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                child: SectionCard(child: DoseRow(dose: pending, onLog: (_) {})),
+                child: SectionCard(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})),
               ),
             ),
           ),
@@ -372,7 +372,7 @@ void main() {
                 width: 360,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                  child: SectionCard(child: DoseRow(dose: pending, onLog: (_) {})),
+                  child: SectionCard(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})),
                 ),
               ),
             ),
@@ -384,6 +384,140 @@ void main() {
       expect(find.byType(StatusSelector), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'a note typed on a logged dose reaches onLog with the same status (I6)',
+    (tester) async {
+      // FR-MED-008: `DoseLogs.note` was plumbed through the domain, data and
+      // sync layers with no widget able to fill it. The note is offered on the
+      // already-logged row rather than in the logging tap itself, so Decision
+      // 6's one-tap logging stays one tap.
+      DoseStatus? loggedStatus;
+      String? loggedNote;
+      int calls = 0;
+
+      final ScheduledDose logged = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'Aspirin',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.logged,
+        doseLog: DoseLog(
+          clientRecordId: 'd1',
+          serverId: null,
+          medicationClientRecordId: 'm1',
+          medicationServerId: null,
+          status: DoseStatus.taken,
+          scheduledDate: '2026-08-25',
+          scheduledTime: '08:00',
+          loggedAt: DateTime(2026, 8, 25, 8, 5),
+          note: null,
+        ),
+      );
+
+      await pumpApp(
+        tester,
+        Material(
+          child: DoseRow(
+            dose: logged,
+            onLog: (DoseStatus status, {String? note}) {
+              calls++;
+              loggedStatus = status;
+              loggedNote = note;
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('meds.note.add'.tr()));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), '  Felt dizzy after it  ');
+      await tester.tap(find.text('meds.note.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(calls, 1);
+      expect(loggedNote, 'Felt dizzy after it');
+      expect(
+        loggedStatus,
+        DoseStatus.taken,
+        reason: 'saving a note must not silently change the recorded status',
+      );
+    },
+  );
+
+  testWidgets('dismissing the note sheet logs nothing (I6)', (tester) async {
+    int calls = 0;
+    final ScheduledDose logged = ScheduledDose(
+      medicationClientRecordId: 'm1',
+      medicationName: 'Aspirin',
+      doseMg: 75,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      status: ScheduledDoseStatus.logged,
+      doseLog: DoseLog(
+        clientRecordId: 'd1',
+        serverId: null,
+        medicationClientRecordId: 'm1',
+        medicationServerId: null,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        loggedAt: DateTime(2026, 8, 25, 8, 5),
+        note: null,
+      ),
+    );
+
+    await pumpApp(
+      tester,
+      Material(
+        child: DoseRow(dose: logged, onLog: (_, {String? note}) => calls++),
+      ),
+    );
+
+    await tester.tap(find.text('meds.note.add'.tr()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('common.cancel'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(calls, 0);
+  });
+
+  testWidgets('an existing note is shown and offered for editing (I6)', (
+    tester,
+  ) async {
+    final ScheduledDose logged = ScheduledDose(
+      medicationClientRecordId: 'm1',
+      medicationName: 'Aspirin',
+      doseMg: 75,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      status: ScheduledDoseStatus.logged,
+      doseLog: DoseLog(
+        clientRecordId: 'd1',
+        serverId: null,
+        medicationClientRecordId: 'm1',
+        medicationServerId: null,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        loggedAt: DateTime(2026, 8, 25, 8, 5),
+        note: 'Felt dizzy',
+      ),
+    );
+
+    await pumpApp(
+      tester,
+      Material(
+        child: DoseRow(dose: logged, onLog: (_, {String? note}) {}),
+      ),
+    );
+
+    expect(find.text('Felt dizzy'), findsOneWidget);
+    expect(find.text('meds.note.edit'.tr()), findsOneWidget);
+    expect(find.text('meds.note.add'.tr()), findsNothing);
+  });
 
   testWidgets('TimeListField renders a chip per time and adds one via the picker', (tester) async {
     List<String> current = const <String>['08:00'];

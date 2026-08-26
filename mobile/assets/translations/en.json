@@ -147,6 +147,14 @@
       "missed": "Missed",
       "skipped": "Skipped"
     },
+    "note": {
+      "add": "Add a note",
+      "edit": "Edit note",
+      "title": "Note",
+      "label": "Note (optional)",
+      "hint": "e.g. took it late, felt dizzy",
+      "save": "Save note"
+    },
     "form": {
       "title": "Medication",
       "name": "Name",
