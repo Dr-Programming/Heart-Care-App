@@ -23,11 +23,50 @@ import '../../../../helpers/test_database.dart';
 import '../../helpers/fake_medication_repository.dart';
 
 class _FakeDoseHistoryController extends DoseHistoryController {
-  _FakeDoseHistoryController(this._logs);
-  final List<DoseLog> _logs;
+  _FakeDoseHistoryController(this._state);
+  final DoseHistoryState _state;
+
+  /// The filter the screen's chip row asked for, if any.
+  DoseHistoryFilter? requestedFilter;
+
   @override
-  Future<List<DoseLog>> build() async => _logs;
+  Future<DoseHistoryState> build() async => _state;
+
+  @override
+  Future<void> setFilter(DoseHistoryFilter filter) async {
+    requestedFilter = filter;
+  }
 }
+
+DoseHistoryState _history({
+  List<DoseHistoryEntry> entries = const <DoseHistoryEntry>[],
+  List<Medication> medications = const <Medication>[],
+  DoseHistoryFilter filter = const DoseHistoryFilter(),
+}) => DoseHistoryState(
+  entries: entries,
+  medications: medications,
+  filter: filter,
+);
+
+DoseHistoryEntry _entry({
+  required String medicationName,
+  String medicationClientRecordId = 'm1',
+  LocalSyncStatus? syncStatus,
+}) => DoseHistoryEntry(
+  log: DoseLog(
+    clientRecordId: 'd-$medicationClientRecordId',
+    serverId: null,
+    medicationClientRecordId: medicationClientRecordId,
+    medicationServerId: null,
+    status: DoseStatus.taken,
+    scheduledDate: '2026-08-25',
+    scheduledTime: '08:00',
+    loggedAt: DateTime.utc(2026, 8, 25),
+    note: null,
+  ),
+  medicationName: medicationName,
+  syncStatus: syncStatus,
+);
 
 class _FakeAdherenceController extends AdherenceController {
   _FakeAdherenceController(this._state);
@@ -51,10 +90,101 @@ void main() {
       tester,
       const DoseHistoryScreen(),
       overrides: <Override>[
-        doseHistoryControllerProvider.overrideWith(() => _FakeDoseHistoryController(const <DoseLog>[])),
+        doseHistoryControllerProvider.overrideWith(
+          () => _FakeDoseHistoryController(_history()),
+        ),
       ],
     );
     expect(find.text('meds.history.emptyTitle'.tr()), findsOneWidget);
+  });
+
+  testWidgets('DoseHistoryScreen names the medication on every row (I5)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const DoseHistoryScreen(),
+      overrides: <Override>[
+        doseHistoryControllerProvider.overrideWith(
+          () => _FakeDoseHistoryController(
+            _history(
+              entries: <DoseHistoryEntry>[
+                _entry(medicationName: 'Aspirin'),
+                _entry(
+                  medicationName: 'Atorvastatin',
+                  medicationClientRecordId: 'm2',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('Aspirin'), findsOneWidget);
+    expect(find.text('Atorvastatin'), findsOneWidget);
+  });
+
+  testWidgets('DoseHistoryScreen shows a per-row sync status (I5)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const DoseHistoryScreen(),
+      overrides: <Override>[
+        doseHistoryControllerProvider.overrideWith(
+          () => _FakeDoseHistoryController(
+            _history(
+              entries: <DoseHistoryEntry>[
+                _entry(
+                  medicationName: 'Aspirin',
+                  syncStatus: LocalSyncStatus.pending,
+                ),
+                _entry(
+                  medicationName: 'Atorvastatin',
+                  medicationClientRecordId: 'm2',
+                  syncStatus: LocalSyncStatus.synced,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // Offline-first: a pending record is normal, and only the record that is
+    // still owed says anything at all.
+    expect(find.text('meds.history.syncPending'.tr()), findsOneWidget);
+  });
+
+  testWidgets('DoseHistoryScreen filter chips call setFilter (I5)', (
+    tester,
+  ) async {
+    final _FakeDoseHistoryController controller = _FakeDoseHistoryController(
+      _history(
+        entries: <DoseHistoryEntry>[_entry(medicationName: 'Aspirin')],
+        medications: <Medication>[
+          fakeMedication(clientRecordId: 'm1', name: 'Aspirin'),
+          fakeMedication(clientRecordId: 'm2', name: 'Atorvastatin'),
+        ],
+      ),
+    );
+
+    await pumpApp(
+      tester,
+      const DoseHistoryScreen(),
+      overrides: <Override>[
+        doseHistoryControllerProvider.overrideWith(() => controller),
+      ],
+    );
+
+    // `setFilter` had no UI caller at all before this fix.
+    expect(find.text('meds.history.filterAll'.tr()), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Atorvastatin'));
+    await tester.pumpAndSettle();
+
+    expect(controller.requestedFilter?.medicationClientRecordId, 'm2');
   });
 
   testWidgets('AdherenceScreen shows honest no-data text for a zero-due window', (tester) async {
