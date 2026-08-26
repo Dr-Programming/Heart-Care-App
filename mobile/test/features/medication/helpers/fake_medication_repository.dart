@@ -16,9 +16,14 @@ class FakeMedicationRepository implements MedicationRepository {
     List<Medication> medications = const <Medication>[],
     List<DoseLog> history = const <DoseLog>[],
     List<ScheduledDose> todays = const <ScheduledDose>[],
+    this.writeError,
   }) : medications = <Medication>[...medications],
        history = <DoseLog>[...history],
        todays = <ScheduledDose>[...todays];
+
+  /// When set, `add` and `edit` throw it instead of writing — for asserting
+  /// that a caller surfaces a failed save rather than swallowing it (I7).
+  final Object? writeError;
 
   final List<Medication> medications;
   final List<DoseLog> history;
@@ -50,6 +55,7 @@ class FakeMedicationRepository implements MedicationRepository {
     required MedicationFrequency frequency,
     required List<String> scheduleTimes,
   }) async {
+    if (writeError != null) throw writeError!;
     final Medication created = Medication(
       clientRecordId: 'new-${medications.length}',
       serverId: null,
@@ -67,6 +73,7 @@ class FakeMedicationRepository implements MedicationRepository {
 
   @override
   Future<Medication> edit(Medication updated) async {
+    if (writeError != null) throw writeError!;
     medications.removeWhere(
       (Medication m) => m.clientRecordId == updated.clientRecordId,
     );
