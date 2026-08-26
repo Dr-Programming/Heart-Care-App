@@ -89,6 +89,7 @@ class _FormBody extends ConsumerWidget {
 
     return AppScaffold(
       title: 'meds.form.title'.tr(),
+      scrollable: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
