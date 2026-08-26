@@ -8,6 +8,8 @@ import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/medication.dart';
+import '../../medication_providers.dart';
+import '../../notifications/reminder_bootstrap.dart';
 import '../controllers/medication_list_controller.dart';
 
 class _NotificationsEnabledController extends AsyncNotifier<bool> {
@@ -21,10 +23,27 @@ class _NotificationsEnabledController extends AsyncNotifier<bool> {
   }
 
   Future<void> setEnabled(bool value) async {
+    // The preference is written first on purpose: `scheduleFor` reads this
+    // key itself and refuses to arm anything while it says `false`, so
+    // re-enabling would silently schedule nothing if the order were flipped.
     await ref
         .read(appDatabaseProvider)
         .preferencesDao
         .set(PreferenceKeys.notificationsEnabled, value.toString());
+
+    // Decision 4 / spec: "cancel everything when it is off — do not just
+    // suppress display". Turning the switch off has to reach the OS, because
+    // an alarm that is already armed keeps firing no matter what this app
+    // would have chosen to render.
+    final MedicationReminderBootstrap bootstrap = ref.read(
+      medicationReminderBootstrapProvider,
+    );
+    if (value) {
+      await bootstrap.rescheduleAll();
+    } else {
+      await bootstrap.cancelAll();
+    }
+
     ref.invalidateSelf();
   }
 }

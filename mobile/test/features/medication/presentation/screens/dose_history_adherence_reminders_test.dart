@@ -1,6 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:libu_care/core/db/app_database.dart' hide DoseLog, Medication;
+import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/features/medication/domain/entities/adherence.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
@@ -10,9 +13,14 @@ import 'package:libu_care/features/medication/presentation/controllers/dose_hist
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
 import 'package:libu_care/features/medication/presentation/screens/adherence_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/dose_history_screen.dart';
+import 'package:libu_care/features/medication/medication_providers.dart';
+import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
+import 'package:libu_care/features/medication/notifications/reminder_bootstrap.dart';
 import 'package:libu_care/features/medication/presentation/screens/reminder_settings_screen.dart';
 
 import '../../../../helpers/pump_app.dart';
+import '../../../../helpers/test_database.dart';
+import '../../helpers/fake_medication_repository.dart';
 
 class _FakeDoseHistoryController extends DoseHistoryController {
   _FakeDoseHistoryController(this._logs);
@@ -87,5 +95,96 @@ void main() {
       ],
     );
     expect(find.textContaining('Aspirin'), findsOneWidget);
+  });
+
+  testWidgets(
+    'switching reminders off cancels the pending notifications rather than '
+    'only writing the preference (I1)',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final RecordingScheduler scheduler = RecordingScheduler();
+      final FakeMedicationRepository repository = FakeMedicationRepository(
+        medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+      );
+      final MedicationReminderBootstrap bootstrap = MedicationReminderBootstrap(
+        scheduler: scheduler,
+        notifications: MedicationNotifications(scheduler, db.preferencesDao),
+        repository: repository,
+      );
+      // The app-start bootstrap has already armed this medication.
+      await bootstrap.rescheduleAll();
+      expect(scheduler.pendingPayloads, isNotEmpty);
+
+      await pumpApp(
+        tester,
+        const ReminderSettingsScreen(),
+        overrides: <Override>[
+          appDatabaseProvider.overrideWithValue(db),
+          medicationReminderBootstrapProvider.overrideWithValue(bootstrap),
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              MedicationListState(
+                todaysDoses: const <ScheduledDose>[],
+                medications: <Medication>[
+                  fakeMedication(clientRecordId: 'm1'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      expect(
+        await db.preferencesDao.get(PreferenceKeys.notificationsEnabled),
+        'false',
+      );
+      expect(scheduler.pendingPayloads, isEmpty);
+    },
+  );
+
+  testWidgets('switching reminders back on re-arms them (I1)', (tester) async {
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+    await db.preferencesDao.set(PreferenceKeys.notificationsEnabled, 'false');
+
+    final RecordingScheduler scheduler = RecordingScheduler();
+    final FakeMedicationRepository repository = FakeMedicationRepository(
+      medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+    );
+
+    await pumpApp(
+      tester,
+      const ReminderSettingsScreen(),
+      overrides: <Override>[
+        appDatabaseProvider.overrideWithValue(db),
+        medicationReminderBootstrapProvider.overrideWithValue(
+          MedicationReminderBootstrap(
+            scheduler: scheduler,
+            notifications: MedicationNotifications(scheduler, db.preferencesDao),
+            repository: repository,
+          ),
+        ),
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[],
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(scheduler.pendingPayloads, isEmpty);
+
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+
+    // One scheduled time, main + follow-up.
+    expect(scheduler.pendingPayloads, hasLength(2));
   });
 }
