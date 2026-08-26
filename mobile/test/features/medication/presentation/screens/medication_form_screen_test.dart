@@ -3,14 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:libu_care/core/db/app_database.dart' hide Medication;
+import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
+import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
 
 import '../../../../helpers/pump_app.dart';
+import '../../../../helpers/test_database.dart';
 import '../../helpers/fake_medication_repository.dart';
 
 class _FakeFormController extends MedicationFormController {
@@ -133,6 +137,108 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  /// Fills the add form with a valid medication and presses Save.
+  ///
+  /// Tapping the "once daily" chip is what populates `scheduleTimes` (via
+  /// `setFrequency`'s suggested defaults), so the form passes validation and
+  /// the save actually reaches the repository — which is the point of the
+  /// tests below.
+  Future<void> fillAndSave(WidgetTester tester) async {
+    await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
+    await tester.enterText(find.byType(TextField).at(1), '20');
+    await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
+    await tester.pump();
+    await tester.tap(find.text('common.save'.tr()));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a failed save tells the user, in the failure\'s own words (I7)', (
+    tester,
+  ) async {
+    // Before the fix, `AppButton.onPressed` was handed `controller.save`
+    // directly — a `VoidCallback` swallowing a `Future<bool>` that rethrows on
+    // failure. The rethrow became an unhandled async error: nothing shown to
+    // the user, and `tester.takeException()` picking it up here.
+    await pumpApp(
+      tester,
+      const MedicationFormScreen(),
+      overrides: <Override>[
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(
+            writeError: const NetworkFailure('No connection right now'),
+          ),
+        ),
+      ],
+    );
+
+    await fillAndSave(tester);
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('No connection right now'), findsOneWidget);
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'the save failure must be handled, not left unhandled',
+    );
+  });
+
+  testWidgets(
+    'a non-Failure save error falls back to the generic message (I7)',
+    (tester) async {
+      // A raw `StateError.toString()` is an internal detail, not copy for a
+      // patient — the screen substitutes the translated generic message.
+      await pumpApp(
+        tester,
+        const MedicationFormScreen(),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              writeError: StateError('simulated local write failure'),
+            ),
+          ),
+        ],
+      );
+
+      await fillAndSave(tester);
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('errors.generic'.tr()), findsOneWidget);
+      expect(find.textContaining('simulated local write failure'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('a save that succeeds shows no error and closes the form (I7)', (
+    tester,
+  ) async {
+    // The counterpart to the two failure cases: the new error handling must
+    // not fire on the happy path. Pumped on the miniature router because a
+    // successful save pops the screen, and the notification scheduler is
+    // faked because the real one reaches for a platform plugin that does not
+    // exist under `flutter test`.
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+
+    await pumpApp(
+      tester,
+      _routedForm(),
+      overrides: <Override>[
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(),
+        ),
+        medicationNotificationsProvider.overrideWithValue(
+          MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+        ),
+      ],
+    );
+
+    await fillAndSave(tester);
+
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('behind the form'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('offers no deactivate action in add mode (C3)', (tester) async {
     await pumpApp(

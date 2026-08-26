@@ -148,7 +148,7 @@ class _FormBody extends ConsumerWidget {
           AppButton(
             label: 'common.save'.tr(),
             isLoading: state.isSaving,
-            onPressed: controller.save,
+            onPressed: () => _save(context, controller),
           ),
           if (editingId != null) ...<Widget>[
             const SizedBox(height: AppSpacing.md),
@@ -161,6 +161,39 @@ class _FormBody extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Saves, and tells the user when saving did not work (I7).
+  ///
+  /// `AppButton.onPressed` is a `VoidCallback`, so handing it
+  /// `controller.save` directly dropped the returned `Future` on the floor:
+  /// `save()` rethrows on failure by design, and with nothing awaiting it the
+  /// error became an unhandled async error — no message, no dialog, and a form
+  /// that simply sat there looking like nothing had happened. Awaiting inside
+  /// an async closure gives the failure somewhere to go.
+  ///
+  /// A `SnackBar` rather than `ErrorView`: the form itself is fine and still
+  /// holds everything the user typed, so replacing it with a full-screen error
+  /// would throw away their work. This is a transient "that didn't send"
+  /// message over an otherwise intact screen.
+  Future<void> _save(BuildContext context, MedicationFormController controller) async {
+    try {
+      await controller.save();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              // A `Failure` already carries copy written for a user; anything
+              // else is an internal error whose `toString()` is not something
+              // to put in front of a patient.
+              error is Failure ? error.message : 'errors.generic'.tr(),
+            ),
+          ),
+        );
+    }
   }
 
   /// Deactivating is a soft stop, never a delete (Decision 1) — the confirm
