@@ -172,7 +172,10 @@
     "history": {
       "title": "Dose history",
       "emptyTitle": "No doses logged yet",
-      "emptyBody": "Logged doses will appear here."
+      "emptyBody": "Logged doses will appear here.",
+      "filterAll": "All",
+      "syncPending": "Saved on this phone, waiting to send",
+      "syncRejected": "Could not be sent to the server"
     },
     "adherence": {
       "title": "Adherence",

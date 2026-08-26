@@ -172,7 +172,10 @@
     "history": {
       "title": "የመድሃኒት ታሪክ",
       "emptyTitle": "እስካሁን የተመዘገበ የለም",
-      "emptyBody": "የተመዘገቡ መጠኖች እዚህ ይታያሉ።"
+      "emptyBody": "የተመዘገቡ መጠኖች እዚህ ይታያሉ።",
+      "filterAll": "ሁሉም",
+      "syncPending": "በዚህ ስልክ ተቀምጧል፤ ለመላክ በመጠባበቅ ላይ",
+      "syncRejected": "ወደ አገልጋዩ መላክ አልተቻለም"
     },
     "adherence": {
       "title": "ተገዢነት",
