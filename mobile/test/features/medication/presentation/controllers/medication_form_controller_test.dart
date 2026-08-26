@@ -54,6 +54,39 @@ class _FakeRepository implements MedicationRepository {
   Future<void> replayPendingEdits() async {}
 }
 
+class _ThrowingAddRepository implements MedicationRepository {
+  Medication? added;
+  Medication? edited;
+
+  @override
+  Future<List<Medication>> activeMedications() async => <Medication>[_stored];
+  @override
+  Future<List<Medication>> allMedications({bool includeInactive = false}) async => <Medication>[_stored];
+  @override
+  Future<Medication> add({required String name, required double doseMg, required MedicationFrequency frequency, required List<String> scheduleTimes}) async {
+    throw StateError('simulated local write failure');
+  }
+  @override
+  Future<Medication> edit(Medication updated) async {
+    edited = updated;
+    return updated;
+  }
+  @override
+  Future<Medication> deactivate(String clientRecordId) async => _stored;
+  @override
+  Future<DoseLog> logDose({required String medicationClientRecordId, required DoseStatus status, required String scheduledDate, String? scheduledTime, String? note}) async =>
+      throw UnimplementedError();
+  @override
+  Future<List<ScheduledDose>> todaysDoses({DateTime? now}) async => const <ScheduledDose>[];
+  @override
+  Future<List<DoseLog>> doseHistory({String? medicationClientRecordId, DateTime? from, DateTime? to}) async => const <DoseLog>[];
+  @override
+  Future<Adherence> adherence({String? medicationClientRecordId, required int windowDays, DateTime? now}) async =>
+      Adherence(taken: 0, due: 0, skipped: 0, windowDays: windowDays);
+  @override
+  Future<void> replayPendingEdits() async {}
+}
+
 class _NoopScheduler implements NotificationScheduler {
   @override
   Future<void> init() async {}
@@ -65,7 +98,7 @@ class _NoopScheduler implements NotificationScheduler {
   Future<void> cancel(int id) async {}
 }
 
-ProviderContainer _container(_FakeRepository repo, AppDatabase db) {
+ProviderContainer _container(MedicationRepository repo, AppDatabase db) {
   return ProviderContainer(
     overrides: <Override>[
       medicationRepositoryProvider.overrideWithValue(repo),
@@ -144,5 +177,22 @@ void main() {
 
     expect(container.read(medicationFormControllerProvider).scheduleTimes, hasLength(2));
     expect(container.read(medicationFormControllerProvider).scheduleTimes.first, '08:00');
+  });
+
+  test('save() resets isSaving to false (not stuck) after the repository throws', () async {
+    final _ThrowingAddRepository repo = _ThrowingAddRepository();
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+    final ProviderContainer container = _container(repo, db);
+    addTearDown(container.dispose);
+    final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+    controller.setName('Atorvastatin');
+    controller.setDoseMg('20');
+    controller.setScheduleTimes(const <String>['08:00']);
+
+    await expectLater(controller.save(), throwsA(isA<StateError>()));
+
+    expect(container.read(medicationFormControllerProvider).isSaving, isFalse);
   });
 }

@@ -104,34 +104,39 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     if (nameError != null || doseError != null || scheduleError != null) return false;
 
     state = state.copyWith(isSaving: true);
-    final repository = ref.read(medicationRepositoryProvider);
-    final double doseValue = double.parse(state.doseMg);
+    try {
+      final repository = ref.read(medicationRepositoryProvider);
+      final double doseValue = double.parse(state.doseMg);
 
-    final Medication medication;
-    if (_editingClientRecordId == null) {
-      medication = await repository.add(
-        name: state.name.trim(),
-        doseMg: doseValue,
-        frequency: state.frequency,
-        scheduleTimes: state.scheduleTimes,
-      );
-    } else {
-      final Medication current = (await repository.allMedications(includeInactive: true))
-          .firstWhere((Medication m) => m.clientRecordId == _editingClientRecordId);
-      medication = await repository.edit(
-        current.copyWith(
+      final Medication medication;
+      if (_editingClientRecordId == null) {
+        medication = await repository.add(
           name: state.name.trim(),
           doseMg: doseValue,
           frequency: state.frequency,
           scheduleTimes: state.scheduleTimes,
-        ),
-      );
-    }
+        );
+      } else {
+        final Medication current = (await repository.allMedications(includeInactive: true))
+            .firstWhere((Medication m) => m.clientRecordId == _editingClientRecordId);
+        medication = await repository.edit(
+          current.copyWith(
+            name: state.name.trim(),
+            doseMg: doseValue,
+            frequency: state.frequency,
+            scheduleTimes: state.scheduleTimes,
+          ),
+        );
+      }
 
-    await ref.read(medicationNotificationsProvider).scheduleFor(medication);
-    ref.invalidate(medicationListControllerProvider);
-    state = state.copyWith(isSaving: false, saved: true);
-    return true;
+      await ref.read(medicationNotificationsProvider).scheduleFor(medication);
+      ref.invalidate(medicationListControllerProvider);
+      state = state.copyWith(isSaving: false, saved: true);
+      return true;
+    } catch (_) {
+      state = state.copyWith(isSaving: false);
+      rethrow;
+    }
   }
 }
 
