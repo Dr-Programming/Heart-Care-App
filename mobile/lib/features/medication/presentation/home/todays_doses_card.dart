@@ -8,6 +8,7 @@ import '../../../../core/shell/home_card.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/dose_log.dart';
+import '../../medication_providers.dart';
 import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
 
@@ -27,11 +28,35 @@ abstract final class _TodaysDosesCard {
   static Widget build(BuildContext context) => const _Card();
 }
 
-class _Card extends ConsumerWidget {
+class _Card extends ConsumerStatefulWidget {
   const _Card();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Card> createState() => _CardState();
+}
+
+class _CardState extends ConsumerState<_Card> {
+  @override
+  void initState() {
+    super.initState();
+    // The app-start hook for reminders (C2 / Decision 4): Android clears
+    // pending alarms on reboot and force-stop, so something has to
+    // re-schedule them every launch. This card is mounted at app start
+    // because Home is the shell's initial tab, which makes it this feature's
+    // own equivalent of `AppShell`'s `syncServiceProvider` read — and it
+    // keeps the bootstrap inside `lib/features/medication/` rather than
+    // adding another edit to the shared `app_wiring.dart`.
+    //
+    // Reading a `Provider` runs its body once per container and caches it, so
+    // remounting this card (a tab switch, a rebuild) does not re-run the
+    // bootstrap.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(medicationRemindersStartupProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AsyncValue<MedicationListState> state = ref.watch(medicationListControllerProvider);
 
     return state.when(
