@@ -179,6 +179,8 @@
       "overall7": "Last 7 days",
       "overall30": "Last 30 days",
       "count": "{taken} of {due} doses",
+      "countWithPercent": "{taken} of {due} doses ({percent}%)",
+      "perMedication": "By medication",
       "noData": "Not enough data yet"
     },
     "reminders": {

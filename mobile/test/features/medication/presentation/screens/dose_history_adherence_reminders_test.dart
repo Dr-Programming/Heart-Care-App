@@ -77,6 +77,103 @@ void main() {
     expect(find.text('meds.adherence.noData'.tr()), findsWidgets);
   });
 
+  testWidgets('AdherenceScreen shows the percentage alongside the counts (I4)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const AdherenceScreen(),
+      overrides: <Override>[
+        adherenceControllerProvider.overrideWith(
+          () => _FakeAdherenceController(
+            const AdherenceState(
+              overall7: Adherence(taken: 12, due: 14, skipped: 1, windowDays: 7),
+              overall30: Adherence(taken: 30, due: 60, skipped: 0, windowDays: 30),
+              perMedication7: <String, Adherence>{},
+              perMedication30: <String, Adherence>{},
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // Decision 5: the denominator is always shown, never a bare percentage.
+    expect(
+      find.text(
+        'meds.adherence.countWithPercent'.tr(
+          namedArgs: const <String, String>{
+            'taken': '12',
+            'due': '14',
+            'percent': '86',
+          },
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('50%'), findsOneWidget);
+  });
+
+  testWidgets('AdherenceScreen breaks the figures down per medication (I4)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const AdherenceScreen(),
+      overrides: <Override>[
+        adherenceControllerProvider.overrideWith(
+          () => _FakeAdherenceController(
+            AdherenceState(
+              overall7: const Adherence(taken: 5, due: 10, skipped: 0, windowDays: 7),
+              overall30: const Adherence(taken: 5, due: 10, skipped: 0, windowDays: 30),
+              perMedication7: const <String, Adherence>{
+                'm1': Adherence(taken: 5, due: 5, skipped: 0, windowDays: 7),
+                'm2': Adherence(taken: 0, due: 5, skipped: 0, windowDays: 7),
+              },
+              perMedication30: const <String, Adherence>{
+                'm1': Adherence(taken: 5, due: 5, skipped: 0, windowDays: 30),
+                'm2': Adherence(taken: 0, due: 5, skipped: 0, windowDays: 30),
+              },
+              medications: <Medication>[
+                fakeMedication(clientRecordId: 'm1', name: 'Aspirin'),
+                fakeMedication(clientRecordId: 'm2', name: 'Atorvastatin'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('meds.adherence.perMedication'.tr()), findsOneWidget);
+    expect(find.text('Aspirin'), findsOneWidget);
+    expect(find.text('Atorvastatin'), findsOneWidget);
+    // 5/5 for one, 0/5 for the other — a pooled 50% would hide which.
+    expect(find.textContaining('100%'), findsWidgets);
+    expect(find.textContaining('0%'), findsWidgets);
+  });
+
+  testWidgets('AdherenceScreen renders no per-medication section with no medications (I4)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const AdherenceScreen(),
+      overrides: <Override>[
+        adherenceControllerProvider.overrideWith(
+          () => _FakeAdherenceController(
+            const AdherenceState(
+              overall7: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 7),
+              overall30: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 30),
+              perMedication7: <String, Adherence>{},
+              perMedication30: <String, Adherence>{},
+            ),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('meds.adherence.perMedication'.tr()), findsNothing);
+  });
+
   testWidgets('ReminderSettingsScreen lists each medication\'s times', (tester) async {
     final Medication med = Medication(
       clientRecordId: 'm1', serverId: null, name: 'Aspirin', doseMg: 75,
