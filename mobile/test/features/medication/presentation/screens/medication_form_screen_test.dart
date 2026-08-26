@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/core/db/app_database.dart' hide Medication;
 import 'package:libu_care/core/error/failure.dart';
+import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
@@ -322,4 +323,52 @@ void main() {
     expect(listController.deactivatedId, isNull);
     expect(tester.takeException(), isNull);
   });
+
+  // Kept last in the file on purpose: `pumpApp(language:)` switches
+  // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
+  // the tests above read.
+  testWidgets(
+    'renders the whole form in real Amharic on a phone-sized screen (I9)',
+    (tester) async {
+      // Bilingual UI is a hard project constraint (CLAUDE.md) and Amharic copy
+      // runs longer than English, so the form — the slice's most label-dense
+      // screen, with two field labels, four frequency chips and TimeListField
+      // all competing for width — is where longer strings would show first.
+      // 360x740 is a common low-end Android size.
+      tester.view.physicalSize = const Size(360, 740);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpApp(
+        tester,
+        const MedicationFormScreen(),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(
+              const MedicationFormState(
+                frequency: MedicationFrequency.tid,
+                scheduleTimes: <String>['08:00', '14:00', '20:00'],
+              ),
+            ),
+          ),
+        ],
+        language: AppLanguage.am,
+      );
+
+      // Real Amharic from assets/translations/am.json — not the English
+      // fallback, and not the raw key.
+      final String nameLabel = 'meds.form.name'.tr();
+      final String tid = 'meds.frequency.tid'.tr();
+      expect(nameLabel, isNot('Name'));
+      expect(nameLabel, isNot('meds.form.name'));
+      expect(tid, isNot('Three times daily'));
+
+      expect(find.text('meds.form.title'.tr()), findsOneWidget);
+      expect(find.text(nameLabel), findsOneWidget);
+      expect(find.text(tid), findsOneWidget);
+      expect(find.text('common.save'.tr()), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
