@@ -18,7 +18,8 @@
     "today": "ዛሬ",
     "yesterday": "ትናንት",
     "loading": "በመጫን ላይ",
-    "noValue": "—"
+    "noValue": "—",
+    "enterManually": "በእጅ ያስገቡ"
   },
 
   "nav": {
@@ -204,6 +205,15 @@
       "doseBody": "{name} የመውሰጃ ጊዜዎ ነው። ለመመዝገብ ይንኩ።",
       "followUpTitle": "መጠን ገና አልመዘገቡም?",
       "followUpBody": "{name} ገና አልመዘገቡትም — ለመመዝገብ ይንኩ።"
+    },
+    "search": {
+      "title": "መድሃኒት ጨምር",
+      "subtitle": "ይፈልጉ ወይም በእጅ ያስገቡ",
+      "hint": "መድሃኒቶችን ይፈልጉ",
+      "suggestions": "ጥቆማዎች",
+      "mostCommon": "በጣም የተለመደ",
+      "libraryHint": "ጥቆማዎቹ ከመስመር ውጭ የመድሃኒት ዝርዝር የተገኙ ናቸው",
+      "cantFind": "መድሃኒትዎን ማግኘት አልቻሉም?"
     }
   },
 
