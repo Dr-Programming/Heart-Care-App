@@ -161,7 +161,9 @@
       "name": "ስም",
       "nameHint": "ለምሳሌ Atorvastatin",
       "doseMg": "መጠን (mg)",
-      "scheduleTimes": "ሰዓቶች"
+      "scheduleTimes": "ሰዓቶች",
+      "notifyCaregiver": "ካልተወሰደ አሳዳጊን አሳውቅ",
+      "caregiverPhone": "የአሳዳጊ ስልክ ቁጥር"
     },
     "frequency": {
       "onceDaily": "በቀን አንድ ጊዜ",

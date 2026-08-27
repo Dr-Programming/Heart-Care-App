@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/core/db/app_database.dart' hide Medication;
-import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
@@ -13,6 +13,7 @@ import 'package:libu_care/features/medication/notifications/medication_notificat
 import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
+import 'package:libu_care/features/medication/presentation/screens/review_medication_screen.dart';
 
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_database.dart';
@@ -38,10 +39,12 @@ class _FakeFormController extends MedicationFormController {
 
 /// The form pushed onto a real (miniature) `GoRouter` stack.
 ///
-/// `MedicationFormScreen` closes itself with `context.pop()` — on save and on
-/// deactivate — which needs a GoRouter above it and something underneath to
-/// pop back to. Two nested routes give it both, and let a test assert that the
-/// screen actually closed rather than only that the controller was called.
+/// `MedicationFormScreen` closes itself with `context.pop()` on deactivate
+/// (the only remaining direct pop it does — Save now pushes
+/// `ReviewMedicationScreen` instead of closing this screen itself), which
+/// needs a GoRouter above it and something underneath to pop back to. Two
+/// nested routes give it both, and let a test assert that the screen
+/// actually closed rather than only that the controller was called.
 Widget _routedForm({String? editingId}) {
   return MaterialApp.router(
     routerConfig: GoRouter(
@@ -139,107 +142,76 @@ void main() {
     },
   );
 
-  /// Fills the add form with a valid medication and presses Save.
+  /// Fills the add form with a valid medication.
   ///
   /// Tapping the "once daily" chip is what populates `scheduleTimes` (via
-  /// `setFrequency`'s suggested defaults), so the form passes validation and
-  /// the save actually reaches the repository — which is the point of the
-  /// tests below.
-  Future<void> fillAndSave(WidgetTester tester) async {
+  /// `setFrequency`'s suggested defaults), so the form passes validation.
+  Future<void> fillValidForm(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
     await tester.enterText(find.byType(TextField).at(1), '20');
     await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
     await tester.pump();
-    await tester.tap(find.text('common.save'.tr()));
-    await tester.pumpAndSettle();
   }
 
-  testWidgets('a failed save tells the user, in the failure\'s own words (I7)', (
-    tester,
-  ) async {
-    // Before the fix, `AppButton.onPressed` was handed `controller.save`
-    // directly — a `VoidCallback` swallowing a `Future<bool>` that rethrows on
-    // failure. The rethrow became an unhandled async error: nothing shown to
-    // the user, and `tester.takeException()` picking it up here.
-    await pumpApp(
-      tester,
-      const MedicationFormScreen(),
-      overrides: <Override>[
-        medicationRepositoryProvider.overrideWithValue(
-          FakeMedicationRepository(
-            writeError: const NetworkFailure('No connection right now'),
-          ),
-        ),
-      ],
-    );
-
-    await fillAndSave(tester);
-
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.text('No connection right now'), findsOneWidget);
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: 'the save failure must be handled, not left unhandled',
-    );
-  });
-
   testWidgets(
-    'a non-Failure save error falls back to the generic message (I7)',
+    'a valid form pushes ReviewMedicationScreen when Save is tapped, '
+    'without saving immediately',
     (tester) async {
-      // A raw `StateError.toString()` is an internal detail, not copy for a
-      // patient — the screen substitutes the translated generic message.
+      // Before the M3 Figma rework, tapping Save called `controller.save()`
+      // directly. Now it only validates and navigates — the actual save (and
+      // its I7 error handling) belongs to `ReviewMedicationScreen`, already
+      // covered by review_medication_screen_test.dart.
+      final FakeMedicationRepository repository = FakeMedicationRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+
       await pumpApp(
         tester,
         const MedicationFormScreen(),
         overrides: <Override>[
-          medicationRepositoryProvider.overrideWithValue(
-            FakeMedicationRepository(
-              writeError: StateError('simulated local write failure'),
-            ),
+          medicationRepositoryProvider.overrideWithValue(repository),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
           ),
         ],
       );
 
-      await fillAndSave(tester);
+      await fillValidForm(tester);
+      await tester.tap(find.text('common.save'.tr()));
+      await tester.pumpAndSettle();
 
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('errors.generic'.tr()), findsOneWidget);
-      expect(find.textContaining('simulated local write failure'), findsNothing);
+      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+      // `skipOffstage: false`: `MedicationFormScreen` is still mounted
+      // underneath `ReviewMedicationScreen` (it wasn't popped, only covered)
+      // — but the default finder skips exactly that offstage/covered route,
+      // so the default `find.byType` would report 0 matches here even though
+      // the widget genuinely never left the tree.
+      expect(
+        find.byType(MedicationFormScreen, skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        repository.medications,
+        isEmpty,
+        reason: 'Save must not persist anything until Review confirms',
+      );
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('a save that succeeds shows no error and closes the form (I7)', (
-    tester,
-  ) async {
-    // The counterpart to the two failure cases: the new error handling must
-    // not fire on the happy path. Pumped on the miniature router because a
-    // successful save pops the screen, and the notification scheduler is
-    // faked because the real one reaches for a platform plugin that does not
-    // exist under `flutter test`.
-    final AppDatabase db = testDatabase();
-    addTearDown(db.close);
+  testWidgets(
+    'an invalid form (never touched) shows validation errors instead of '
+    'opening the review screen',
+    (tester) async {
+      await pumpApp(tester, const MedicationFormScreen());
 
-    await pumpApp(
-      tester,
-      _routedForm(),
-      overrides: <Override>[
-        medicationRepositoryProvider.overrideWithValue(
-          FakeMedicationRepository(),
-        ),
-        medicationNotificationsProvider.overrideWithValue(
-          MedicationNotifications(RecordingScheduler(), db.preferencesDao),
-        ),
-      ],
-    );
+      await tester.tap(find.text('common.save'.tr()));
+      await tester.pumpAndSettle();
 
-    await fillAndSave(tester);
-
-    expect(find.byType(SnackBar), findsNothing);
-    expect(find.text('behind the form'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('meds.errors.nameRequired'.tr()), findsOneWidget);
+      expect(find.byType(ReviewMedicationScreen), findsNothing);
+    },
+  );
 
   testWidgets('offers no deactivate action in add mode (C3)', (tester) async {
     await pumpApp(
@@ -260,6 +232,8 @@ void main() {
     'medication (C3)',
     (tester) async {
       final _SpyListController listController = _SpyListController();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
 
       await pumpApp(
         tester,
@@ -274,9 +248,18 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           medicationListControllerProvider.overrideWith(() => listController),
+          // Edit mode now also loads caregiver-notify settings for 'm1'
+          // alongside the medication itself, so this needs a real (in-memory)
+          // store rather than hitting the real on-device `appDatabaseProvider`.
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
         ],
       );
 
+      // The caregiver toggle above it pushes it further down the scrollable
+      // form than the default 800x600 test surface shows without scrolling.
+      await tester.ensureVisible(find.text('meds.deactivate'.tr()));
       await tester.tap(find.text('meds.deactivate'.tr()));
       await tester.pumpAndSettle();
 
@@ -298,6 +281,8 @@ void main() {
     tester,
   ) async {
     final _SpyListController listController = _SpyListController();
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
 
     await pumpApp(
       tester,
@@ -312,9 +297,13 @@ void main() {
           () => _FakeFormController(const MedicationFormState()),
         ),
         medicationListControllerProvider.overrideWith(() => listController),
+        caregiverNotifyStoreProvider.overrideWithValue(
+          CaregiverNotifyStore(db.preferencesDao),
+        ),
       ],
     );
 
+    await tester.ensureVisible(find.text('meds.deactivate'.tr()));
     await tester.tap(find.text('meds.deactivate'.tr()));
     await tester.pumpAndSettle();
     await tester.tap(find.text('common.cancel'.tr()));
@@ -323,6 +312,79 @@ void main() {
     expect(listController.deactivatedId, isNull);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'edit mode loads previously saved caregiver-notify settings alongside '
+    'the medication',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+      await store.set(
+        'm1',
+        const CaregiverNotifySettings(enabled: true, phone: '+251911234567'),
+      );
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(store),
+        ],
+      );
+
+      final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
+      expect(toggle.value, isTrue);
+      expect(find.text('+251911234567'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'toggling caregiver notify and typing a phone in edit mode persists '
+    'via CaregiverNotifyStore',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(store),
+        ],
+      );
+
+      expect((await store.get('m1')).enabled, isFalse);
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      // The phone field only renders once the toggle is on — name (0) and
+      // dose (1) are the other two `TextField`s on this form.
+      await tester.enterText(find.byType(TextField).at(2), '+251900000000');
+      await tester.pumpAndSettle();
+
+      final CaregiverNotifySettings saved = await store.get('m1');
+      expect(saved.enabled, isTrue);
+      expect(saved.phone, '+251900000000');
+    },
+  );
 
   // Kept last in the file on purpose: `pumpApp(language:)` switches
   // easy_localization's singleton locale, which the bare `'key'.tr()` calls in

@@ -1,6 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:libu_care/core/db/app_database.dart' hide Medication, DoseLog;
 import 'package:libu_care/core/localization/language.dart';
 import 'package:flutter/material.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
@@ -8,11 +10,17 @@ import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
+import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
+import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
+import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
+import 'package:libu_care/features/medication/presentation/screens/medication_search_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/medications_screen.dart';
+import 'package:libu_care/features/medication/presentation/screens/review_medication_screen.dart';
 import 'package:libu_care/features/medication/presentation/widgets/missed_run_alert.dart';
 
 import '../../../../helpers/pump_app.dart';
+import '../../../../helpers/test_database.dart';
 import '../../helpers/fake_medication_repository.dart';
 
 class _FakeMedicationListController extends MedicationListController {
@@ -178,6 +186,195 @@ void main() {
       expect(repository.history.single.medicationClientRecordId, 'm1');
       expect(repository.history.single.scheduledDate, '2026-08-25');
       expect(repository.history.single.scheduledTime, '08:00');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('tapping "+" opens the search screen', (tester) async {
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+          ),
+        ),
+      ],
+    );
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MedicationSearchScreen), findsOneWidget);
+  });
+
+  testWidgets(
+    'picking a search suggestion opens the form pre-filled from that entry',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+        ],
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'Metoprolol');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Metoprolol 50 mg'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MedicationFormScreen), findsOneWidget);
+      // The name/dose fields render without a `TextEditingController` (a
+      // pre-existing quirk of this form, unchanged by this task — see
+      // medication_form_screen.dart), so the prefill is verified against the
+      // actual form state rather than rendered text.
+      final MedicationFormState state = ProviderScope.containerOf(
+        tester.element(find.byType(MedicationFormScreen)),
+      ).read(medicationFormControllerProvider);
+      expect(state.name, 'Metoprolol');
+      expect(state.doseMg, '50');
+    },
+  );
+
+  testWidgets('tapping Enter manually opens a blank form', (tester) async {
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+          ),
+        ),
+      ],
+    );
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('common.enterManually'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MedicationFormScreen), findsOneWidget);
+    final MedicationFormState state = ProviderScope.containerOf(
+      tester.element(find.byType(MedicationFormScreen)),
+    ).read(medicationFormControllerProvider);
+    expect(state.name, isEmpty);
+    expect(state.doseMg, isEmpty);
+  });
+
+  testWidgets('pressing back on the search screen returns to MedicationsScreen with no further navigation', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+          ),
+        ),
+      ],
+    );
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(MedicationSearchScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MedicationsScreen), findsOneWidget);
+    expect(find.byType(MedicationSearchScreen), findsNothing);
+    expect(find.byType(MedicationFormScreen), findsNothing);
+  });
+
+  testWidgets(
+    'the full add flow (FAB -> search -> form -> review -> save) lands '
+    'back on MedicationsScreen, not deeper or shallower',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final FakeMedicationRepository repository = FakeMedicationRepository();
+
+      // `MedicationsScreen` is pushed on top of a distinct app-root screen
+      // rather than being the Navigator's own first route — the real app's
+      // shape (medications sits under a bottom-tab shell, not at the
+      // Navigator's root — see review_medication_screen.dart's doc comment).
+      // This is what makes the test able to actually catch the popUntil bug:
+      // the old `popUntil((route) => route.isFirst)` would pop straight past
+      // MedicationsScreen to "app root" below, which is exactly what the
+      // final assertions rule out.
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (BuildContext context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(builder: (_) => const MedicationsScreen()),
+                ),
+                child: const Text('app root'),
+              ),
+            ),
+          ),
+        ),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+          medicationRepositoryProvider.overrideWithValue(repository),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('app root'));
+      await tester.pumpAndSettle();
+      expect(find.byType(MedicationsScreen), findsOneWidget);
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.byType(MedicationSearchScreen), findsOneWidget);
+
+      await tester.tap(find.text('common.enterManually'.tr()));
+      await tester.pumpAndSettle();
+      expect(find.byType(MedicationFormScreen), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
+      await tester.enterText(find.byType(TextField).at(1), '20');
+      await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
+      await tester.pump();
+      await tester.tap(find.text('common.save'.tr()));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+
+      await tester.tap(find.text('meds.review.save'.tr()));
+      await tester.pumpAndSettle();
+
+      // Exactly two pops (Review, then Form) — landed on MedicationsScreen,
+      // not popped past it to "app root" (the old `popUntil(isFirst)` bug)
+      // and not still short of it either.
+      expect(find.byType(MedicationsScreen), findsOneWidget);
+      expect(find.text('app root'), findsNothing);
+      expect(find.byType(ReviewMedicationScreen), findsNothing);
+      expect(find.byType(MedicationFormScreen), findsNothing);
+      expect(find.byType(MedicationSearchScreen), findsNothing);
+      expect(repository.medications, hasLength(1));
+      expect(repository.medications.single.name, 'Atorvastatin');
       expect(tester.takeException(), isNull);
     },
   );

@@ -115,12 +115,25 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   void setScheduleTimes(List<String> times) =>
       state = state.copyWith(scheduleTimes: times, scheduleError: validateScheduleTimes(times));
 
-  Future<bool> save() async {
+  /// Re-validates every field against the current state, updating `state`'s
+  /// three error fields either way, and returns whether all of them passed.
+  ///
+  /// Split out of [save] so `MedicationFormScreen`'s Save button can run the
+  /// same up-to-date check before pushing `ReviewMedicationScreen` (M3 Figma
+  /// rework) without duplicating the validator calls: a field the user never
+  /// touched never ran its `onChanged` validator, so it must still be
+  /// re-checked at submit time — exactly what `save()` always did before this
+  /// method existed, and still does, via this shared call.
+  bool validate() {
     final String? nameError = validateMedicationName(state.name);
     final String? doseError = validateDoseMg(state.doseMg);
     final String? scheduleError = validateScheduleTimes(state.scheduleTimes);
     state = state.copyWith(nameError: nameError, doseError: doseError, scheduleError: scheduleError);
-    if (nameError != null || doseError != null || scheduleError != null) return false;
+    return nameError == null && doseError == null && scheduleError == null;
+  }
+
+  Future<bool> save() async {
+    if (!validate()) return false;
 
     state = state.copyWith(isSaving: true);
     try {

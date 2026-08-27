@@ -25,7 +25,29 @@ class ReviewMedicationScreen extends ConsumerWidget {
       MedicationFormState next,
     ) {
       if (next.saved && (previous == null || !previous.saved) && context.mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        // `popUntil((route) => route.isFirst)` (this screen's original
+        // navigation, before it was wired into the real add/edit flow) would
+        // pop all the way to the app's root route — wrong once real
+        // navigation landed `MedicationsScreen` (push MedicationSearchScreen
+        // or the `medicationEdit` GoRoute) -> `MedicationFormScreen` (push)
+        // -> this screen, all on the same per-tab Navigator
+        // (`StatefulShellRoute.indexedStack` gives the medications tab its
+        // own Navigator, and `medicationEdit`/`medicationNew` are GoRoutes
+        // *inside* that tab, not on the root navigator). Two pops — this
+        // screen, then the form underneath it — lands exactly back on
+        // `MedicationsScreen`, matching the real push depth in both the add
+        // flow (search -> form -> review) and the edit flow (GoRouter's
+        // medicationEdit -> review).
+        // Guarded with `canPop()` rather than two unconditional pops: this
+        // screen is also pumped directly as the *only* route in
+        // review_medication_screen_test.dart's pre-existing tests (no form,
+        // no medications list underneath it), where an unconditional second
+        // pop would try to pop a Navigator past its last route. `canPop()`
+        // makes each pop a no-op once there is nowhere left to go, so this is
+        // "pop up to two levels" rather than "pop exactly two, always".
+        final NavigatorState navigator = Navigator.of(context);
+        if (navigator.canPop()) navigator.pop();
+        if (navigator.canPop()) navigator.pop();
       }
     });
 

@@ -6,16 +6,38 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/medication_library.dart';
 
+/// What [MedicationSearchScreen] pops itself with.
+///
+/// The screen is reached via a plain [Navigator] push, and a caller needs to
+/// tell apart three distinct outcomes: a suggestion was tapped (`entry` is
+/// that suggestion), "Enter manually" was tapped (`entry` is null, but the
+/// user explicitly chose to proceed with a blank form), or the system back
+/// button/gesture was used (nothing was chosen at all). The first two both
+/// mean "proceed" and are represented by this class; the third is
+/// represented by the pushed route resolving to `null` instead of an
+/// instance of this class — Flutter's default back button calls
+/// `Navigator.maybePop`, which pops with no result, so a caller's
+/// `await Navigator.push<MedicationSearchOutcome>(...)` sees a bare `null`
+/// exactly on back, never on "Enter manually" (which pops
+/// `const MedicationSearchOutcome(null)`, a non-null instance whose `entry`
+/// happens to be null). Without this wrapper both cases collide on the same
+/// `null` value and a caller cannot distinguish "do nothing" from "open a
+/// blank form".
+class MedicationSearchOutcome {
+  const MedicationSearchOutcome(this.entry);
+
+  /// The tapped suggestion, or null if "Enter manually" was chosen instead.
+  final MedicationLibraryEntry? entry;
+}
+
 /// The Figma "Add medication" search screen (frame 368:2790) — a new screen
 /// per Decision E of docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md,
-/// reached via a plain [Navigator] push, not a named route. Calls
-/// [onSelected] with the tapped [MedicationLibraryEntry], or `null` if
-/// "Enter manually" was chosen; the caller (MedicationsScreen) is
-/// responsible for pushing MedicationFormScreen next with that result.
+/// reached via a plain [Navigator] push, not a named route. Pops itself with
+/// a [MedicationSearchOutcome] (see its doc comment for why); the caller
+/// (MedicationsScreen) is responsible for pushing MedicationFormScreen next
+/// with that result.
 class MedicationSearchScreen extends StatefulWidget {
-  const MedicationSearchScreen({required this.onSelected, super.key});
-
-  final void Function(MedicationLibraryEntry?) onSelected;
+  const MedicationSearchScreen({super.key});
 
   @override
   State<MedicationSearchScreen> createState() =>
@@ -87,7 +109,8 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: _SuggestionCard(
                   entry: entry,
-                  onTap: () => widget.onSelected(entry),
+                  onTap: () =>
+                      Navigator.of(context).pop(MedicationSearchOutcome(entry)),
                 ),
               ),
             const SizedBox(height: AppSpacing.md),
@@ -107,7 +130,8 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             // the bordered/outlined style (see its doc comment in
             // app_button.dart), which matches Figma's outlined button here.
             variant: AppButtonVariant.secondary,
-            onPressed: () => widget.onSelected(null),
+            onPressed: () =>
+                Navigator.of(context).pop(const MedicationSearchOutcome(null)),
           ),
         ],
       ),

@@ -14,6 +14,35 @@ import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
 import '../widgets/medication_card.dart';
 import '../widgets/missed_run_alert.dart';
+import 'medication_form_screen.dart';
+import 'medication_search_screen.dart';
+
+/// The "+" action's flow (M3 Figma rework, Decision E): search first, then
+/// the form — reached via plain [Navigator] pushes, not named routes, so
+/// `AppRoutes.medicationNew` is left in place for the "add" action on
+/// [EmptyState] below and is not touched by this change.
+///
+/// `outcome == null` means [MedicationSearchScreen] was backed out of
+/// without a choice (see `MedicationSearchOutcome`'s doc comment for why
+/// that is unambiguous) — nothing further happens, and the user is back on
+/// this screen. Any non-null `outcome` means proceed to the form, pre-filled
+/// from `outcome.entry` when a suggestion was tapped, or blank when "Enter
+/// manually" was chosen instead.
+Future<void> _startAddMedicationFlow(BuildContext context) async {
+  final MedicationSearchOutcome? outcome = await Navigator.of(
+    context,
+  ).push<MedicationSearchOutcome>(
+    MaterialPageRoute<MedicationSearchOutcome>(
+      builder: (_) => const MedicationSearchScreen(),
+    ),
+  );
+  if (outcome == null || !context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => MedicationFormScreen(prefillEntry: outcome.entry),
+    ),
+  );
+}
 
 class MedicationsScreen extends ConsumerWidget {
   const MedicationsScreen({super.key});
@@ -38,7 +67,7 @@ class MedicationsScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed(AppRoutes.medicationNew),
+        onPressed: () => _startAddMedicationFlow(context),
         icon: const Icon(Iconsax.add),
         label: Text('meds.add'.tr()),
       ),
