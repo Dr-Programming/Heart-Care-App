@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,11 +8,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../data/caregiver_notify_store.dart';
 import '../../domain/entities/medication.dart';
+import '../../domain/medication_library.dart';
 import '../../medication_providers.dart';
 import '../controllers/medication_form_controller.dart';
 import '../controllers/medication_list_controller.dart';
 import '../widgets/time_list_field.dart';
+import 'review_medication_screen.dart';
 
 // `FutureProvider.autoDispose.family<StateT, ArgT>(...)` returns
 // `FutureProviderFamily<StateT, ArgT>` in riverpod 3.4.2, but that type is
@@ -29,9 +34,15 @@ final _medicationByIdProvider =
 });
 
 class MedicationFormScreen extends ConsumerStatefulWidget {
-  const MedicationFormScreen({this.editingId, super.key});
+  const MedicationFormScreen({this.editingId, this.prefillEntry, super.key});
 
   final String? editingId;
+
+  /// A library entry picked on `MedicationSearchScreen` (M3 Figma rework) —
+  /// pre-fills name and dose in add mode. Ignored when [editingId] is set;
+  /// editing an existing medication always loads that medication's own
+  /// values instead.
+  final MedicationLibraryEntry? prefillEntry;
 
   @override
   ConsumerState<MedicationFormScreen> createState() => _MedicationFormScreenState();
@@ -39,6 +50,19 @@ class MedicationFormScreen extends ConsumerStatefulWidget {
 
 class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   bool _loaded = false;
+
+  /// Caregiver-notify state (M3 Figma rework, Decision B). Local `State`
+  /// rather than part of `MedicationFormState`: `CaregiverNotifyStore` is
+  /// storage `MedicationFormController` doesn't own (see its own doc
+  /// comment), so this screen reads/writes it directly instead of routing it
+  /// through the controller.
+  bool _caregiverEnabled = false;
+
+  /// A real `TextEditingController` (unlike the name/dose fields below it,
+  /// which this task leaves exactly as it found them) because this field is
+  /// new in this task: a phone number loaded from storage that never renders
+  /// once typed would be a fresh bug, not a preserved quirk.
+  final TextEditingController _caregiverPhoneController = TextEditingController();
 
   @override
   void initState() {
@@ -59,7 +83,55 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       medicationFormControllerProvider,
       (MedicationFormState? _, MedicationFormState _) {},
     );
+
+    final MedicationLibraryEntry? entry = widget.prefillEntry;
+    if (widget.editingId == null && entry != null) {
+      // Deferred to a post-frame callback rather than called straight from
+      // `initState`: Riverpod forbids modifying a provider's state during the
+      // widget tree's build phase (`initState` counts), asserting exactly
+      // that if this runs synchronously here.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final MedicationFormController controller =
+            ref.read(medicationFormControllerProvider.notifier);
+        controller.setName(entry.name);
+        controller.setDoseMg(_formatDose(entry.doseMg));
+      });
+    }
   }
+
+  @override
+  void dispose() {
+    _caregiverPhoneController.dispose();
+    super.dispose();
+  }
+
+  /// Writes the caregiver toggle + phone to storage. A no-op in add mode:
+  /// there is no `clientRecordId` to key it by until the medication is
+  /// actually saved (which happens later, from `ReviewMedicationScreen`, and
+  /// generates that id inside `MedicationRepository.add` with no way back to
+  /// here) — a known, narrow limitation of this local-only feature, not a
+  /// bug in the edit-mode path this actually supports.
+  void _persistCaregiverSettings() {
+    final String? id = widget.editingId;
+    if (id == null) return;
+    unawaited(
+      ref.read(caregiverNotifyStoreProvider).set(
+        id,
+        CaregiverNotifySettings(
+          enabled: _caregiverEnabled,
+          phone: _caregiverPhoneController.text,
+        ),
+      ),
+    );
+  }
+
+  void _setCaregiverEnabled(bool value) {
+    setState(() => _caregiverEnabled = value);
+    _persistCaregiverSettings();
+  }
+
+  void _onCaregiverPhoneChanged(String _) => _persistCaregiverSettings();
 
   @override
   Widget build(BuildContext context) {
@@ -71,26 +143,60 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         error: (Object e, StackTrace _) =>
             AppScaffold(body: ErrorView(failure: UnknownFailure(e.toString()))),
         data: (Medication? found) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (found != null) {
               ref.read(medicationFormControllerProvider.notifier).loadForEdit(found);
             }
-            if (mounted) setState(() => _loaded = true);
+            // Loaded alongside the medication itself, same as `loadForEdit`
+            // above — the caregiver settings and the medication both belong
+            // to `widget.editingId` and both need to be in place before
+            // `_FormBody` first mounts.
+            final CaregiverNotifySettings settings =
+                await ref.read(caregiverNotifyStoreProvider).get(widget.editingId!);
+            if (mounted) {
+              setState(() {
+                _caregiverEnabled = settings.enabled;
+                _caregiverPhoneController.text = settings.phone;
+                _loaded = true;
+              });
+            }
           });
           return const AppScaffold(body: Center(child: CircularProgressIndicator()));
         },
       );
     }
-    return _FormBody(editingId: widget.editingId);
+    return _FormBody(
+      editingId: widget.editingId,
+      caregiverEnabled: _caregiverEnabled,
+      caregiverPhoneController: _caregiverPhoneController,
+      onCaregiverEnabledChanged: _setCaregiverEnabled,
+      onCaregiverPhoneChanged: _onCaregiverPhoneChanged,
+    );
   }
 }
 
+/// Matches `_SuggestionCard`'s own dose formatting on `MedicationSearchScreen`
+/// — a whole-number dose (e.g. `50.0`) prefills as `50`, not `50.0`.
+String _formatDose(double doseMg) =>
+    doseMg == doseMg.roundToDouble() ? doseMg.toStringAsFixed(0) : doseMg.toString();
+
 class _FormBody extends ConsumerWidget {
-  const _FormBody({required this.editingId});
+  const _FormBody({
+    required this.editingId,
+    required this.caregiverEnabled,
+    required this.caregiverPhoneController,
+    required this.onCaregiverEnabledChanged,
+    required this.onCaregiverPhoneChanged,
+  });
 
   /// Null in add mode. Drives the deactivate action, which only makes sense
   /// for a medication that already exists (spec §3).
   final String? editingId;
+
+  final bool caregiverEnabled;
+  final TextEditingController caregiverPhoneController;
+  final ValueChanged<bool> onCaregiverEnabledChanged;
+  final ValueChanged<String> onCaregiverPhoneChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -98,14 +204,12 @@ class _FormBody extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    ref.listen<MedicationFormState>(medicationFormControllerProvider, (
-      MedicationFormState? previous,
-      MedicationFormState next,
-    ) {
-      if (next.saved && (previous == null || !previous.saved) && context.mounted) {
-        context.pop();
-      }
-    });
+    // No `ref.listen(...saved...)` here (unlike before the M3 Figma rework):
+    // this screen's Save button no longer calls `controller.save()` directly
+    // — it pushes `ReviewMedicationScreen`, which owns the actual save() call
+    // and its own pop-on-saved listener. Keeping a second listener here would
+    // fire it too, on the very same `saved` transition, popping this screen
+    // out from underneath Review's own (correct) pop.
 
     return AppScaffold(
       title: 'meds.form.title'.tr(),
@@ -144,11 +248,27 @@ class _FormBody extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
           ],
+          const SizedBox(height: AppSpacing.lg),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('meds.form.notifyCaregiver'.tr()),
+            value: caregiverEnabled,
+            onChanged: onCaregiverEnabledChanged,
+          ),
+          if (caregiverEnabled) ...<Widget>[
+            const SizedBox(height: AppSpacing.sm),
+            AppTextField(
+              label: 'meds.form.caregiverPhone'.tr(),
+              controller: caregiverPhoneController,
+              keyboardType: TextInputType.phone,
+              onChanged: onCaregiverPhoneChanged,
+            ),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           AppButton(
             label: 'common.save'.tr(),
             isLoading: state.isSaving,
-            onPressed: () => _save(context, controller),
+            onPressed: () => _reviewIfValid(context, controller),
           ),
           if (editingId != null) ...<Widget>[
             const SizedBox(height: AppSpacing.md),
@@ -163,37 +283,16 @@ class _FormBody extends ConsumerWidget {
     );
   }
 
-  /// Saves, and tells the user when saving did not work (I7).
-  ///
-  /// `AppButton.onPressed` is a `VoidCallback`, so handing it
-  /// `controller.save` directly dropped the returned `Future` on the floor:
-  /// `save()` rethrows on failure by design, and with nothing awaiting it the
-  /// error became an unhandled async error — no message, no dialog, and a form
-  /// that simply sat there looking like nothing had happened. Awaiting inside
-  /// an async closure gives the failure somewhere to go.
-  ///
-  /// A `SnackBar` rather than `ErrorView`: the form itself is fine and still
-  /// holds everything the user typed, so replacing it with a full-screen error
-  /// would throw away their work. This is a transient "that didn't send"
-  /// message over an otherwise intact screen.
-  Future<void> _save(BuildContext context, MedicationFormController controller) async {
-    try {
-      await controller.save();
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              // A `Failure` already carries copy written for a user; anything
-              // else is an internal error whose `toString()` is not something
-              // to put in front of a patient.
-              error is Failure ? error.message : 'errors.generic'.tr(),
-            ),
-          ),
-        );
-    }
+  /// Re-validates (via `controller.validate()`, the same check `save()`
+  /// itself runs — see that method's doc comment) and, only if everything
+  /// passes, pushes `ReviewMedicationScreen` rather than saving immediately.
+  /// The actual persistence — and its I7 error handling — now lives on that
+  /// screen, reached from here purely as a navigation decision.
+  void _reviewIfValid(BuildContext context, MedicationFormController controller) {
+    if (!controller.validate()) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const ReviewMedicationScreen()),
+    );
   }
 
   /// Deactivating is a soft stop, never a delete (Decision 1) — the confirm

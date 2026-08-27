@@ -161,7 +161,9 @@
       "name": "Name",
       "nameHint": "e.g. Atorvastatin",
       "doseMg": "Dose (mg)",
-      "scheduleTimes": "Times"
+      "scheduleTimes": "Times",
+      "notifyCaregiver": "Notify caregiver if missed",
+      "caregiverPhone": "Caregiver phone number"
     },
     "frequency": {
       "onceDaily": "Once daily",
