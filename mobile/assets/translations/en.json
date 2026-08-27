@@ -214,6 +214,14 @@
       "mostCommon": "most common",
       "libraryHint": "Suggestions from offline medication library",
       "cantFind": "Can't find your medication?"
+    },
+    "review": {
+      "title": "Review medication",
+      "subtitle": "Confirm before saving",
+      "frequency": "Frequency",
+      "offlineNote": "Notifications work offline",
+      "save": "Save medication",
+      "edit": "Edit details"
     }
   },
 
