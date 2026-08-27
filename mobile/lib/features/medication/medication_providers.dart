@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/core_providers.dart';
+import 'data/caregiver_notify_store.dart';
 import 'data/datasources/medication_local_datasource.dart';
 import 'data/datasources/medication_remote_datasource.dart';
 import 'data/repositories/medication_repository_impl.dart';
@@ -46,6 +47,11 @@ final Provider<MedicationNotifications> medicationNotificationsProvider =
         ref.watch(notificationSchedulerProvider),
         ref.watch(appDatabaseProvider).preferencesDao,
       ),
+    );
+
+final Provider<CaregiverNotifyStore> caregiverNotifyStoreProvider =
+    Provider<CaregiverNotifyStore>(
+      (Ref ref) => CaregiverNotifyStore(ref.watch(appDatabaseProvider).preferencesDao),
     );
 
 final Provider<MedicationReminderBootstrap> medicationReminderBootstrapProvider =
