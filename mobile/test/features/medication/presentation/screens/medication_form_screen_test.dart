@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -102,12 +103,36 @@ void main() {
     // pushes Save below the fold on the default 800x600 test surface — the
     // same reason the deactivate-button tests below already `ensureVisible`
     // before tapping.
-    await tester.ensureVisible(find.text('common.save'.tr()));
-    await tester.tap(find.text('common.save'.tr()));
+    await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+    await tester.tap(find.text('meds.form.reviewButton'.tr()));
     await tester.pump();
 
     expect(find.text('meds.errors.nameRequired'.tr()), findsOneWidget);
   });
+
+  // Fix 2 of the second Figma follow-up wave: the bottom button does not
+  // save — it navigates to ReviewMedicationScreen, which owns the real
+  // "Save medication" action — so it must say "Review & confirm", with a
+  // trailing arrow, rather than "Save".
+  testWidgets(
+    'the bottom button reads "Review & confirm" with a trailing arrow icon, '
+    'not "Save"',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationFormScreen(),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+        ],
+      );
+
+      expect(find.text('meds.form.reviewButton'.tr()), findsOneWidget);
+      expect(find.text('common.save'.tr()), findsNothing);
+      expect(find.byIcon(Icons.arrow_forward), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'does not overflow on a short viewport (e.g. a small device, or the '
@@ -185,8 +210,8 @@ void main() {
       await fillValidForm(tester);
       // Fix round 1's add-mode disabled phone field + note pushes Save below
       // the fold on the default test surface.
-      await tester.ensureVisible(find.text('common.save'.tr()));
-      await tester.tap(find.text('common.save'.tr()));
+      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+      await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
 
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
@@ -216,8 +241,8 @@ void main() {
 
       // Fix round 1's add-mode disabled phone field + note pushes Save below
       // the fold on the default test surface.
-      await tester.ensureVisible(find.text('common.save'.tr()));
-      await tester.tap(find.text('common.save'.tr()));
+      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+      await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
 
       expect(find.text('meds.errors.nameRequired'.tr()), findsOneWidget);
@@ -560,8 +585,8 @@ void main() {
 
       // `fakeMedication`'s defaults are already valid, so no field needs
       // editing — this only has to prove the navigation/save plumbing.
-      await tester.ensureVisible(find.text('common.save'.tr()));
-      await tester.tap(find.text('common.save'.tr()));
+      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+      await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
 
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
@@ -576,6 +601,92 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  // Fix 3 of the second Figma follow-up wave: quick-pick dose chips built
+  // from `kMedicationLibrary`, reactive to the Name field.
+  //
+  // `find.byType(ActionChip)` alone isn't specific enough: `TimeListField`
+  // (also rendered on this form) has its own permanent "Add" `ActionChip`
+  // for adding a schedule time, so a blanket ActionChip search always finds
+  // at least that one. This predicate scopes down to chips whose label looks
+  // like a dose ("25 mg", "50 mg", ...), which nothing else on this form
+  // renders.
+  Finder doseChips() => find.byWidgetPredicate(
+    (Widget w) =>
+        w is ActionChip &&
+        w.label is Text &&
+        ((w.label! as Text).data?.endsWith(' mg') ?? false),
+  );
+
+  group('dose quick-pick chips (Fix 3)', () {
+    testWidgets(
+      'typing a known medication name shows its library doses as chips, '
+      'and tapping one fills the dose field',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        // No name typed yet — nothing to suggest chips for.
+        expect(doseChips(), findsNothing);
+
+        await tester.enterText(find.byType(TextField).at(0), 'Metoprolol');
+        await tester.pump();
+
+        // kMedicationLibrary's three Metoprolol doses, ascending, deduped.
+        expect(find.widgetWithText(ActionChip, '25 mg'), findsOneWidget);
+        expect(find.widgetWithText(ActionChip, '50 mg'), findsOneWidget);
+        expect(find.widgetWithText(ActionChip, '100 mg'), findsOneWidget);
+        expect(doseChips(), findsNWidgets(3));
+
+        await tester.tap(find.widgetWithText(ActionChip, '50 mg'));
+        await tester.pump();
+
+        // The name/dose fields render without a `TextEditingController` (see
+        // the prefill test in medications_screen_test.dart for the same
+        // quirk), so the update is verified against form state rather than
+        // rendered text — and this also proves the chip reuses
+        // `controller.setDoseMg` rather than a second source of truth: the
+        // dose field's own error-clearing logic would run too.
+        final MedicationFormState state = ProviderScope.containerOf(
+          tester.element(find.byType(MedicationFormScreen)),
+        ).read(medicationFormControllerProvider);
+        expect(state.doseMg, '50');
+      },
+    );
+
+    testWidgets(
+      'typing an unrecognized medication name shows no chip row',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        await tester.enterText(
+          find.byType(TextField).at(0),
+          'Zzz Not A Real Drug',
+        );
+        await tester.pump();
+
+        expect(doseChips(), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'the free-text dose field still works standalone with no name typed '
+      '(regression)',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        expect(doseChips(), findsNothing);
+
+        await tester.enterText(find.byType(TextField).at(1), '42');
+        await tester.pump();
+
+        final MedicationFormState state = ProviderScope.containerOf(
+          tester.element(find.byType(MedicationFormScreen)),
+        ).read(medicationFormControllerProvider);
+        expect(state.doseMg, '42');
+        expect(doseChips(), findsNothing);
+      },
+    );
+  });
 
   // Kept last in the file on purpose: `pumpApp(language:)` switches
   // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
@@ -620,7 +731,7 @@ void main() {
       expect(find.text('meds.form.title'.tr()), findsOneWidget);
       expect(find.text(nameLabel), findsOneWidget);
       expect(find.text(tid), findsOneWidget);
-      expect(find.text('common.save'.tr()), findsOneWidget);
+      expect(find.text('meds.form.reviewButton'.tr()), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

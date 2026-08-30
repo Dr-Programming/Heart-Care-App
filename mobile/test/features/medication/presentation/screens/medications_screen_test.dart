@@ -7,6 +7,7 @@ import 'package:libu_care/core/localization/language.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/core/router/routes.dart';
+import 'package:libu_care/core/theme/app_colors.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
@@ -440,8 +441,8 @@ void main() {
       await tester.pump();
       // Fix round 1's add-mode disabled caregiver phone field + note pushes
       // Save below the fold on the default test surface.
-      await tester.ensureVisible(find.text('common.save'.tr()));
-      await tester.tap(find.text('common.save'.tr()));
+      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+      await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
 
@@ -499,6 +500,37 @@ void main() {
       expect(find.text('meds.alert.missedRunTitle'.tr()), findsOneWidget);
 
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  // Fix 1 of the second Figma follow-up wave: the Today/Schedule/History
+  // selected-tab fill must be AppColors.ink (Figma's convention for every
+  // selected chip/tab in this flow), not AppColors.primary — orange is
+  // reserved for primary action buttons only.
+  testWidgets(
+    "the tab bar's selected-tab fill uses AppColors.ink, not AppColors.primary",
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              MedicationListState(
+                todaysDoses: const <ScheduledDose>[],
+                medications: <Medication>[_medication('m1')],
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final TabBar tabBar = tester.widget<TabBar>(find.byType(TabBar));
+      final BoxDecoration indicator = tabBar.indicator! as BoxDecoration;
+      expect(indicator.color, AppColors.ink);
+      expect(indicator.color, isNot(AppColors.primary));
+      // Selected-tab text must stay legible against the now-dark fill.
+      expect(tabBar.labelColor, AppColors.surface);
     },
   );
 
