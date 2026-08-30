@@ -1,0 +1,137 @@
+{
+  "app": { "name": "ልቡ ኬር", "tagline": "የልብ ጤና እንክብካቤ" },
+
+  "common": {
+    "retry": "እንደገና ይሞክሩ",
+    "cancel": "ይቅር",
+    "confirm": "አረጋግጥ",
+    "save": "አስቀምጥ",
+    "delete": "ሰርዝ",
+    "edit": "አስተካክል",
+    "add": "ጨምር",
+    "back": "ተመለስ",
+    "next": "ቀጣይ",
+    "skip": "ዝለል",
+    "done": "ተጠናቋል",
+    "close": "ዝጋ",
+    "seeAll": "ሁሉንም ይመልከቱ",
+    "today": "ዛሬ",
+    "yesterday": "ትናንት",
+    "loading": "በመጫን ላይ",
+    "noValue": "—"
+  },
+
+  "nav": {
+    "home": "ዋና ገጽ",
+    "medications": "መድኃኒቶች",
+    "vitals": "የጤና መለኪያዎች",
+    "checkIn": "ዕለታዊ ምዝገባ",
+    "learn": "ትምህርት"
+  },
+
+  "sync": {
+    "offline": "ከመስመር ውጭ ነዎት። የመዘገቡት ሁሉ በዚህ ስልክ ላይ ተቀምጧል።",
+    "offlineTitle": "ከመስመር ውጭ ነዎት",
+    "offlineWithPending": "ከመስመር ውጭ — {count} መዝገቦች ለመላክ በመጠባበቅ ላይ",
+    "pending": "{count} መዝገቦች ለመላክ በመጠባበቅ ላይ",
+    "failed": "መዝገቦችዎን መላክ አልተቻለም። ደህና ናቸው፤ እንደገና ይላካሉ።",
+    "rejected": "{count} መዝገቦች በአገልጋዩ ላይ ሊቀመጡ አልቻሉም።",
+    "syncNow": "አሁን ላክ",
+    "lastSynced": "መጨረሻ የተላከው {when}"
+  },
+
+  "clinical": {
+    "severity": {
+      "none": "የተለመደ",
+      "monitor": "ይከታተሉ",
+      "urgent": "አስቸኳይ",
+      "emergency": "ድንገተኛ"
+    },
+    "action": {
+      "none": "ምንም እርምጃ አያስፈልግም። መከታተልዎን ይቀጥሉ።",
+      "monitor": "እራስዎን ይንከባከቡ። ለውጦችን ይከታተሉ።",
+      "urgent": "ዛሬ ሐኪምዎን ያነጋግሩ።",
+      "emergency": "አሁኑኑ ለድንገተኛ አደጋ ተጠሪዎ ይደውሉ።"
+    }
+  },
+
+  "home": {
+    "greeting": "ሰላም፣ {name}",
+    "greetingAnonymous": "እንኳን ደህና መጡ",
+    "subtitle": "የልብዎ ጤና ዛሬ",
+    "emptyTitle": "እስካሁን የሚታይ ነገር የለም",
+    "emptyBody": "መድኃኒቶችዎን እና የጤና መለኪያዎችዎን መመዝገብ ሲጀምሩ እዚህ ይታያሉ።",
+    "signOut": "ውጣ"
+  },
+
+  "errors": {
+    "offline": "ለመጀመሪያ ጊዜ ለመግባት ግንኙነት ያስፈልጋል",
+    "generic": "የሆነ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።",
+    "required": "ይህ መስክ ያስፈልጋል",
+    "invalidNumber": "ቁጥር ያስገቡ",
+    "outOfRange": "ከ{min} እስከ {max} ያለ ዋጋ ያስገቡ"
+  },
+
+  "auth": {
+    "language": {
+      "title": "ቋንቋዎን ይምረጡ",
+      "subtitle": "ይህንን በኋላ መቀየር ይችላሉ",
+      "continue": "ቀጥል"
+    },
+    "login": {
+      "title": "እንኳን ደህና መጡ",
+      "subtitle": "ለመቀጠል ይግቡ",
+      "phone": "የስልክ ቁጥር",
+      "phoneHint": "+251 9__ __ __",
+      "pin": "የ4 ቁጥር ፒን",
+      "pinHint": "● ● ● ●",
+      "submit": "ግባ",
+      "or": "ወይም",
+      "createAccount": "መለያ ይክፈቱ",
+      "forgotPin": "ፒን ረሱ?",
+      "worksOffline": "ከመስመር ውጭ ይሰራል"
+    },
+    "register": {
+      "title": "መለያ ይክፈቱ",
+      "subtitle": "ከአንድ ደቂቃ ያነሰ ጊዜ ይወስዳል",
+      "name": "ሙሉ ስም",
+      "nameHint": "አበበ ግርማ",
+      "confirmPin": "ፒን ያረጋግጡ",
+      "preferredLanguage": "የሚመርጡት ቋንቋ",
+      "submit": "መለያ ይክፈቱ",
+      "haveAccount": "መለያ አለዎት?",
+      "signIn": "ግባ"
+    },
+    "forgotPin": {
+      "title": "ፒንዎን ረሱ?",
+      "body": "ለደህንነትዎ ሲባል፣ ፒን በአፕሊኬሽኑ ውስጥ ገና እንደገና ማስጀመር አይቻልም።\n\nመለያዎ እንዲመለስ እባክዎ ክሊኒክዎን ያግኙ። ማንነትዎን አረጋግጠው እንዲገቡ ይረዱዎታል።\n\nየተሳሳተ ፒን አምስት ጊዜ ካስገቡ፣ መለያዎ ለ15 ደቂቃ ይቆለፋል። ምንም አይጠፋም — ትንሽ ጠብቀው እንደገና ይሞክሩ።",
+      "back": "ወደ መግቢያ ተመለስ"
+    },
+    "errors": {
+      "phoneRequired": "የስልክ ቁጥርዎን ያስገቡ",
+      "phoneFormat": "ስልክ ቁጥር +251 ተከትሎ 9 ቁጥሮች ያስገቡ",
+      "pinRequired": "የ4 ቁጥር ፒንዎን ያስገቡ",
+      "pinFormat": "ፒንዎ በትክክል 4 ቁጥሮች መሆን አለበት",
+      "pinMismatch": "ሁለቱ ፒኖች አይመሳሰሉም",
+      "nameRequired": "ስምዎን ያስገቡ",
+      "locked": "ብዙ ሙከራዎች። በ{minutes} ደቂቃ ውስጥ እንደገና ይሞክሩ።",
+      "lockedNoTime": "ብዙ ሙከራዎች። እባክዎ ጠብቀው እንደገና ይሞክሩ።",
+      "invalidCredentials": "የተሳሳተ ስልክ ቁጥር ወይም ፒን",
+      "phoneTaken": "ያ የስልክ ቁጥር አስቀድሞ ተመዝግቧል"
+    }
+  },
+
+  "profile": {
+    "title": "መገለጫ"
+  },
+
+  "meds": {},
+
+  "vitals": {},
+
+  "symptoms": {},
+
+  "activity": {},
+
+  "education": {}
+}

@@ -10,6 +10,10 @@
 # =============================================================================
 
 # Claude Code
+# Nothing AI-assistant-related is committed. CLAUDE.md is a slash-less pattern,
+# so it matches at every depth - mobile/CLAUDE.md included, deliberately.
+# Team rules that contributors genuinely need live in mobile/CONTRIBUTING.md,
+# which is an ordinary developer doc. Assistant config is shared out of band.
 .claude/
 .auto-memory/
 CLAUDE.md
@@ -26,6 +30,10 @@ AGENTS.md
 .cursorrules
 .aider*
 .github/copilot-instructions.md
+
+
+BUGS.md
+BUGS_RESOLVE.md
 
 
 # =============================================================================
@@ -90,8 +98,11 @@ GoogleService-Info.plist
 mobile/build/
 
 # Generated files
-*.g.dart               # Only if NOT checking in generated Drift/Riverpod code
-*.freezed.dart         # Remove this line if your team commits generated files
+# Trailing comments are NOT valid gitignore syntax - patterns stay bare.
+# Generated code is not committed; run:
+#   dart run build_runner build --delete-conflicting-outputs
+*.g.dart
+*.freezed.dart
 
 # Android (inside mobile/)
 mobile/android/.gradle/
