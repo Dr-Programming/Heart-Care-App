@@ -345,12 +345,13 @@ class _FormBody extends ConsumerWidget {
 /// (M3 Figma-fidelity restyle, visual-only — see [TimeListField] for the
 /// matching time-chip restyle).
 ///
-/// Selected fill (`AppColors.ink`) + white label reuses the same
-/// selected/unselected convention already used for the pill segmented
-/// control on `MedicationsScreen`'s tab bar (`_MedicationsTabBar`), rather
-/// than inventing a new selected-state colour. Only colour/spacing/shape
-/// change here — the `Wrap` this is built inside (and so its overflow
-/// safety) is untouched.
+/// Reuses the tab bar's colour-fill-plus-white-label structural pattern
+/// (`MedicationsScreen`'s `_MedicationsTabBar`: coloured background, white
+/// selected label, ink unselected label) but with `AppColors.ink` as the
+/// selected fill — per the Figma spec for this chip, not the tab bar's
+/// `AppColors.primary` fill — rather than inventing a new selected-state
+/// colour outright. Only colour/spacing/shape change here — the `Wrap`
+/// this is built inside (and so its overflow safety) is untouched.
 class _FrequencyChip extends StatelessWidget {
   const _FrequencyChip({
     required this.frequency,
