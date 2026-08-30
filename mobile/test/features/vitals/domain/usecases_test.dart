@@ -62,14 +62,17 @@ void main() {
     expect(repo.loggedReading, same(reading));
   });
 
-  test('WatchHistory delegates to repository.watchHistory with its filters', () {
-    final DateTime from = DateTime(2026, 8, 1);
-    final DateTime to = DateTime(2026, 8, 30);
-    WatchHistory(repo)(type: VitalType.weight, from: from, to: to);
-    expect(repo.watchedType, VitalType.weight);
-    expect(repo.watchedFrom, from);
-    expect(repo.watchedTo, to);
-  });
+  test(
+    'WatchHistory delegates to repository.watchHistory with its filters',
+    () {
+      final DateTime from = DateTime(2026, 8, 1);
+      final DateTime to = DateTime(2026, 8, 30);
+      WatchHistory(repo)(type: VitalType.weight, from: from, to: to);
+      expect(repo.watchedType, VitalType.weight);
+      expect(repo.watchedFrom, from);
+      expect(repo.watchedTo, to);
+    },
+  );
 
   test('LatestByType delegates to repository.latestByType', () async {
     await LatestByType(repo)(VitalType.heartRate);

@@ -26,7 +26,10 @@ void main() {
         <String, double?>{'heartRate': 5},
       );
       expect(errors['heartRate']?.key, 'errors.outOfRange');
-      expect(errors['heartRate']?.args, <String, String>{'min': '20', 'max': '300'});
+      expect(errors['heartRate']?.args, <String, String>{
+        'min': '20',
+        'max': '300',
+      });
     });
 
     test('a value above range is errors.outOfRange', () {

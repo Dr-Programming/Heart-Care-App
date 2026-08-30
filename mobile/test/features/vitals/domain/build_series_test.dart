@@ -49,10 +49,10 @@ void main() {
       windowDays: 7,
       now: now,
     );
-    expect(
-      series.map((VitalSeries s) => s.key),
-      <String>['systolic', 'diastolic'],
-    );
+    expect(series.map((VitalSeries s) => s.key), <String>[
+      'systolic',
+      'diastolic',
+    ]);
     expect(series[0].points.single.value, 130);
     expect(series[1].points.single.value, 85);
   });
@@ -67,26 +67,29 @@ void main() {
     expect(series, isEmpty);
   });
 
-  test('points are ordered oldest-to-newest even when input is newest-first', () {
-    final DateTime day1 = now.subtract(const Duration(days: 2));
-    final DateTime day2 = now.subtract(const Duration(days: 1));
-    final List<VitalSeries> series = buildSeries(
-      type: VitalType.bloodPressure,
-      readings: <VitalReading>[
-        _bp(day2, systolic: 140), // newest first, as history streams it
-        _bp(day1, systolic: 120),
-      ],
-      windowDays: 7,
-      now: now,
-    );
-    final VitalSeries systolic = series.firstWhere(
-      (VitalSeries s) => s.key == 'systolic',
-    );
-    expect(
-      systolic.points.map((VitalPoint p) => p.value),
-      <double>[120, 140],
-    );
-  });
+  test(
+    'points are ordered oldest-to-newest even when input is newest-first',
+    () {
+      final DateTime day1 = now.subtract(const Duration(days: 2));
+      final DateTime day2 = now.subtract(const Duration(days: 1));
+      final List<VitalSeries> series = buildSeries(
+        type: VitalType.bloodPressure,
+        readings: <VitalReading>[
+          _bp(day2, systolic: 140), // newest first, as history streams it
+          _bp(day1, systolic: 120),
+        ],
+        windowDays: 7,
+        now: now,
+      );
+      final VitalSeries systolic = series.firstWhere(
+        (VitalSeries s) => s.key == 'systolic',
+      );
+      expect(systolic.points.map((VitalPoint p) => p.value), <double>[
+        120,
+        140,
+      ]);
+    },
+  );
 
   test('a target value comes through per key when supplied', () {
     final List<VitalSeries> withTarget = buildSeries(
