@@ -130,6 +130,7 @@
     "title": "Medications",
     "add": "Add medication",
     "today": "Today",
+    "schedule": "Schedule",
     "todayEmpty": "Nothing due right now",
     "yourMedications": "Your medications",
     "emptyTitle": "No medications yet",
