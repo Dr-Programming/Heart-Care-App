@@ -615,7 +615,7 @@ void main() {
     (Widget w) =>
         w is ActionChip &&
         w.label is Text &&
-        ((w.label! as Text).data?.endsWith(' mg') ?? false),
+        ((w.label as Text).data?.endsWith(' mg') ?? false),
   );
 
   group('dose quick-pick chips (Fix 3)', () {
