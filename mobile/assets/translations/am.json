@@ -223,6 +223,10 @@
       "title": "መድሃኒት ይገምግሙ",
       "subtitle": "ከማስቀመጥዎ በፊት ያረጋግጡ",
       "frequency": "ድግግሞሽ",
+      "notifyCaregiver": "ካልተወሰደ አሳዳጊን አሳውቅ",
+      "notifyCaregiverOn": "በርቷል",
+      "notifyCaregiverOff": "ጠፍቷል",
+      "remindersSet": "ማሳወቂያዎች በቀን {times} ተዘጋጅተዋል",
       "offlineNote": "ማሳወቂያዎች ከመስመር ውጭም ይሰራሉ",
       "save": "መድሃኒት አስቀምጥ",
       "edit": "ዝርዝሮችን አርትዕ"

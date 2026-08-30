@@ -52,6 +52,40 @@ void main() {
     expect(find.textContaining('Metoprolol'), findsWidgets);
   });
 
+  // Fix 5 (M1) of the final-review fix wave: the "can't find your
+  // medication?" guidance must show regardless of whether `_results` is
+  // empty — it was previously gated behind `if (_results.isNotEmpty)`,
+  // hiding it exactly when it is most needed.
+  testWidgets(
+    'shows the cantFind guidance on the initial empty-query state',
+    (tester) async {
+      await pumpApp(tester, const MedicationSearchScreen());
+
+      expect(find.text('meds.search.libraryHint'.tr()), findsOneWidget);
+      expect(find.text('meds.search.cantFind'.tr()), findsOneWidget);
+      // The SUGGESTIONS label and suggestion cards stay conditional on
+      // having results.
+      expect(find.text('meds.search.suggestions'.tr()), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'shows the cantFind guidance when a search returns zero results',
+    (tester) async {
+      await pumpApp(tester, const MedicationSearchScreen());
+
+      await tester.enterText(
+        find.byType(TextField).first,
+        'no medication matches this query',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('meds.search.libraryHint'.tr()), findsOneWidget);
+      expect(find.text('meds.search.cantFind'.tr()), findsOneWidget);
+      expect(find.text('meds.search.suggestions'.tr()), findsNothing);
+    },
+  );
+
   testWidgets(
     'tapping a suggestion pops a populated MedicationSearchOutcome (proceed with that entry)',
     (tester) async {

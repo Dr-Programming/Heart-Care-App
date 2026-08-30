@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../controllers/medication_form_controller.dart';
@@ -12,7 +13,14 @@ import '../controllers/medication_form_controller.dart';
 /// Purely a read-only summary of the form's current state plus the actual
 /// save trigger; reached via a plain [Navigator] push, not a named route.
 class ReviewMedicationScreen extends ConsumerWidget {
-  const ReviewMedicationScreen({super.key});
+  const ReviewMedicationScreen({required this.notifyCaregiverEnabled, super.key});
+
+  /// The caregiver-notify toggle's current value, read from
+  /// `_MedicationFormScreenState._caregiverEnabled` at push time — that flag
+  /// lives as local `State` on the form screen (see its own doc comment),
+  /// not on `MedicationFormState`, so it has to be handed down explicitly
+  /// rather than read off the watched form state below.
+  final bool notifyCaregiverEnabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,16 +81,47 @@ class ReviewMedicationScreen extends ConsumerWidget {
                   label: 'meds.form.scheduleTimes'.tr(),
                   value: state.scheduleTimes.join(', '),
                 ),
+                _SummaryRow(
+                  label: 'meds.review.notifyCaregiver'.tr(),
+                  value: notifyCaregiverEnabled
+                      ? 'meds.review.notifyCaregiverOn'.tr()
+                      : 'meds.review.notifyCaregiverOff'.tr(),
+                ),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           // SectionCard has no `backgroundColor` parameter (confirmed at
           // core/widgets/cards.dart:12-19 — its params are only `child,
-          // title, action, padding, onTap`), so this is just an untitled
-          // card rather than one with an explicit background override.
+          // title, action, padding, onTap`), so the pale-blue tint here is
+          // applied the same way `MedicationSearchScreen`'s `_SuggestionCard`
+          // does it: zero the card's own padding and give it an opaque
+          // tinted `Container` (carrying that padding itself) as its child,
+          // filling the card end to end within its clipped, rounded bounds.
           SectionCard(
-            child: Text('meds.review.offlineNote'.tr(), style: Theme.of(context).textTheme.bodySmall),
+            padding: EdgeInsets.zero,
+            child: Container(
+              width: double.infinity,
+              color: AppColors.accentBg,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'meds.review.remindersSet'.tr(
+                      namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'meds.review.offlineNote'.tr(),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.xxl),
           AppButton(
@@ -136,10 +175,29 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          // Both cells are `Flexible`-guarded — not just the value — because
+          // this row now also renders the caregiver-notify label (Fix 2),
+          // whose full copy ("Notify caregiver if missed") is long enough on
+          // its own to overflow a bare, unwrapped `Text` the same way a long
+          // *value* can (an unwrapped Row child gets an effectively
+          // unbounded max width during layout, so it never wraps — it just
+          // renders at its full single-line width regardless of the
+          // container, which is exactly the failure mode `DoseRow` and
+          // `MedicationCard`'s own `Flexible`/`Expanded` guards exist to
+          // avoid). A plain `Flexible` (not `Expanded`) on the label keeps
+          // its current compact, content-sized layout for the existing short
+          // labels, while still letting it wrap instead of overflowing when
+          // a label — in English or Amharic — turns out to be long.
+          Flexible(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

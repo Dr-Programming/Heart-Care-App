@@ -20,9 +20,9 @@ import 'medication_form_screen.dart';
 import 'medication_search_screen.dart';
 
 /// The "+" action's flow (M3 Figma rework, Decision E): search first, then
-/// the form — reached via plain [Navigator] pushes, not named routes, so
-/// `AppRoutes.medicationNew` is left in place for the "add" action on
-/// [EmptyState] below and is not touched by this change.
+/// the form — reached via plain [Navigator] pushes, not named routes. Both
+/// the FAB and the empty state's "add" action below call this so the two
+/// entry points behave identically.
 ///
 /// `outcome == null` means [MedicationSearchScreen] was backed out of
 /// without a choice (see `MedicationSearchOutcome`'s doc comment for why
@@ -137,7 +137,7 @@ class _Content extends StatelessWidget {
         title: 'meds.emptyTitle'.tr(),
         message: 'meds.emptyBody'.tr(),
         actionLabel: 'meds.add'.tr(),
-        onAction: () => context.pushNamed(AppRoutes.medicationNew),
+        onAction: () => _startAddMedicationFlow(context),
       );
     }
 
