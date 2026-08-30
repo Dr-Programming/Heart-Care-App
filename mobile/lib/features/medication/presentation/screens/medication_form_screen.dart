@@ -232,6 +232,7 @@ class _FormBody extends ConsumerWidget {
             onChanged: controller.setName,
           ),
           const SizedBox(height: AppSpacing.lg),
+          _DoseQuickPicks(medicationName: state.name, onSelected: controller.setDoseMg),
           AppTextField(
             label: 'meds.form.doseMg'.tr(),
             keyboardType: TextInputType.number,
@@ -284,8 +285,7 @@ class _FormBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),
-          AppButton(
-            label: 'common.save'.tr(),
+          _ReviewButton(
             isLoading: state.isSaving,
             onPressed: () => _reviewIfValid(context, controller),
           ),
@@ -340,6 +340,113 @@ class _FormBody extends ConsumerWidget {
         .read(medicationListControllerProvider.notifier)
         .deactivate(clientRecordId);
     if (context.mounted) context.pop();
+  }
+}
+
+/// Quick-pick dose chips (Fix 3 of the post-Figma-fidelity fix wave) — Figma
+/// shows a row of known doses (e.g. "50 mg", "25 mg", "100 mg") above the
+/// free-text dose field so a recognised drug can be filled in one tap
+/// instead of typed out.
+///
+/// Pure UI: it adds no field of its own and no new persisted data. Tapping a
+/// chip calls the exact same `controller.setDoseMg` the free-text field
+/// already uses, so the field itself visibly updates — there is only ever
+/// one source of truth for the dose value, this widget just offers a
+/// shortcut into it.
+///
+/// [medicationName] is read from `MedicationFormState.name` on every build,
+/// so this is reactive purely by virtue of `_FormBody` already watching that
+/// state (the Name field's `onChanged` runs `controller.setName`, which
+/// updates that state) — no separate listener of its own. Matching reuses
+/// `searchMedicationLibrary`'s own case-insensitive substring convention
+/// rather than inventing a stricter one, and — like that function — treats a
+/// blank name as "no matches" rather than special-casing it here, so the
+/// free-text field's standalone behaviour with nothing typed is genuinely
+/// unchanged, not just visually unchanged.
+class _DoseQuickPicks extends StatelessWidget {
+  const _DoseQuickPicks({required this.medicationName, required this.onSelected});
+
+  final String medicationName;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<MedicationLibraryEntry> matches = searchMedicationLibrary(medicationName);
+    if (matches.isEmpty) return const SizedBox.shrink();
+
+    final List<double> doses = <double>{
+      for (final MedicationLibraryEntry entry in matches) entry.doseMg,
+    }.toList()..sort();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.sm,
+        children: <Widget>[
+          for (final double dose in doses)
+            ActionChip(
+              label: Text('${_formatDose(dose)} mg'),
+              onPressed: () => onSelected(_formatDose(dose)),
+              backgroundColor: AppColors.surfaceAlt,
+              side: const BorderSide(color: AppColors.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.lg),
+              ),
+              labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The form's bottom "Review & confirm" button (Fix 2 of the post-Figma-
+/// fidelity fix wave). This button never saves — it only validates and
+/// pushes `ReviewMedicationScreen`, which owns the real "Save medication"
+/// action — so it is labelled and iconed to say that, rather than "Save".
+///
+/// Not built on `AppButton`: that widget only renders an icon *leading* the
+/// label (see its `_label` method), but Figma's arrow here trails the label,
+/// and `AppButton` itself lives under `lib/core/**`, out of bounds for this
+/// task. This mirrors `AppButton`'s `AppButtonVariant.primary` case exactly
+/// instead — a bare `FilledButton` (picking up the same app-wide
+/// `FilledButtonThemeData`, so the same 44dp+ tap target and shape) at full
+/// width, swapping in a fixed-size spinner while saving so the button never
+/// changes width — just with the icon placed after the text.
+class _ReviewButton extends StatelessWidget {
+  const _ReviewButton({required this.isLoading, required this.onPressed});
+
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget child = isLoading
+        ? const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text('meds.form.reviewButton'.tr()),
+              const SizedBox(width: AppSpacing.sm),
+              const Icon(Icons.arrow_forward, size: 18),
+            ],
+          );
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: isLoading ? null : onPressed,
+        child: child,
+      ),
+    );
   }
 }
 

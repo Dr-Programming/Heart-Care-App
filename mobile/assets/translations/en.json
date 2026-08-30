@@ -165,7 +165,8 @@
       "scheduleTimes": "Times",
       "notifyCaregiver": "Notify caregiver if missed",
       "caregiverPhone": "Caregiver phone number",
-      "caregiverUnavailableNote": "Available after the medication is saved"
+      "caregiverUnavailableNote": "Available after the medication is saved",
+      "reviewButton": "Review & confirm"
     },
     "frequency": {
       "onceDaily": "Once daily",

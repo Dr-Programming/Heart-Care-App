@@ -164,9 +164,12 @@ class _Content extends StatelessWidget {
 
 /// The pill-shaped segmented control from Figma frame 368:2583 — a rounded
 /// track (`AppColors.surfaceAlt`) with a rounded selected-tab indicator
-/// (`AppColors.primary`), built on Flutter's own `TabBar` rather than a
-/// hand-rolled row of buttons so tab state, swipe-sync and a11y semantics
-/// come for free from `DefaultTabController`.
+/// (`AppColors.ink` — Figma reserves `AppColors.primary`/orange for primary
+/// action buttons only, never a selected-tab/chip fill; see
+/// `_FrequencyChip` in medication_form_screen.dart for the same convention),
+/// built on Flutter's own `TabBar` rather than a hand-rolled row of buttons
+/// so tab state, swipe-sync and a11y semantics come for free from
+/// `DefaultTabController`.
 class _MedicationsTabBar extends StatelessWidget {
   const _MedicationsTabBar();
 
@@ -189,7 +192,7 @@ class _MedicationsTabBar extends StatelessWidget {
           dividerColor: Colors.transparent,
           indicatorSize: TabBarIndicatorSize.tab,
           indicator: BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.ink,
             borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
           ),
           labelColor: AppColors.surface,
