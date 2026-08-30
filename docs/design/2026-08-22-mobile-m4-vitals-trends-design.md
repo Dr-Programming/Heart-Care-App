@@ -129,6 +129,19 @@ Build one chart widget parameterised by series, not one per metric. Blood
 pressure is the awkward case — two series on one axis — so design for that
 first and the others fall out.
 
+**Resolved shape (settled 2026-08-30):** `build_series` produces a pure-Dart
+`VitalSeries { key, List<VitalPoint>(date, value), double? targetValue, min,
+max, avg }` per line — one for glucose/weight, two (`systolic`, `diastolic`)
+for blood pressure, sharing one x/y axis. Presentation maps each
+`VitalSeries` to a `ChartSeries` (adds a `Color`) and hands the list to one
+`TrendChart(List<ChartSeries>)` widget; the widget knows nothing about vital
+types, only lines. `targetValue` comes from `PatientProfiles.goalsJson`
+(`bpSystolic`, `bpDiastolic`, `targetWeightKg`); glucose has no goal field in
+the schema, so its series never carries one — that's correct, not a gap. The
+min/max/avg for the screen's summary row is computed once inside
+`build_series` alongside the points, not as a separate pass. This is the
+widget M5 can hand an activity series later (§1), unchanged.
+
 Reference lines come from the goals in `PatientProfiles` (FR-GRAPH-008). No
 goal set means no line, not a default line: an invented target on a clinical
 chart is a made-up clinical claim.
@@ -137,8 +150,13 @@ chart is a made-up clinical claim.
 
 Two points over thirty days is not a trend, and drawing it as one is
 misleading. Below a threshold you choose and state, show the readings as a
-list with an explanation rather than a line. Say what the threshold is in your
-plan.
+list with an explanation rather than a line.
+
+**Resolved (settled 2026-08-30): the threshold is 3 readings in the selected
+window.** Two points is just a line between two dots with no shape; three is
+the minimum that can show a direction. Below it, the trend screen shows the
+readings as a list (`reading_row.dart`) with an explanation instead of
+`TrendChart`.
 
 ### Decision 7 — Entry is fast, and forgiving about time
 
