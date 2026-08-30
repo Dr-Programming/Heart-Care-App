@@ -108,6 +108,39 @@ void main() {
     expect(find.byType(MedicationsScreen), findsOneWidget);
   });
 
+  // Fix 1 (I1) of the final-review fix wave: the empty state's "add" action
+  // must go through the same search-first flow as the FAB, not straight to
+  // a blank form.
+  testWidgets(
+    'tapping the empty state\'s add action opens the search screen, not a '
+    'blank form',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byType(EmptyState), findsOneWidget);
+
+      // 'meds.add'.tr() also labels the FAB (which stays visible even in the
+      // empty state, since it lives on the scaffold rather than the body) —
+      // so target the empty state's own `AppButton` specifically rather than
+      // an ambiguous `find.text`.
+      await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MedicationSearchScreen), findsOneWidget);
+      expect(find.byType(MedicationFormScreen), findsNothing);
+    },
+  );
+
   testWidgets('shows today\'s doses and the medication list when loaded', (tester) async {
     const ScheduledDose dose = ScheduledDose(
       medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,

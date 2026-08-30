@@ -223,6 +223,10 @@
       "title": "Review medication",
       "subtitle": "Confirm before saving",
       "frequency": "Frequency",
+      "notifyCaregiver": "Notify caregiver if missed",
+      "notifyCaregiverOn": "On",
+      "notifyCaregiverOff": "Off",
+      "remindersSet": "Reminders set for {times} daily",
       "offlineNote": "Notifications work offline",
       "save": "Save medication",
       "edit": "Edit details"

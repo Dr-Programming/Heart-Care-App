@@ -114,16 +114,20 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
                 ),
               ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              'meds.search.libraryHint'.tr(),
-              style: text.bodySmall?.copyWith(color: AppColors.textTertiary),
-            ),
-            Text(
-              'meds.search.cantFind'.tr(),
-              style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.lg),
           ],
+          // Unlike the suggestions above, this guidance is not gated on
+          // `_results.isNotEmpty`: it is most needed exactly when results are
+          // empty — a zero-result search, or the screen's initial state —
+          // not only after a successful search.
+          Text(
+            'meds.search.libraryHint'.tr(),
+            style: text.bodySmall?.copyWith(color: AppColors.textTertiary),
+          ),
+          Text(
+            'meds.search.cantFind'.tr(),
+            style: text.bodySmall?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           AppButton(
             label: 'common.enterManually'.tr(),
             // AppButtonVariant has no `.outlined` value — `.secondary` is

@@ -521,6 +521,62 @@ void main() {
     },
   );
 
+  // Fix 4 (I4) of the final-review fix wave: before Task 6, this file had a
+  // test proving a successful save closes the form with no error shown,
+  // using a real GoRouter-managed page underneath (deleted, no equivalent
+  // added, when Save started pushing `ReviewMedicationScreen` instead of
+  // saving directly). This is that test's equivalent for the two-screen
+  // flow: `_routedForm(editingId:)` represents the real edit entry point
+  // (`MedicationsScreen` -> the `medicationEdit` GoRoute -> this form), Save
+  // on the form pushes `ReviewMedicationScreen` on top of the GoRouter
+  // Navigator, and Save on Review triggers the real controller's save() and
+  // its pop-up-to-two-levels listener — proving that logic genuinely pops
+  // back through a go_router-managed `Page`, not just a plain
+  // `MaterialPageRoute` stack (the add flow already covers that case above).
+  testWidgets(
+    'edit flow: saving from the review screen closes both screens with no '
+    'error and lands back on the screen behind the form',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
+        ],
+      );
+
+      // `fakeMedication`'s defaults are already valid, so no field needs
+      // editing — this only has to prove the navigation/save plumbing.
+      await tester.ensureVisible(find.text('common.save'.tr()));
+      await tester.tap(find.text('common.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+
+      await tester.tap(find.text('meds.review.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(ReviewMedicationScreen), findsNothing);
+      expect(find.byType(MedicationFormScreen, skipOffstage: false), findsNothing);
+      expect(find.text('behind the form'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   // Kept last in the file on purpose: `pumpApp(language:)` switches
   // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
   // the tests above read.

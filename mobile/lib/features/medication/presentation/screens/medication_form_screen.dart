@@ -310,7 +310,9 @@ class _FormBody extends ConsumerWidget {
   void _reviewIfValid(BuildContext context, MedicationFormController controller) {
     if (!controller.validate()) return;
     Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const ReviewMedicationScreen()),
+      MaterialPageRoute<void>(
+        builder: (_) => ReviewMedicationScreen(notifyCaregiverEnabled: caregiverEnabled),
+      ),
     );
   }
 
