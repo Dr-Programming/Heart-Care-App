@@ -163,7 +163,8 @@
       "doseMg": "መጠን (mg)",
       "scheduleTimes": "ሰዓቶች",
       "notifyCaregiver": "ካልተወሰደ አሳዳጊን አሳውቅ",
-      "caregiverPhone": "የአሳዳጊ ስልክ ቁጥር"
+      "caregiverPhone": "የአሳዳጊ ስልክ ቁጥር",
+      "caregiverUnavailableNote": "መድሃኒቱ ከተቀመጠ በኋላ ይገኛል"
     },
     "frequency": {
       "onceDaily": "በቀን አንድ ጊዜ",

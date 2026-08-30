@@ -358,6 +358,9 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), '20');
       await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
       await tester.pump();
+      // Fix round 1's add-mode disabled caregiver phone field + note pushes
+      // Save below the fold on the default test surface.
+      await tester.ensureVisible(find.text('common.save'.tr()));
       await tester.tap(find.text('common.save'.tr()));
       await tester.pumpAndSettle();
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
