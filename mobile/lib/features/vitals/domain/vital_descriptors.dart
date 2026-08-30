@@ -42,9 +42,7 @@ const Map<VitalType, VitalDescriptor> vitalDescriptors =
       VitalType.glucose: VitalDescriptor(
         type: VitalType.glucose,
         requiredKeys: <String>['glucose'],
-        ranges: <String, ({num min, num max})>{
-          'glucose': (min: 0, max: 50),
-        },
+        ranges: <String, ({num min, num max})>{'glucose': (min: 0, max: 50)},
         unit: 'mmol/L',
         labelKey: 'vitals.type.glucose',
       ),
@@ -60,9 +58,7 @@ const Map<VitalType, VitalDescriptor> vitalDescriptors =
       VitalType.weight: VitalDescriptor(
         type: VitalType.weight,
         requiredKeys: <String>['weight'],
-        ranges: <String, ({num min, num max})>{
-          'weight': (min: 0, max: 500),
-        },
+        ranges: <String, ({num min, num max})>{'weight': (min: 0, max: 500)},
         unit: 'kg',
         labelKey: 'vitals.type.weight',
       ),
