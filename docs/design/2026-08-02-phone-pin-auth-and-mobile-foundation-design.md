@@ -78,6 +78,19 @@ A polished 10-screen Figma design exists (file `B2D41kike6v4YRjHQMlszS`, brand *
 
 ## 3. Frontend half — Foundation & Auth
 
+> **SUPERSEDED - 2026-08-22.** This section only; section 2 (the backend half)
+> shipped in `v1.0.0` and still stands.
+>
+> The frontend is now split into five team-owned slices built in parallel
+> rather than one solo vertical. The foundation described here was built and
+> lives on the `mobile` branch; the auth feature is now slice M1.
+>
+> See `docs/design/2026-08-22-mobile-frontend-program.md` and
+> `docs/design/2026-08-22-mobile-m1-auth-design.md`. The decisions below
+> (offline auth gate, lockout handling, deferred PIN reset, design fidelity)
+> all carry over and are restated in the M1 spec.
+
+
 ### 3.1 Scaffold
 `flutter create` → package `com.libucare.app`, **minSdk 21**, portrait-only. `assets/` for the Libu Care logo + any exported icons + `assets/translations/`.
 

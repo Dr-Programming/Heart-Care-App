@@ -1,0 +1,107 @@
+name: Mobile CI
+
+# Runs on every pull request into the mobile integration branch, which is
+# where all five feature slices land. Generated code is not committed, so the
+# build_runner step is what makes the checkout compile at all.
+on:
+  # Deliberately no `paths:` filter on pull_request. These checks are required
+  # by branch protection, and a required check that never runs is reported as
+  # perpetually pending - a PR that happened to touch only docs would be
+  # unmergeable with no way to fix it from the PR.
+  pull_request:
+    branches: [mobile, dev]
+  push:
+    branches: [mobile]
+    paths:
+      - 'mobile/**'
+
+concurrency:
+  group: mobile-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Enforces the boundaries that make five parallel branches possible. Review
+  # catches these too, but not reliably and not before someone has read a large
+  # diff - and a foundation change merged by accident is felt by every other
+  # slice at once.
+  #
+  # Only guards PRs INTO `mobile` (feature branches). A `mobile` -> `dev`
+  # promotion legitimately carries foundation changes, and the maintainer
+  # pushes to `mobile` directly.
+  boundaries:
+    if: github.event_name == 'pull_request' && github.base_ref == 'mobile'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check nothing out of bounds was touched
+        run: |
+          base="origin/${{ github.base_ref }}"
+          changed=$(git diff --name-only "$base"...HEAD)
+          echo "Changed files:"
+          echo "$changed" | sed 's/^/  /'
+          echo
+
+          fail=0
+
+          # if/fi rather than `[ ... ] && report`: under `set -e` an AND-OR
+          # list whose test fails can abort the step, which would turn a clean
+          # PR red for no reason.
+          guard() {
+            hits=$(echo "$changed" | grep -E "$1" || true)
+            if [ -n "$hits" ]; then
+              echo "::error::$2"
+              echo "$hits" | sed 's/^/    /'
+              fail=1
+            fi
+          }
+
+          guard '^(backend|database)/' \
+            "The backend is read-only and frozen at v1.0.0. Revert these and raise it with the maintainer."
+
+          guard '^mobile/lib/core/' \
+            "lib/core/ is the shared foundation. Needing a change there is a request to the maintainer, not an edit on a feature branch."
+
+          guard '^mobile/(pubspec\.(yaml|lock)|lib/main\.dart)$' \
+            "Shared file. Every dependency any slice needs is already resolved; main.dart is the bootstrap."
+
+          guard '^mobile/(android|ios)/' \
+            "Platform config is shared. A manifest or permission entry is a request to the maintainer."
+
+          if [ "$fail" -eq 1 ]; then
+            echo
+            echo "See 'Shared files you must not edit' in mobile/CONTRIBUTING.md."
+            exit 1
+          fi
+          echo "Boundaries OK."
+
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --reporter=compact
