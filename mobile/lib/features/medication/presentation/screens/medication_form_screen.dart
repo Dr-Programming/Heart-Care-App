@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/caregiver_notify_store.dart';
@@ -204,6 +205,13 @@ class _FormBody extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
+    // Caregiver settings are keyed by `clientRecordId` in
+    // `CaregiverNotifyStore`, and add mode has no id yet (see
+    // `_persistCaregiverSettings`'s doc comment) — so in add mode the toggle
+    // and phone field are shown disabled with an explanatory note instead of
+    // silently accepting input that would then be discarded on Save.
+    final bool caregiverSettingsAvailable = editingId != null;
+
     // No `ref.listen(...saved...)` here (unlike before the M3 Figma rework):
     // this screen's Save button no longer calls `controller.save()` directly
     // — it pushes `ReviewMedicationScreen`, which owns the actual save() call
@@ -253,15 +261,25 @@ class _FormBody extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             title: Text('meds.form.notifyCaregiver'.tr()),
             value: caregiverEnabled,
-            onChanged: onCaregiverEnabledChanged,
+            onChanged: caregiverSettingsAvailable ? onCaregiverEnabledChanged : null,
           ),
-          if (caregiverEnabled) ...<Widget>[
+          if (!caregiverSettingsAvailable) ...<Widget>[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'meds.form.caregiverUnavailableNote'.tr(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
+            ),
+          ],
+          if (caregiverEnabled || !caregiverSettingsAvailable) ...<Widget>[
             const SizedBox(height: AppSpacing.sm),
             AppTextField(
               label: 'meds.form.caregiverPhone'.tr(),
               controller: caregiverPhoneController,
               keyboardType: TextInputType.phone,
-              onChanged: onCaregiverPhoneChanged,
+              enabled: caregiverSettingsAvailable,
+              onChanged: caregiverSettingsAvailable ? onCaregiverPhoneChanged : null,
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),

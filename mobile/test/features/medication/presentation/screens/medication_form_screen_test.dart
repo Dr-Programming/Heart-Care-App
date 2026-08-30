@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/core/db/app_database.dart' hide Medication;
 import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/core/widgets/widgets.dart';
 import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
@@ -97,6 +98,11 @@ void main() {
       ],
     );
 
+    // Fix round 1 added a disabled phone field + note in add mode, which
+    // pushes Save below the fold on the default 800x600 test surface — the
+    // same reason the deactivate-button tests below already `ensureVisible`
+    // before tapping.
+    await tester.ensureVisible(find.text('common.save'.tr()));
     await tester.tap(find.text('common.save'.tr()));
     await tester.pump();
 
@@ -177,6 +183,9 @@ void main() {
       );
 
       await fillValidForm(tester);
+      // Fix round 1's add-mode disabled phone field + note pushes Save below
+      // the fold on the default test surface.
+      await tester.ensureVisible(find.text('common.save'.tr()));
       await tester.tap(find.text('common.save'.tr()));
       await tester.pumpAndSettle();
 
@@ -205,6 +214,9 @@ void main() {
     (tester) async {
       await pumpApp(tester, const MedicationFormScreen());
 
+      // Fix round 1's add-mode disabled phone field + note pushes Save below
+      // the fold on the default test surface.
+      await tester.ensureVisible(find.text('common.save'.tr()));
       await tester.tap(find.text('common.save'.tr()));
       await tester.pumpAndSettle();
 
@@ -383,6 +395,129 @@ void main() {
       final CaregiverNotifySettings saved = await store.get('m1');
       expect(saved.enabled, isTrue);
       expect(saved.phone, '+251900000000');
+    },
+  );
+
+  testWidgets(
+    'add mode disables the caregiver toggle and phone field with an '
+    'explanatory note, and neither responds to input (fix round 1)',
+    (tester) async {
+      // Fix round 1: `_persistCaregiverSettings()` silently no-ops in add
+      // mode (no `clientRecordId` to key `CaregiverNotifyStore` by yet), so a
+      // toggle/field that looked and behaved fully live was data loss with no
+      // indication anything was dropped. This asserts the disabled-with-note
+      // fix, not just that the widgets are present.
+      await pumpApp(
+        tester,
+        const MedicationFormScreen(),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+        ],
+      );
+
+      final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
+      expect(
+        toggle.onChanged,
+        isNull,
+        reason: 'disabled: no id to key caregiver storage by yet in add mode',
+      );
+      expect(toggle.value, isFalse);
+
+      expect(
+        find.text('meds.form.caregiverUnavailableNote'.tr()),
+        findsOneWidget,
+      );
+
+      // The phone field is visibly present (not hidden behind the toggle,
+      // unlike edit mode) so the user can see it is unavailable rather than
+      // wondering where it went — but it must be genuinely disabled.
+      final AppTextField phoneField = tester.widget(
+        find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
+      );
+      expect(phoneField.enabled, isFalse);
+      expect(phoneField.onChanged, isNull);
+      final TextField rawPhoneField = tester.widget(find.byType(TextField).at(2));
+      expect(rawPhoneField.enabled, isFalse);
+
+      // Tapping a `SwitchListTile` with `onChanged: null` is a no-op in
+      // Flutter — this proves it end-to-end rather than trusting that alone.
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pump();
+      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
+
+      // A disabled `TextField` refuses focus, so a real tap on it (unlike
+      // `WidgetTester.enterText`, which drives the platform text-input
+      // channel directly and would bypass the disabled state entirely) never
+      // opens a keyboard session — proof a user cannot type into it, not
+      // just that the widget claims to be disabled.
+      expect(tester.testTextInput.hasAnyClients, isFalse);
+      await tester.tap(find.byType(TextField).at(2), warnIfMissed: false);
+      await tester.pump();
+      expect(
+        tester.testTextInput.hasAnyClients,
+        isFalse,
+        reason: 'a disabled TextField must not accept focus/keyboard input',
+      );
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(2)).controller!.text,
+        isEmpty,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'edit mode leaves the caregiver toggle and phone field fully enabled, '
+    'unaffected by the add-mode fix (fix round 1)',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(store),
+        ],
+      );
+
+      final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
+      expect(toggle.onChanged, isNotNull);
+      expect(find.text('meds.form.caregiverUnavailableNote'.tr()), findsNothing);
+
+      // Same as before this fix: the phone field stays hidden until the
+      // toggle is switched on, rather than always showing (add mode only).
+      expect(
+        find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
+        findsNothing,
+      );
+
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+
+      final AppTextField phoneField = tester.widget(
+        find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
+      );
+      expect(phoneField.enabled, isTrue);
+
+      await tester.enterText(find.byType(TextField).at(2), '+251900000000');
+      await tester.pumpAndSettle();
+
+      final CaregiverNotifySettings saved = await store.get('m1');
+      expect(saved.enabled, isTrue);
+      expect(saved.phone, '+251900000000');
+      expect(tester.takeException(), isNull);
     },
   );
 
