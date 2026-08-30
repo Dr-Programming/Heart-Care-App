@@ -536,6 +536,42 @@ void main() {
     expect(find.text('08:00'), findsOneWidget);
   });
 
+  testWidgets(
+    'TimeListField restyled chips do not overflow a narrow width with '
+    'several times (M3 Figma-fidelity restyle)',
+    (tester) async {
+      // The restyle (Task 8 of the M3 Figma-fidelity rework) adds explicit
+      // padding/borders/labelStyle to TimeListField's InputChip/ActionChip —
+      // a pure colour/spacing/shape change that must not reintroduce the
+      // class of RenderFlex overflow bug the DoseRow/StatusSelector suite
+      // above guards against. The underlying `Wrap` (unchanged by this
+      // task) already flows chips onto new lines rather than overflowing a
+      // single one horizontally, but this pumps the restyled chips —
+      // several time chips plus the "add" chip — at a width narrower than
+      // any realistic phone's content column to prove that still holds
+      // with the new padding/border/label weight.
+      await pumpApp(
+        tester,
+        Material(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 220,
+              child: TimeListField(
+                times: const <String>['06:00', '08:00', '12:00', '18:00', '22:00'],
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(InputChip), findsNWidgets(5));
+      expect(find.byType(ActionChip), findsOneWidget);
+    },
+  );
+
   // Kept last in the file on purpose: `pumpApp(language:)` switches
   // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
   // the tests above read. Running the Amharic cases at the end keeps that

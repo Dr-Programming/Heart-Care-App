@@ -241,12 +241,13 @@ class _FormBody extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           Wrap(
             spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: <Widget>[
               for (final MedicationFrequency f in MedicationFrequency.values)
-                ChoiceChip(
-                  label: Text('meds.frequency.${f.name}'.tr()),
+                _FrequencyChip(
+                  frequency: f,
                   selected: state.frequency == f,
-                  onSelected: (_) => controller.setFrequency(f),
+                  onSelected: () => controller.setFrequency(f),
                 ),
             ],
           ),
@@ -337,5 +338,46 @@ class _FormBody extends ConsumerWidget {
         .read(medicationListControllerProvider.notifier)
         .deactivate(clientRecordId);
     if (context.mounted) context.pop();
+  }
+}
+
+/// One frequency `ChoiceChip`, restyled to match Figma frame `368:2706`
+/// (M3 Figma-fidelity restyle, visual-only — see [TimeListField] for the
+/// matching time-chip restyle).
+///
+/// Selected fill (`AppColors.ink`) + white label reuses the same
+/// selected/unselected convention already used for the pill segmented
+/// control on `MedicationsScreen`'s tab bar (`_MedicationsTabBar`), rather
+/// than inventing a new selected-state colour. Only colour/spacing/shape
+/// change here — the `Wrap` this is built inside (and so its overflow
+/// safety) is untouched.
+class _FrequencyChip extends StatelessWidget {
+  const _FrequencyChip({
+    required this.frequency,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final MedicationFrequency frequency;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text('meds.frequency.${frequency.name}'.tr()),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      showCheckmark: false,
+      selectedColor: AppColors.ink,
+      backgroundColor: AppColors.surfaceAlt,
+      side: BorderSide(color: selected ? AppColors.ink : AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: selected ? AppColors.surface : AppColors.ink,
+        fontWeight: FontWeight.w600,
+      ),
+    );
   }
 }
