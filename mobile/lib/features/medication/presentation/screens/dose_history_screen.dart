@@ -20,37 +20,49 @@ class DoseHistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<DoseHistoryState> state = ref.watch(doseHistoryControllerProvider);
-
     return AppScaffold(
       title: 'meds.history.title'.tr(),
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, StackTrace _) => ErrorView(
-          failure: e is Failure ? e : UnknownFailure(e.toString()),
-          onRetry: () => ref.invalidate(doseHistoryControllerProvider),
-        ),
-        data: (DoseHistoryState data) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (data.medications.isNotEmpty) _FilterBar(state: data),
-            Expanded(
-              child: data.entries.isEmpty
-                  ? EmptyState(
-                      icon: Iconsax.document,
-                      title: 'meds.history.emptyTitle'.tr(),
-                      message: 'meds.history.emptyBody'.tr(),
-                    )
-                  : ListView.separated(
-                      itemCount: data.entries.length,
-                      separatorBuilder: (BuildContext _, int _) =>
-                          const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (BuildContext context, int i) =>
-                          _HistoryRow(entry: data.entries[i]),
-                    ),
-            ),
-          ],
-        ),
+      body: const DoseHistoryContent(),
+    );
+  }
+}
+
+/// The dose-history list/filter/sync-status content, extracted so
+/// MedicationsScreen's History tab (Task 7 of the Figma-fidelity plan) and
+/// this screen's own route can share it without duplicating logic.
+class DoseHistoryContent extends ConsumerWidget {
+  const DoseHistoryContent({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<DoseHistoryState> state = ref.watch(doseHistoryControllerProvider);
+
+    return state.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (Object e, StackTrace _) => ErrorView(
+        failure: e is Failure ? e : UnknownFailure(e.toString()),
+        onRetry: () => ref.invalidate(doseHistoryControllerProvider),
+      ),
+      data: (DoseHistoryState data) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (data.medications.isNotEmpty) _FilterBar(state: data),
+          Expanded(
+            child: data.entries.isEmpty
+                ? EmptyState(
+                    icon: Iconsax.document,
+                    title: 'meds.history.emptyTitle'.tr(),
+                    message: 'meds.history.emptyBody'.tr(),
+                  )
+                : ListView.separated(
+                    itemCount: data.entries.length,
+                    separatorBuilder: (BuildContext _, int _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (BuildContext context, int i) =>
+                        _HistoryRow(entry: data.entries[i]),
+                  ),
+          ),
+        ],
       ),
     );
   }

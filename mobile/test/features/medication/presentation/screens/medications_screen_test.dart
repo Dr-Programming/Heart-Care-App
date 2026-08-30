@@ -5,23 +5,36 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/db/app_database.dart' hide Medication, DoseLog;
 import 'package:libu_care/core/localization/language.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:libu_care/core/router/routes.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
 import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
+import 'package:libu_care/features/medication/presentation/controllers/dose_history_controller.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
+import 'package:libu_care/features/medication/presentation/screens/dose_history_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_search_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/medications_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/review_medication_screen.dart';
+import 'package:libu_care/features/medication/presentation/widgets/medication_card.dart';
 import 'package:libu_care/features/medication/presentation/widgets/missed_run_alert.dart';
 
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_database.dart';
 import '../../helpers/fake_medication_repository.dart';
+
+class _FakeDoseHistoryController extends DoseHistoryController {
+  _FakeDoseHistoryController(this._state);
+  final DoseHistoryState _state;
+
+  @override
+  Future<DoseHistoryState> build() async => _state;
+}
 
 class _FakeMedicationListController extends MedicationListController {
   _FakeMedicationListController(this._state);
@@ -36,6 +49,40 @@ Medication _medication(String id) => Medication(
   frequency: MedicationFrequency.onceDaily, scheduleTimes: const <String>['08:00'],
   active: true, createdAt: DateTime(2026, 8, 1), updatedAt: DateTime(2026, 8, 1),
 );
+
+/// `MedicationsScreen` pushed onto a real (miniature) `GoRouter` stack, the
+/// same pattern `medication_form_screen_test.dart` uses — the app-bar menu
+/// (Task 7) navigates with `context.pushNamed`, which needs a real
+/// `GoRouter` above it to resolve `AppRoutes.adherence` /
+/// `AppRoutes.reminderSettings`. The destinations are plain placeholder
+/// screens: this test is only proving the menu reaches the right route name,
+/// not re-testing `AdherenceScreen`/`ReminderSettingsScreen` themselves.
+Widget _routedMedicationsScreen() {
+  return MaterialApp.router(
+    routerConfig: GoRouter(
+      initialLocation: '/medications',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/medications',
+          name: AppRoutes.medications,
+          builder: (BuildContext _, GoRouterState _) => const MedicationsScreen(),
+        ),
+        GoRoute(
+          path: '/medications/adherence',
+          name: AppRoutes.adherence,
+          builder: (BuildContext _, GoRouterState _) =>
+              const Scaffold(body: Text('adherence destination')),
+        ),
+        GoRoute(
+          path: '/medications/reminders',
+          name: AppRoutes.reminderSettings,
+          builder: (BuildContext _, GoRouterState _) =>
+              const Scaffold(body: Text('reminder settings destination')),
+        ),
+      ],
+    ),
+  );
+}
 
 void main() {
   setUpWidgetTests();
@@ -419,6 +466,136 @@ void main() {
       expect(find.text('meds.alert.missedRunTitle'.tr()), findsOneWidget);
 
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'switching to the Schedule tab shows the medication list (M3 Figma rework, Task 7)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              MedicationListState(
+                todaysDoses: const <ScheduledDose>[],
+                medications: <Medication>[_medication('m1')],
+              ),
+            ),
+          ),
+        ],
+      );
+
+      // Today is the default tab — the Schedule tab's medication card isn't
+      // reachable until it's actually selected.
+      await tester.tap(find.text('meds.schedule'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MedicationCard), findsOneWidget);
+      expect(find.text('meds.yourMedications'.tr()), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'switching to the History tab shows dose history content (M3 Figma rework, Task 7)',
+    (tester) async {
+      final _FakeDoseHistoryController historyController = _FakeDoseHistoryController(
+        DoseHistoryState(
+          entries: <DoseHistoryEntry>[
+            DoseHistoryEntry(
+              log: DoseLog(
+                clientRecordId: 'd1',
+                serverId: null,
+                medicationClientRecordId: 'm1',
+                medicationServerId: null,
+                status: DoseStatus.taken,
+                scheduledDate: '2026-08-25',
+                scheduledTime: '08:00',
+                loggedAt: DateTime.utc(2026, 8, 25),
+                note: null,
+              ),
+              medicationName: 'Aspirin',
+              syncStatus: null,
+            ),
+          ],
+          medications: <Medication>[_medication('m1')],
+          filter: const DoseHistoryFilter(),
+        ),
+      );
+
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              MedicationListState(
+                todaysDoses: const <ScheduledDose>[],
+                medications: <Medication>[_medication('m1')],
+              ),
+            ),
+          ),
+          doseHistoryControllerProvider.overrideWith(() => historyController),
+        ],
+      );
+
+      await tester.tap(find.text('meds.history.title'.tr()));
+      await tester.pumpAndSettle();
+
+      // A light integration check on DoseHistoryContent's already-tested
+      // behaviour (dose_history_adherence_reminders_test.dart covers its
+      // internals) — just confirming it's really the History tab's content.
+      expect(find.byType(DoseHistoryContent), findsOneWidget);
+      expect(find.text('meds.history.syncPending'.tr()), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'the app-bar menu navigates to Adherence (M3 Figma rework, Task 7)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        _routedMedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+        ],
+      );
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('meds.adherence.title'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('adherence destination'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the app-bar menu navigates to Reminder Settings (M3 Figma rework, Task 7)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        _routedMedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+        ],
+      );
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('meds.reminders.title'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('reminder settings destination'), findsOneWidget);
     },
   );
 }
