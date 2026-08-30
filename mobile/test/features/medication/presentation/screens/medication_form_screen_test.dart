@@ -8,6 +8,7 @@ import 'package:libu_care/core/db/app_database.dart' hide Medication;
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
 import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
+import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
@@ -16,6 +17,7 @@ import 'package:libu_care/features/medication/presentation/controllers/medicatio
 import 'package:libu_care/features/medication/presentation/controllers/medication_list_controller.dart';
 import 'package:libu_care/features/medication/presentation/screens/medication_form_screen.dart';
 import 'package:libu_care/features/medication/presentation/screens/review_medication_screen.dart';
+import 'package:libu_care/features/medication/presentation/widgets/time_list_field.dart';
 
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_database.dart';
@@ -285,11 +287,15 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           medicationListControllerProvider.overrideWith(() => listController),
-          // Edit mode now also loads caregiver-notify settings for 'm1'
-          // alongside the medication itself, so this needs a real (in-memory)
-          // store rather than hitting the real on-device `appDatabaseProvider`.
+          // Edit mode now also loads caregiver-notify settings and
+          // instructions for 'm1' alongside the medication itself, so both
+          // need a real (in-memory) store rather than hitting the real
+          // on-device `appDatabaseProvider`.
           caregiverNotifyStoreProvider.overrideWithValue(
             CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
           ),
         ],
       );
@@ -337,6 +343,9 @@ void main() {
         caregiverNotifyStoreProvider.overrideWithValue(
           CaregiverNotifyStore(db.preferencesDao),
         ),
+        medicationInstructionsStoreProvider.overrideWithValue(
+          MedicationInstructionsStore(db.preferencesDao),
+        ),
       ],
     );
 
@@ -375,6 +384,9 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           caregiverNotifyStoreProvider.overrideWithValue(store),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
+          ),
         ],
       );
 
@@ -405,6 +417,9 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           caregiverNotifyStoreProvider.overrideWithValue(store),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
+          ),
         ],
       );
 
@@ -514,6 +529,9 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           caregiverNotifyStoreProvider.overrideWithValue(store),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
+          ),
         ],
       );
 
@@ -579,6 +597,9 @@ void main() {
           ),
           caregiverNotifyStoreProvider.overrideWithValue(
             CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
           ),
         ],
       );
@@ -684,6 +705,323 @@ void main() {
         ).read(medicationFormControllerProvider);
         expect(state.doseMg, '42');
         expect(doseChips(), findsNothing);
+      },
+    );
+  });
+
+  // Second Figma follow-up, Part A: the Instructions field.
+  group('instructions field', () {
+    testWidgets(
+      'edit mode loads a previously saved instruction alongside the '
+      'medication',
+      (tester) async {
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+        final MedicationInstructionsStore store = MedicationInstructionsStore(
+          db.preferencesDao,
+        );
+        await store.set('m1', MedicationInstructions.afterMeal);
+
+        await pumpApp(
+          tester,
+          _routedForm(editingId: 'm1'),
+          overrides: <Override>[
+            medicationRepositoryProvider.overrideWithValue(
+              FakeMedicationRepository(
+                medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+              ),
+            ),
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeFormController(const MedicationFormState()),
+            ),
+            caregiverNotifyStoreProvider.overrideWithValue(
+              CaregiverNotifyStore(db.preferencesDao),
+            ),
+            medicationInstructionsStoreProvider.overrideWithValue(store),
+          ],
+        );
+
+        final ChoiceChip afterMeal = tester.widget(
+          find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
+        );
+        final ChoiceChip withFood = tester.widget(
+          find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
+        );
+        expect(afterMeal.selected, isTrue);
+        expect(withFood.selected, isFalse);
+      },
+    );
+
+    testWidgets(
+      'tapping an instructions chip in edit mode persists via '
+      'MedicationInstructionsStore, and tapping the same chip again '
+      'deselects back to none',
+      (tester) async {
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+        final MedicationInstructionsStore store = MedicationInstructionsStore(
+          db.preferencesDao,
+        );
+
+        await pumpApp(
+          tester,
+          _routedForm(editingId: 'm1'),
+          overrides: <Override>[
+            medicationRepositoryProvider.overrideWithValue(
+              FakeMedicationRepository(
+                medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+              ),
+            ),
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeFormController(const MedicationFormState()),
+            ),
+            caregiverNotifyStoreProvider.overrideWithValue(
+              CaregiverNotifyStore(db.preferencesDao),
+            ),
+            medicationInstructionsStoreProvider.overrideWithValue(store),
+          ],
+        );
+
+        expect(await store.get('m1'), MedicationInstructions.none);
+
+        // Below the fold on the default 800x600 test surface, same as the
+        // caregiver phone field further up the form.
+        await tester.ensureVisible(find.text('meds.form.instructions.withFood'.tr()));
+        await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
+        await tester.pumpAndSettle();
+        expect(await store.get('m1'), MedicationInstructions.withFood);
+        expect(
+          tester
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
+              )
+              .selected,
+          isTrue,
+        );
+
+        // Tap-again-to-deselect.
+        await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
+        await tester.pumpAndSettle();
+        expect(await store.get('m1'), MedicationInstructions.none);
+        expect(
+          tester
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
+              )
+              .selected,
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'add mode disables the instructions chips with an explanatory note, '
+      'and none of them respond to input',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const MedicationFormScreen(),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeFormController(const MedicationFormState()),
+            ),
+          ],
+        );
+
+        final ChoiceChip afterMeal = tester.widget(
+          find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
+        );
+        expect(
+          afterMeal.onSelected,
+          isNull,
+          reason: 'disabled: no id to key instructions storage by yet in add mode',
+        );
+        expect(afterMeal.selected, isFalse);
+
+        // A near-identical (but distinct) key from the caregiver field's own
+        // add-mode note, so this note doesn't collide with — or change the
+        // count asserted by — the pre-existing caregiver add-mode test.
+        expect(find.text('meds.form.instructions.unavailableNote'.tr()), findsOneWidget);
+
+        await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()), warnIfMissed: false);
+        await tester.pump();
+        expect(
+          tester
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
+              )
+              .selected,
+          isFalse,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  // Second Figma follow-up, Part B: "As needed" is Custom frequency with an
+  // empty schedule — no new enum value, no new persisted field. See
+  // `MedicationFormController.validate()`'s doc comment for the binding
+  // design constraint.
+  group('"As needed" frequency', () {
+    testWidgets(
+      'tapping "As needed" clears the schedule times and hides the time '
+      'picker, showing the disables-reminders caption instead',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        expect(find.byType(TimeListField), findsOneWidget);
+        expect(find.text('meds.form.asNeededCaption'.tr()), findsNothing);
+
+        await tester.tap(find.text('meds.frequency.asNeeded'.tr()));
+        await tester.pump();
+
+        expect(find.byType(TimeListField), findsNothing);
+        expect(find.text('meds.form.asNeededCaption'.tr()), findsOneWidget);
+
+        final MedicationFormState state = ProviderScope.containerOf(
+          tester.element(find.byType(MedicationFormScreen)),
+        ).read(medicationFormControllerProvider);
+        expect(state.frequency, MedicationFrequency.custom);
+        expect(state.scheduleTimes, isEmpty);
+
+        // Exactly one of Custom/As needed is highlighted, never both.
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .selected,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .selected,
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'tapping "Custom" after "As needed" restores the time picker with a '
+      'backfilled default time',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        await tester.tap(find.text('meds.frequency.asNeeded'.tr()));
+        await tester.pump();
+        expect(find.byType(TimeListField), findsNothing);
+
+        await tester.tap(find.text('meds.frequency.custom'.tr()));
+        await tester.pump();
+
+        expect(find.byType(TimeListField), findsOneWidget);
+        expect(find.text('meds.form.asNeededCaption'.tr()), findsNothing);
+        expect(find.text('08:00'), findsOneWidget);
+
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .selected,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .selected,
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'editing an existing medication with frequency Custom and an empty '
+      'schedule loads with "As needed" selected, not "Custom"',
+      (tester) async {
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+
+        await pumpApp(
+          tester,
+          _routedForm(editingId: 'm1'),
+          overrides: <Override>[
+            medicationRepositoryProvider.overrideWithValue(
+              FakeMedicationRepository(
+                medications: <Medication>[
+                  fakeMedication(
+                    clientRecordId: 'm1',
+                    frequency: MedicationFrequency.custom,
+                    scheduleTimes: const <String>[],
+                  ),
+                ],
+              ),
+            ),
+            caregiverNotifyStoreProvider.overrideWithValue(
+              CaregiverNotifyStore(db.preferencesDao),
+            ),
+            medicationInstructionsStoreProvider.overrideWithValue(
+              MedicationInstructionsStore(db.preferencesDao),
+            ),
+          ],
+        );
+
+        expect(find.byType(TimeListField), findsNothing);
+        expect(find.text('meds.form.asNeededCaption'.tr()), findsOneWidget);
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .selected,
+          isTrue,
+        );
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .selected,
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'a form saved with "As needed" selected succeeds, and the review '
+      'screen shows "As needed" rather than "Custom" with a blank line',
+      (tester) async {
+        final FakeMedicationRepository repository = FakeMedicationRepository();
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+
+        await pumpApp(
+          tester,
+          const MedicationFormScreen(),
+          overrides: <Override>[
+            medicationRepositoryProvider.overrideWithValue(repository),
+            medicationNotificationsProvider.overrideWithValue(
+              MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+            ),
+          ],
+        );
+
+        await tester.enterText(find.byType(TextField).at(0), 'GTN spray');
+        await tester.enterText(find.byType(TextField).at(1), '0.4');
+        await tester.tap(find.text('meds.frequency.asNeeded'.tr()));
+        await tester.pump();
+
+        await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+        await tester.tap(find.text('meds.form.reviewButton'.tr()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+        expect(find.text('meds.errors.scheduleRequired'.tr()), findsNothing);
+        expect(find.text('meds.frequency.asNeeded'.tr()), findsOneWidget);
+        expect(find.text('meds.frequency.custom'.tr()), findsNothing);
+        expect(find.text('meds.review.noFixedSchedule'.tr()), findsOneWidget);
+
+        await tester.tap(find.text('meds.review.save'.tr()));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SnackBar), findsNothing);
+        expect(repository.medications, hasLength(1));
+        expect(repository.medications.single.frequency, MedicationFrequency.custom);
+        expect(repository.medications.single.scheduleTimes, isEmpty);
+        expect(tester.takeException(), isNull);
       },
     );
   });

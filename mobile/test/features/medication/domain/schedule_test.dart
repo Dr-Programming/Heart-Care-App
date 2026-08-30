@@ -130,6 +130,26 @@ void main() {
       expect(custom, hasLength(4));
     });
 
+    // Second Figma follow-up, Part B: "As needed" is Custom frequency with
+    // an empty `scheduleTimes` — a real, reachable state (not a bug), so
+    // this is a regression check that it produces zero scheduled doses
+    // cleanly rather than crashing or defaulting back to some other slot
+    // count.
+    test('a medication with an empty schedule (As needed) yields zero scheduled doses', () {
+      final DateTime date = DateTime(2026, 8, 25);
+      final DateTime now = DateTime(2026, 8, 25, 23);
+      final List<ScheduledDose> doses = scheduledDosesFor(
+        medications: <Medication>[
+          _med(id: 'm1', times: const <String>[], frequency: MedicationFrequency.custom),
+        ],
+        logsForDate: const <DoseLog>[],
+        date: date,
+        now: now,
+      );
+
+      expect(doses, isEmpty);
+    });
+
     test('an unlogged past-due slot is overdue; an unlogged future slot is pending', () {
       final DateTime date = DateTime(2026, 8, 25);
       final DateTime now = DateTime(2026, 8, 25, 12);

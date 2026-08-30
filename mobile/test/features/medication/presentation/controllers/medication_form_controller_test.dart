@@ -326,6 +326,82 @@ void main() {
     },
   );
 
+  // Part B of the second Figma follow-up: "As needed" is Custom frequency
+  // with an empty schedule, not a new persisted field — so `validate()` is
+  // where the exception lives, not `validateScheduleTimes` itself (still
+  // covered, unmodified, by validators_test.dart).
+  group('validate() and the "As needed" (Custom + empty schedule) exception', () {
+    test('Custom frequency with empty schedule times validates successfully', () {
+      final _FakeRepository repo = _FakeRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final ProviderContainer container = _container(repo, db);
+      addTearDown(container.dispose);
+      final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+      controller.setName('GTN spray');
+      controller.setDoseMg('0.4');
+      controller.setFrequency(MedicationFrequency.custom);
+      controller.setScheduleTimes(const <String>[]);
+
+      final bool ok = controller.validate();
+
+      expect(ok, isTrue);
+      expect(container.read(medicationFormControllerProvider).scheduleError, isNull);
+    });
+
+    test(
+      'Once-daily with empty schedule times still fails validation exactly '
+      'as before (regression: the exception is Custom-only)',
+      () {
+        final _FakeRepository repo = _FakeRepository();
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+        final ProviderContainer container = _container(repo, db);
+        addTearDown(container.dispose);
+        final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+        controller.setName('Atorvastatin');
+        controller.setDoseMg('20');
+        // onceDaily is the controller's default frequency; explicitly clear
+        // the schedule anyway so this does not depend on that default.
+        controller.setScheduleTimes(const <String>[]);
+
+        final bool ok = controller.validate();
+
+        expect(ok, isFalse);
+        expect(
+          container.read(medicationFormControllerProvider).scheduleError,
+          'meds.errors.scheduleRequired',
+        );
+      },
+    );
+
+    test(
+      'Custom with empty times, then adding a time back, still validates '
+      '(regression: normal Custom-with-times behaviour is unaffected)',
+      () {
+        final _FakeRepository repo = _FakeRepository();
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+        final ProviderContainer container = _container(repo, db);
+        addTearDown(container.dispose);
+        final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+        controller.setName('Atorvastatin');
+        controller.setDoseMg('20');
+        controller.setFrequency(MedicationFrequency.custom);
+        controller.setScheduleTimes(const <String>[]);
+        controller.setScheduleTimes(const <String>['09:00']);
+
+        final bool ok = controller.validate();
+
+        expect(ok, isTrue);
+        expect(container.read(medicationFormControllerProvider).scheduleTimes, <String>['09:00']);
+      },
+    );
+  });
+
   test('save() resets isSaving to false (not stuck) after the repository throws', () async {
     final _ThrowingAddRepository repo = _ThrowingAddRepository();
     final AppDatabase db = testDatabase();
