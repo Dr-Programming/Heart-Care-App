@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../data/caregiver_notify_store.dart';
+import '../../data/medication_instructions_store.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/medication_library.dart';
 import '../../medication_providers.dart';
@@ -64,6 +65,12 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   /// new in this task: a phone number loaded from storage that never renders
   /// once typed would be a fresh bug, not a preserved quirk.
   final TextEditingController _caregiverPhoneController = TextEditingController();
+
+  /// Instructions state (second Figma follow-up), local `State` for the same
+  /// reason as the caregiver fields above: `MedicationInstructionsStore` is
+  /// storage `MedicationFormController` doesn't own, keyed by
+  /// `clientRecordId` the same way `CaregiverNotifyStore` is.
+  MedicationInstructions? _instructions;
 
   @override
   void initState() {
@@ -134,6 +141,26 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
   void _onCaregiverPhoneChanged(String _) => _persistCaregiverSettings();
 
+  /// Writes the selected instructions to storage. A no-op in add mode, for
+  /// the identical reason as `_persistCaregiverSettings` — see its doc
+  /// comment.
+  void _persistInstructions() {
+    final String? id = widget.editingId;
+    if (id == null) return;
+    unawaited(
+      ref
+          .read(medicationInstructionsStoreProvider)
+          .set(id, _instructions ?? MedicationInstructions.none),
+    );
+  }
+
+  /// Tap-again-to-deselect: tapping the already-selected chip clears back to
+  /// `none` rather than leaving it stuck selected forever.
+  void _setInstructions(MedicationInstructions value) {
+    setState(() => _instructions = _instructions == value ? MedicationInstructions.none : value);
+    _persistInstructions();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_loaded) {
@@ -154,10 +181,15 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
             // `_FormBody` first mounts.
             final CaregiverNotifySettings settings =
                 await ref.read(caregiverNotifyStoreProvider).get(widget.editingId!);
+            // Loaded alongside the medication and caregiver settings, for
+            // the same reason as both of those.
+            final MedicationInstructions instructions =
+                await ref.read(medicationInstructionsStoreProvider).get(widget.editingId!);
             if (mounted) {
               setState(() {
                 _caregiverEnabled = settings.enabled;
                 _caregiverPhoneController.text = settings.phone;
+                _instructions = instructions;
                 _loaded = true;
               });
             }
@@ -172,6 +204,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       caregiverPhoneController: _caregiverPhoneController,
       onCaregiverEnabledChanged: _setCaregiverEnabled,
       onCaregiverPhoneChanged: _onCaregiverPhoneChanged,
+      instructions: _instructions ?? MedicationInstructions.none,
+      onInstructionsChanged: _setInstructions,
     );
   }
 }
@@ -188,6 +222,8 @@ class _FormBody extends ConsumerWidget {
     required this.caregiverPhoneController,
     required this.onCaregiverEnabledChanged,
     required this.onCaregiverPhoneChanged,
+    required this.instructions,
+    required this.onInstructionsChanged,
   });
 
   /// Null in add mode. Drives the deactivate action, which only makes sense
@@ -198,6 +234,9 @@ class _FormBody extends ConsumerWidget {
   final TextEditingController caregiverPhoneController;
   final ValueChanged<bool> onCaregiverEnabledChanged;
   final ValueChanged<String> onCaregiverPhoneChanged;
+
+  final MedicationInstructions instructions;
+  final ValueChanged<MedicationInstructions> onInstructionsChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -211,6 +250,19 @@ class _FormBody extends ConsumerWidget {
     // and phone field are shown disabled with an explanatory note instead of
     // silently accepting input that would then be discarded on Save.
     final bool caregiverSettingsAvailable = editingId != null;
+
+    // Instructions are keyed by `clientRecordId` in
+    // `MedicationInstructionsStore`, exactly like the caregiver settings
+    // above — same reasoning, same add-mode limitation.
+    final bool instructionsAvailable = editingId != null;
+
+    // "As needed" (second Figma follow-up) is Custom frequency with an empty
+    // schedule — not a new enum value, not a new persisted field (see
+    // `MedicationInstructions`' own file for the parallel local-only field,
+    // and `MedicationFormController.validate()` for why this combination is
+    // deliberately valid). Derived, not stored, so it needs no loading step.
+    final bool isAsNeeded =
+        state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
 
     // No `ref.listen(...saved...)` here (unlike before the M3 Figma rework):
     // this screen's Save button no longer calls `controller.save()` directly
@@ -247,16 +299,44 @@ class _FormBody extends ConsumerWidget {
               for (final MedicationFrequency f in MedicationFrequency.values)
                 _FrequencyChip(
                   frequency: f,
-                  selected: state.frequency == f,
+                  // "Custom" and "As needed" (below) are both represented by
+                  // `frequency == custom` — the only thing that tells them
+                  // apart is whether `scheduleTimes` is empty. Guarding
+                  // Custom's own selected state on `isNotEmpty` here is what
+                  // keeps exactly one of the two ever highlighted, never
+                  // both, never neither.
+                  selected: f == MedicationFrequency.custom
+                      ? (state.frequency == MedicationFrequency.custom &&
+                            state.scheduleTimes.isNotEmpty)
+                      : state.frequency == f,
                   onSelected: () => controller.setFrequency(f),
                 ),
+              _AsNeededChip(
+                selected: isAsNeeded,
+                onSelected: () {
+                  controller.setFrequency(MedicationFrequency.custom);
+                  // `setFrequency` alone may backfill a suggested default
+                  // time — explicitly clearing afterward is what actually
+                  // produces the empty-schedule "as needed" state.
+                  controller.setScheduleTimes(const <String>[]);
+                },
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          TimeListField(times: state.scheduleTimes, onChanged: controller.setScheduleTimes),
-          if (state.scheduleError != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
+          if (isAsNeeded) ...<Widget>[
+            Text(
+              'meds.form.asNeededCaption'.tr(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
+            ),
+          ] else ...<Widget>[
+            TimeListField(times: state.scheduleTimes, onChanged: controller.setScheduleTimes),
+            if (state.scheduleError != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.xs),
+              Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
+            ],
           ],
           const SizedBox(height: AppSpacing.lg),
           SwitchListTile(
@@ -282,6 +362,34 @@ class _FormBody extends ConsumerWidget {
               keyboardType: TextInputType.phone,
               enabled: caregiverSettingsAvailable,
               onChanged: caregiverSettingsAvailable ? onCaregiverPhoneChanged : null,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          Text('meds.form.instructions.title'.tr(), style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: <Widget>[
+              for (final MedicationInstructions option in const <MedicationInstructions>[
+                MedicationInstructions.afterMeal,
+                MedicationInstructions.withFood,
+                MedicationInstructions.beforeMeal,
+              ])
+                _InstructionsChip(
+                  option: option,
+                  selected: instructions == option,
+                  onSelected: instructionsAvailable ? () => onInstructionsChanged(option) : null,
+                ),
+            ],
+          ),
+          if (!instructionsAvailable) ...<Widget>[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'meds.form.instructions.unavailableNote'.tr(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),
@@ -311,7 +419,10 @@ class _FormBody extends ConsumerWidget {
     if (!controller.validate()) return;
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => ReviewMedicationScreen(notifyCaregiverEnabled: caregiverEnabled),
+        builder: (_) => ReviewMedicationScreen(
+          notifyCaregiverEnabled: caregiverEnabled,
+          instructions: instructions,
+        ),
       ),
     );
   }
@@ -478,6 +589,80 @@ class _FrequencyChip extends StatelessWidget {
       label: Text('meds.frequency.${frequency.name}'.tr()),
       selected: selected,
       onSelected: (_) => onSelected(),
+      showCheckmark: false,
+      selectedColor: AppColors.ink,
+      backgroundColor: AppColors.surfaceAlt,
+      side: BorderSide(color: selected ? AppColors.ink : AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: selected ? AppColors.surface : AppColors.ink,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+/// The "As needed" frequency chip (second Figma follow-up). Not built on
+/// [_FrequencyChip] because it has no corresponding [MedicationFrequency]
+/// value to render a label for (Part B's binding design constraint — see
+/// `MedicationFormController.validate()`'s doc comment): "as needed" is
+/// `MedicationFrequency.custom` with an empty `scheduleTimes`, derived by the
+/// caller rather than stored here. Styled identically to [_FrequencyChip]
+/// regardless, so it reads as one more member of the same chip row rather
+/// than a visually distinct control.
+class _AsNeededChip extends StatelessWidget {
+  const _AsNeededChip({required this.selected, required this.onSelected});
+
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text('meds.frequency.asNeeded'.tr()),
+      selected: selected,
+      onSelected: (_) => onSelected(),
+      showCheckmark: false,
+      selectedColor: AppColors.ink,
+      backgroundColor: AppColors.surfaceAlt,
+      side: BorderSide(color: selected ? AppColors.ink : AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: selected ? AppColors.surface : AppColors.ink,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+/// One Instructions `ChoiceChip` (After meal / With food / Before meal —
+/// second Figma follow-up, Part A). Same visual convention as
+/// [_FrequencyChip]/[_AsNeededChip] — reused deliberately rather than
+/// inventing a new chip style. `onSelected` is nullable so add mode (no
+/// `clientRecordId` to key `MedicationInstructionsStore` by yet — see
+/// `_MedicationFormScreenState._persistInstructions`) can pass `null` and get
+/// the same visually-disabled, non-interactive chip `ChoiceChip` already
+/// gives a null callback, matching the caregiver fields' own add-mode
+/// treatment.
+class _InstructionsChip extends StatelessWidget {
+  const _InstructionsChip({
+    required this.option,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final MedicationInstructions option;
+  final bool selected;
+  final VoidCallback? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text('meds.form.instructions.${option.name}'.tr()),
+      selected: selected,
+      onSelected: onSelected == null ? null : (_) => onSelected!(),
       showCheckmark: false,
       selectedColor: AppColors.ink,
       backgroundColor: AppColors.surfaceAlt,

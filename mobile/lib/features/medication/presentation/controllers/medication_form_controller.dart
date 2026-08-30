@@ -124,10 +124,20 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   /// touched never ran its `onChanged` validator, so it must still be
   /// re-checked at submit time — exactly what `save()` always did before this
   /// method existed, and still does, via this shared call.
+  ///
+  /// "As needed" (second Figma follow-up) is `frequency == custom` with an
+  /// empty `scheduleTimes` — a deliberate, real state, not an unfinished
+  /// form — so that one combination skips `validateScheduleTimes` entirely
+  /// rather than failing it. `validateScheduleTimes` itself stays untouched:
+  /// it has no notion of frequency and does not need one, since every other
+  /// frequency must still require at least one time exactly as before.
   bool validate() {
     final String? nameError = validateMedicationName(state.name);
     final String? doseError = validateDoseMg(state.doseMg);
-    final String? scheduleError = validateScheduleTimes(state.scheduleTimes);
+    final bool isAsNeeded =
+        state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
+    final String? scheduleError =
+        isAsNeeded ? null : validateScheduleTimes(state.scheduleTimes);
     state = state.copyWith(nameError: nameError, doseError: doseError, scheduleError: scheduleError);
     return nameError == null && doseError == null && scheduleError == null;
   }

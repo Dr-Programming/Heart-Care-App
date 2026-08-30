@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
 import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
@@ -229,6 +230,107 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  // Second Figma follow-up, Part A: the Instructions summary row.
+  group('instructions row', () {
+    testWidgets(
+      'shows the selected instruction\'s label when one was passed in',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(
+            notifyCaregiverEnabled: false,
+            instructions: MedicationInstructions.withFood,
+          ),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          ],
+        );
+
+        expect(find.text('meds.form.instructions.title'.tr()), findsOneWidget);
+        expect(find.text('meds.form.instructions.withFood'.tr()), findsOneWidget);
+        expect(find.text('meds.review.instructionsNotSet'.tr()), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'shows "Not set" when no instruction was passed in (null, matching '
+      'existing call sites that predate this field)',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          ],
+        );
+
+        expect(find.text('meds.review.instructionsNotSet'.tr()), findsOneWidget);
+      },
+    );
+  });
+
+  // Second Figma follow-up, Part B: "As needed" is Custom frequency with an
+  // empty schedule. The review screen must special-case that combination the
+  // same way the form screen's chip-selection logic does, rather than
+  // showing "Custom" with a blank times line.
+  group('"As needed" frequency display', () {
+    const asNeededState = MedicationFormState(
+      name: 'GTN spray',
+      doseMg: '0.4',
+      frequency: MedicationFrequency.custom,
+      scheduleTimes: <String>[],
+    );
+
+    testWidgets(
+      'shows "As needed", not "Custom", and "No fixed schedule" instead of '
+      'a blank times value',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(asNeededState),
+            ),
+          ],
+        );
+
+        expect(find.text('meds.frequency.asNeeded'.tr()), findsOneWidget);
+        expect(find.text('meds.frequency.custom'.tr()), findsNothing);
+        expect(find.text('meds.review.noFixedSchedule'.tr()), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'a real Custom frequency with times still reads "Custom" (regression: '
+      'the As-needed special-case does not leak into normal Custom)',
+      (tester) async {
+        const customState = MedicationFormState(
+          name: 'Metoprolol',
+          doseMg: '50',
+          frequency: MedicationFrequency.custom,
+          scheduleTimes: <String>['06:00', '18:00'],
+        );
+
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(customState),
+            ),
+          ],
+        );
+
+        expect(find.text('meds.frequency.custom'.tr()), findsOneWidget);
+        expect(find.text('meds.frequency.asNeeded'.tr()), findsNothing);
+        expect(find.text('meds.review.noFixedSchedule'.tr()), findsNothing);
+        expect(find.textContaining('06:00'), findsWidgets);
+      },
+    );
+  });
 
   // Kept last in the file on purpose: `pumpApp(language:)` switches
   // easy_localization's singleton locale, which the bare `'key'.tr()` calls

@@ -166,13 +166,22 @@
       "notifyCaregiver": "Notify caregiver if missed",
       "caregiverPhone": "Caregiver phone number",
       "caregiverUnavailableNote": "Available after the medication is saved",
-      "reviewButton": "Review & confirm"
+      "reviewButton": "Review & confirm",
+      "instructions": {
+        "title": "Instructions",
+        "afterMeal": "After meal",
+        "withFood": "With food",
+        "beforeMeal": "Before meal",
+        "unavailableNote": "Instructions available after the medication is saved"
+      },
+      "asNeededCaption": "'As needed' disables reminders — used for GTN/nitro spray"
     },
     "frequency": {
       "onceDaily": "Once daily",
       "bid": "Twice daily",
       "tid": "Three times daily",
-      "custom": "Custom"
+      "custom": "Custom",
+      "asNeeded": "As needed"
     },
     "errors": {
       "nameRequired": "Enter a medication name",
@@ -230,7 +239,9 @@
       "remindersSet": "Reminders set for {times} daily",
       "offlineNote": "Notifications work offline",
       "save": "Save medication",
-      "edit": "Edit details"
+      "edit": "Edit details",
+      "instructionsNotSet": "Not set",
+      "noFixedSchedule": "No fixed schedule"
     }
   },
 

@@ -7,6 +7,7 @@ import '../../core/providers/core_providers.dart';
 import 'data/caregiver_notify_store.dart';
 import 'data/datasources/medication_local_datasource.dart';
 import 'data/datasources/medication_remote_datasource.dart';
+import 'data/medication_instructions_store.dart';
 import 'data/repositories/medication_repository_impl.dart';
 import 'domain/repositories/medication_repository.dart';
 import 'notifications/medication_notifications.dart';
@@ -52,6 +53,11 @@ final Provider<MedicationNotifications> medicationNotificationsProvider =
 final Provider<CaregiverNotifyStore> caregiverNotifyStoreProvider =
     Provider<CaregiverNotifyStore>(
       (Ref ref) => CaregiverNotifyStore(ref.watch(appDatabaseProvider).preferencesDao),
+    );
+
+final Provider<MedicationInstructionsStore> medicationInstructionsStoreProvider =
+    Provider<MedicationInstructionsStore>(
+      (Ref ref) => MedicationInstructionsStore(ref.watch(appDatabaseProvider).preferencesDao),
     );
 
 final Provider<MedicationReminderBootstrap> medicationReminderBootstrapProvider =

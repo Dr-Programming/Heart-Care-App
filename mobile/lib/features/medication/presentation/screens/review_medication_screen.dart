@@ -6,6 +6,8 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../data/medication_instructions_store.dart';
+import '../../domain/entities/medication.dart';
 import '../controllers/medication_form_controller.dart';
 
 /// The Figma "Review medication" screen (frame 368:2651) — a new screen per
@@ -13,7 +15,11 @@ import '../controllers/medication_form_controller.dart';
 /// Purely a read-only summary of the form's current state plus the actual
 /// save trigger; reached via a plain [Navigator] push, not a named route.
 class ReviewMedicationScreen extends ConsumerWidget {
-  const ReviewMedicationScreen({required this.notifyCaregiverEnabled, super.key});
+  const ReviewMedicationScreen({
+    required this.notifyCaregiverEnabled,
+    this.instructions,
+    super.key,
+  });
 
   /// The caregiver-notify toggle's current value, read from
   /// `_MedicationFormScreenState._caregiverEnabled` at push time — that flag
@@ -22,11 +28,30 @@ class ReviewMedicationScreen extends ConsumerWidget {
   /// rather than read off the watched form state below.
   final bool notifyCaregiverEnabled;
 
+  /// The selected Instructions chip (second Figma follow-up, Part A), read
+  /// from `_MedicationFormScreenState._instructions` at push time — same
+  /// reasoning as [notifyCaregiverEnabled] above: local `State` on the form
+  /// screen, not part of `MedicationFormState`. Nullable (not just
+  /// `MedicationInstructions.none`-defaulted) so existing call sites/tests
+  /// that predate this field keep compiling unchanged; treated the same as
+  /// `none` wherever it is displayed.
+  final MedicationInstructions? instructions;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final MedicationFormState state = ref.watch(medicationFormControllerProvider);
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
+
+    // Mirrors `MedicationFormScreen`'s own `isAsNeeded` derivation exactly
+    // (Part B, second Figma follow-up) — "as needed" is Custom frequency
+    // with an empty schedule, not a stored flag, so the review screen
+    // special-cases the same state combination rather than trusting
+    // `state.frequency.name` to already say the right thing.
+    final bool isAsNeeded =
+        state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
+
+    final MedicationInstructions instructionsValue = instructions ?? MedicationInstructions.none;
 
     ref.listen<MedicationFormState>(medicationFormControllerProvider, (
       MedicationFormState? previous,
@@ -75,17 +100,27 @@ class ReviewMedicationScreen extends ConsumerWidget {
                 _SummaryRow(label: 'meds.form.doseMg'.tr(), value: '${state.doseMg} mg'),
                 _SummaryRow(
                   label: 'meds.review.frequency'.tr(),
-                  value: 'meds.frequency.${state.frequency.name}'.tr(),
+                  value: isAsNeeded
+                      ? 'meds.frequency.asNeeded'.tr()
+                      : 'meds.frequency.${state.frequency.name}'.tr(),
                 ),
                 _SummaryRow(
                   label: 'meds.form.scheduleTimes'.tr(),
-                  value: state.scheduleTimes.join(', '),
+                  value: isAsNeeded
+                      ? 'meds.review.noFixedSchedule'.tr()
+                      : state.scheduleTimes.join(', '),
                 ),
                 _SummaryRow(
                   label: 'meds.review.notifyCaregiver'.tr(),
                   value: notifyCaregiverEnabled
                       ? 'meds.review.notifyCaregiverOn'.tr()
                       : 'meds.review.notifyCaregiverOff'.tr(),
+                ),
+                _SummaryRow(
+                  label: 'meds.form.instructions.title'.tr(),
+                  value: instructionsValue == MedicationInstructions.none
+                      ? 'meds.review.instructionsNotSet'.tr()
+                      : 'meds.form.instructions.${instructionsValue.name}'.tr(),
                 ),
               ],
             ),
@@ -108,10 +143,17 @@ class ReviewMedicationScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  // An empty joined `times` would otherwise read as
+                  // "Reminders set for  daily" — a blank value rather than a
+                  // sentence — for exactly the "as needed" case, so this
+                  // reuses the form's own caption copy instead of that
+                  // template with nothing to fill in.
                   Text(
-                    'meds.review.remindersSet'.tr(
-                      namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
-                    ),
+                    isAsNeeded
+                        ? 'meds.form.asNeededCaption'.tr()
+                        : 'meds.review.remindersSet'.tr(
+                            namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
+                          ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: AppSpacing.xs),
