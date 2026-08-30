@@ -17,7 +17,7 @@ assigns, and open a PR for the change like any other.
 | **M1** Auth & session | | `feature/mobile/auth` | [spec](../docs/design/2026-08-22-mobile-m1-auth-design.md) | Not started |
 | **M2** Profile, onboarding & settings | | `feature/mobile/profile` | [spec](../docs/design/2026-08-22-mobile-m2-profile-onboarding-design.md) | Not started |
 | **M3** Medications, dose logs & reminders | | `feature/mobile/medications` | [spec](../docs/design/2026-08-22-mobile-m3-medications-reminders-design.md) | Not started |
-| **M4** Vitals & trend charts | | `feature/mobile/vitals` | [spec](../docs/design/2026-08-22-mobile-m4-vitals-trends-design.md) | Not started |
+| **M4** Vitals & trend charts | Jacqueline Tran | `feature/mobile/vitals` | [spec](../docs/design/2026-08-22-mobile-m4-vitals-trends-design.md) | In progress |
 | **M5** Symptoms, activity & guidance | | `feature/mobile/symptoms-activity` | [spec](../docs/design/2026-08-22-mobile-m5-symptoms-activity-guidance-design.md) | Not started |
 
 M0 is the maintainer's slice and is already built — the Drift schema for every
