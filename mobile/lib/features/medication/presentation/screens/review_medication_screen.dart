@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax/iconsax.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -209,32 +210,51 @@ class ReviewMedicationScreen extends ConsumerWidget {
               width: double.infinity,
               color: AppColors.accentBg,
               padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  // An empty joined `times` would otherwise read as
-                  // "Reminders set for  daily" — a blank value rather than a
-                  // sentence — for exactly the "as needed" case, so this
-                  // reuses the form's own caption copy instead of that
-                  // template with nothing to fill in.
-                  // `bodySmall` alone renders AppColors.textSecondary (its
-                  // default) — get_design_context confirmed both lines in
-                  // this banner render at #1d4ed8 (AppColors.accent), the
-                  // same blue as the notification bell icon beside them, not
-                  // grey.
-                  Text(
-                    isAsNeeded
-                        ? 'meds.form.asNeededCaption'.tr()
-                        : 'meds.review.remindersSet'.tr(
-                            namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
-                          ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.accent),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'meds.review.offlineNote'.tr(),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.accent),
+                  // Missing entirely before — get_design_context showed a
+                  // notification-bell icon (data-name
+                  // "iconixto/linear/notification") to the left of this
+                  // banner's text, in the same accent blue.
+                  const Icon(Iconsax.notification, color: AppColors.accent, size: 20),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        // An empty joined `times` would otherwise read as
+                        // "Reminders set for  daily" — a blank value rather
+                        // than a sentence — for exactly the "as needed"
+                        // case, so this reuses the form's own caption copy
+                        // instead of that template with nothing to fill in.
+                        // `bodySmall` alone renders AppColors.textSecondary
+                        // (its default) — get_design_context confirmed both
+                        // lines in this banner render at #1d4ed8
+                        // (AppColors.accent), the same blue as the
+                        // notification bell icon beside them, not grey.
+                        Text(
+                          isAsNeeded
+                              ? 'meds.form.asNeededCaption'.tr()
+                              : 'meds.review.remindersSet'.tr(
+                                  namedArgs: <String, String>{
+                                    'times': state.scheduleTimes.join(', '),
+                                  },
+                                ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: AppColors.accent),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'meds.review.offlineNote'.tr(),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(color: AppColors.accent),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
