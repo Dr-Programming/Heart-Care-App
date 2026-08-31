@@ -160,6 +160,7 @@
     },
     "form": {
       "title": "Medication",
+      "subtitle": "Set dosage and reminder schedule",
       "name": "Name",
       "nameHint": "e.g. Atorvastatin",
       "doseMg": "Dose (mg)",

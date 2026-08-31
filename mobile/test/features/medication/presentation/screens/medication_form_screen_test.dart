@@ -428,10 +428,15 @@ void main() {
 
       expect((await store.get('m1')).enabled, isFalse);
 
+      // The taller banded header pushes the toggle below the fold on the
+      // default test surface — same reason other taps in this file
+      // already `ensureVisible` first.
+      await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
       // The phone field only renders once the toggle is on — name (0) and
       // dose (1) are the other two `TextField`s on this form.
+      await tester.ensureVisible(find.byType(TextField).at(2));
       await tester.enterText(find.byType(TextField).at(2), '+251900000000');
       await tester.pumpAndSettle();
 
@@ -523,6 +528,11 @@ void main() {
         findsNothing,
       );
 
+      // The taller banded header (back arrow + title + subtitle, matching
+      // Figma's real header on this screen) pushes the toggle below the
+      // fold on the default 800x600 test surface — same reason other taps
+      // in this file already `ensureVisible` first.
+      await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
 
@@ -531,6 +541,7 @@ void main() {
       );
       expect(phoneField.enabled, isTrue);
 
+      await tester.ensureVisible(find.byType(TextField).at(2));
       await tester.enterText(find.byType(TextField).at(2), '+251900000000');
       await tester.pumpAndSettle();
 
@@ -825,6 +836,9 @@ void main() {
         expect(afterMeal.onSelected, isNotNull);
         expect(afterMeal.selected, isFalse);
 
+        // The taller banded header pushes the Instructions chips below the
+        // fold on the default test surface.
+        await tester.ensureVisible(find.text('meds.form.instructions.afterMeal'.tr()));
         await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
         await tester.pump();
         expect(

@@ -150,7 +150,16 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.pageBack();
+      // Not `tester.pageBack()`: that helper specifically looks for an
+      // AppBar's back-chevron widget, which this screen no longer has —
+      // its back arrow now lives inside the cream band (see the screen's
+      // own `AppScaffold.banded(showBack: false, ...)` and doc comment).
+      // Both that in-band icon and a genuine OS back gesture call the exact
+      // same `Navigator.of(context).pop()` with no argument in this app (no
+      // custom `PopScope`/`WillPopScope` intercepts either), so popping the
+      // Navigator directly is a faithful simulation of "system back" here,
+      // not a weaker substitute for it.
+      Navigator.of(tester.element(find.byType(MedicationSearchScreen))).pop();
       await tester.pumpAndSettle();
 
       expect(box.popped, isTrue);

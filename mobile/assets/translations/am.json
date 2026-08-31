@@ -160,6 +160,7 @@
     },
     "form": {
       "title": "መድሃኒት",
+      "subtitle": "መጠን እና የማስታወሻ መርሃ ግብር ያዘጋጁ",
       "name": "ስም",
       "nameHint": "ለምሳሌ Atorvastatin",
       "doseMg": "መጠን (mg)",
