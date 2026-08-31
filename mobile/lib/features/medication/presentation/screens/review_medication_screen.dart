@@ -165,11 +165,19 @@ class ReviewMedicationScreen extends ConsumerWidget {
                       ? 'meds.review.noFixedSchedule'.tr()
                       : state.scheduleTimes.join(', '),
                 ),
-                _SummaryRow(
+                // A "Reminder: On/Off" row that Figma's frame 368:2651 shows
+                // (confirmed via get_design_context) but this screen never
+                // had at all — derived from `isAsNeeded` rather than a
+                // separate stored flag, since "As needed" already *is* "no
+                // reminders" (see `MedicationFormController.validate()`'s
+                // doc comment on that state combination).
+                _StatusRow(
+                  label: 'meds.review.reminder'.tr(),
+                  on: !isAsNeeded,
+                ),
+                _StatusRow(
                   label: 'meds.review.notifyCaregiver'.tr(),
-                  value: notifyCaregiverEnabled
-                      ? 'meds.review.notifyCaregiverOn'.tr()
-                      : 'meds.review.notifyCaregiverOff'.tr(),
+                  on: notifyCaregiverEnabled,
                 ),
                 _SummaryRow(
                   label: 'meds.form.instructions.title'.tr(),
@@ -291,18 +299,88 @@ class _SummaryRow extends StatelessWidget {
           // its current compact, content-sized layout for the existing short
           // labels, while still letting it wrap instead of overflowing when
           // a label — in English or Amharic — turns out to be long.
-          Flexible(child: Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          // Colours confirmed via get_design_context against frame 368:2651:
+          // every row label is `#6b7280` (AppColors.textSecondary) at 12px
+          // regular, every value is `#282a2a` (AppColors.ink, already
+          // bodyMedium's default) at 12px bold — this row previously used
+          // the theme's default (ink-ish, unstyled) label colour and a
+          // semibold (w600) rather than a true bold (w700) value weight.
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A label + coloured status pill row — "Reminder"/"Notify caregiver", both
+/// On/Off in frame 368:2651. Distinct from [_SummaryRow] (used for the
+/// screen's plain-text rows) because Figma renders these two specifically as
+/// a small coloured badge, not plain text: `get_design_context` confirmed
+/// the "On" pill uses `AppColors.success`/`successBg` (the same pairing
+/// `StatusChip` already uses for a positive clinical status elsewhere in
+/// this app) and the "Off" pill uses `AppColors.accent`/`accentBg`.
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.label, required this.on});
+
+  final String label;
+  final bool on;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _StatusPill(on: on, label: on ? 'meds.review.on'.tr() : 'meds.review.off'.tr()),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.on, required this.label});
+
+  final bool on;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color foreground = on ? AppColors.success : AppColors.accent;
+    final Color background = on ? AppColors.successBg : AppColors.accentBg;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(AppSpacing.lg)),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: foreground, fontWeight: FontWeight.bold),
       ),
     );
   }

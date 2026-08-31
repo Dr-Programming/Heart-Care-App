@@ -163,8 +163,13 @@ void main() {
       );
 
       expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
-      expect(find.text('meds.review.notifyCaregiverOn'.tr()), findsOneWidget);
-      expect(find.text('meds.review.notifyCaregiverOff'.tr()), findsNothing);
+      // Two "On" pills now (Reminder + Notify caregiver, both true for this
+      // fixture's state) — the generic `meds.review.on`/`off` keys are
+      // shared across both rows (fifth Figma follow-up: get_design_context
+      // confirmed frame 368:2651 renders these as coloured status pills, not
+      // plain text, previously missing the Reminder row entirely).
+      expect(find.text('meds.review.on'.tr()), findsNWidgets(2));
+      expect(find.text('meds.review.off'.tr()), findsNothing);
     },
   );
 
@@ -180,8 +185,10 @@ void main() {
       );
 
       expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
-      expect(find.text('meds.review.notifyCaregiverOff'.tr()), findsOneWidget);
-      expect(find.text('meds.review.notifyCaregiverOn'.tr()), findsNothing);
+      // Reminder is On (this fixture's state has real schedule times) and
+      // Notify caregiver is Off — one of each pill.
+      expect(find.text('meds.review.on'.tr()), findsOneWidget);
+      expect(find.text('meds.review.off'.tr()), findsOneWidget);
     },
   );
 
@@ -368,9 +375,12 @@ void main() {
         language: AppLanguage.am,
       );
 
-      final String notifyOn = 'meds.review.notifyCaregiverOn'.tr();
+      final String notifyOn = 'meds.review.on'.tr();
       expect(notifyOn, isNot('On'));
-      expect(find.text(notifyOn), findsOneWidget);
+      // Two "On" pills now (Reminder + Notify caregiver) — this fixture's
+      // Custom-with-times state means Reminder is also On, not just the
+      // caregiver toggle this test originally targeted.
+      expect(find.text(notifyOn), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     },
   );
