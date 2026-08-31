@@ -5,7 +5,7 @@ import '../entities/scheduled_dose.dart';
 
 /// Offline-first: every method reads from and writes to Drift first. A
 /// caller never waits on the network. Implemented by
-/// `MedicationRepositoryImpl` (Task 14).
+/// `MedicationRepositoryImpl`.
 abstract interface class MedicationRepository {
   Future<List<Medication>> activeMedications();
   Future<List<Medication>> allMedications({bool includeInactive = false});
@@ -50,7 +50,7 @@ abstract interface class MedicationRepository {
   });
 
   /// Replays any offline edit/deactivate still owed to the server as a
-  /// direct `PUT`, for medications that now have a `serverId` (§ Task 14).
+  /// direct `PUT`, for medications that now have a `serverId`.
   /// A no-op when there is nothing pending or the device is offline.
   Future<void> replayPendingEdits();
 }

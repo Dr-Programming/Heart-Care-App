@@ -12,7 +12,7 @@ import '../../data/medication_instructions_store.dart';
 import '../../domain/entities/medication.dart';
 import '../controllers/medication_form_controller.dart';
 
-/// The Figma "Review medication" screen (frame 368:2651) — a new screen per
+/// The design's "Review medication" screen (frame 368:2651) — a new screen per
 /// Decision E of docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md.
 /// Purely a read-only summary of the form's current state plus the actual
 /// save trigger; reached via a plain [Navigator] push, not a named route.
@@ -33,13 +33,13 @@ class ReviewMedicationScreen extends ConsumerWidget {
 
   /// The caregiver phone number typed so far, read from
   /// `_MedicationFormScreenState._caregiverPhoneController.text` at push
-  /// time — same reasoning as [notifyCaregiverEnabled]. Needed here (third
-  /// Figma follow-up) so [_save] can pass a complete `CaregiverNotifySettings`
+  /// time — same reasoning as [notifyCaregiverEnabled]. Needed here so
+  /// [_save] can pass a complete `CaregiverNotifySettings`
   /// into `MedicationFormController.save()`, which is what finally persists
   /// it once the medication's real id exists, in both add and edit mode.
   final String caregiverPhone;
 
-  /// The selected Instructions chip (second Figma follow-up, Part A), read
+  /// The selected Instructions chip, read
   /// from `_MedicationFormScreenState._instructions` at push time — same
   /// reasoning as [notifyCaregiverEnabled] above: local `State` on the form
   /// screen, not part of `MedicationFormState`. Nullable (not just
@@ -54,9 +54,9 @@ class ReviewMedicationScreen extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    // Mirrors `MedicationFormScreen`'s own `isAsNeeded` derivation exactly
-    // (Part B, second Figma follow-up) — "as needed" is Custom frequency
-    // with an empty schedule, not a stored flag, so the review screen
+    // Mirrors `MedicationFormScreen`'s own `isAsNeeded` derivation exactly —
+    // "as needed" is Custom frequency with an empty schedule, not a stored
+    // flag, so the review screen
     // special-cases the same state combination rather than trusting
     // `state.frequency.name` to already say the right thing.
     final bool isAsNeeded =
@@ -117,7 +117,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
 
     return AppScaffold.banded(
       // Same technique as `MedicationSearchScreen` — see its doc comment.
-      // Figma frame 368:2651 draws this screen's back arrow/title/subtitle
+      // design frame 368:2651 draws this screen's back arrow/title/subtitle
       // inside the cream band too, not a separate AppBar.
       showBack: false,
       // See `MedicationsScreen`'s matching comment: the `Spacer()` this
@@ -152,17 +152,16 @@ class ReviewMedicationScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its default,
-          // confirmed by reading app_typography.dart) — get_design_context
-          // for this frame (368:2651) shows this subtitle at #282a2a (ink),
-          // not grey.
+          // `bodyMedium` alone renders AppColors.textSecondary (its
+          // default) — design frame 368:2651 has this subtitle at #282a2a
+          // (ink), not grey.
           Text(
             'meds.review.subtitle'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
-      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // the design leaves a real gap (~24px) between the band and whatever comes
       // next — see `MedicationsScreen`'s matching comment.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,9 +185,8 @@ class ReviewMedicationScreen extends ConsumerWidget {
                       ? 'meds.review.noFixedSchedule'.tr()
                       : state.scheduleTimes.join(', '),
                 ),
-                // A "Reminder: On/Off" row that Figma's frame 368:2651 shows
-                // (confirmed via get_design_context) but this screen never
-                // had at all — derived from `isAsNeeded` rather than a
+                // A "Reminder: On/Off" row, per design frame 368:2651 —
+                // derived from `isAsNeeded` rather than a
                 // separate stored flag, since "As needed" already *is* "no
                 // reminders" (see `MedicationFormController.validate()`'s
                 // doc comment on that state combination).
@@ -226,8 +224,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  // Missing entirely before — get_design_context showed a
-                  // notification-bell icon (data-name
+                  // the design shows a notification-bell icon (data-name
                   // "iconixto/linear/notification") to the left of this
                   // banner's text, in the same accent blue.
                   const Icon(Iconsax.notification, color: AppColors.accent, size: 20),
@@ -243,10 +240,10 @@ class ReviewMedicationScreen extends ConsumerWidget {
                         // case, so this reuses the form's own caption copy
                         // instead of that template with nothing to fill in.
                         // `bodySmall` alone renders AppColors.textSecondary
-                        // (its default) — get_design_context confirmed both
-                        // lines in this banner render at #1d4ed8
-                        // (AppColors.accent), the same blue as the
-                        // notification bell icon beside them, not grey.
+                        // (its default) — both lines in this banner render
+                        // at #1d4ed8 (AppColors.accent) in the design, the
+                        // same blue as the notification bell icon beside
+                        // them, not grey.
                         Text(
                           isAsNeeded
                               ? 'meds.form.asNeededCaption'.tr()
@@ -291,9 +288,9 @@ class ReviewMedicationScreen extends ConsumerWidget {
   }
 
   /// Saves, and tells the user when saving did not work — the identical
-  /// structure and translation key as `MedicationFormScreen._save` (I7 of
-  /// the original final-review fix wave): a `Failure`'s own message
-  /// verbatim, or `errors.generic` for anything else, in a `SnackBar`.
+  /// structure and translation key as `MedicationFormScreen._save`: a
+  /// `Failure`'s own message verbatim, or `errors.generic` for anything
+  /// else, in a `SnackBar`.
   Future<void> _save(BuildContext context, MedicationFormController controller) async {
     try {
       await controller.save(
@@ -332,7 +329,7 @@ class _SummaryRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           // Both cells are `Flexible`-guarded — not just the value — because
-          // this row now also renders the caregiver-notify label (Fix 2),
+          // this row also renders the caregiver-notify label,
           // whose full copy ("Notify caregiver if missed") is long enough on
           // its own to overflow a bare, unwrapped `Text` the same way a long
           // *value* can (an unwrapped Row child gets an effectively
@@ -344,13 +341,12 @@ class _SummaryRow extends StatelessWidget {
           // its current compact, content-sized layout for the existing short
           // labels, while still letting it wrap instead of overflowing when
           // a label — in English or Amharic — turns out to be long.
-          // Colours confirmed via get_design_context against frame 368:2651:
-          // every row label is `#6b7280` (AppColors.textSecondary) at 12px
-          // regular, every value is `#282a2a` (AppColors.ink) at 12px bold.
-          // `bodyMedium`'s own default is textSecondary, not ink (confirmed
-          // by reading app_typography.dart) — so the value needs its own
+          // Colours per design frame 368:2651: every row label is `#6b7280`
+          // (AppColors.textSecondary) at 12px regular, every value is
+          // `#282a2a` (AppColors.ink) at 12px bold. `bodyMedium`'s own
+          // default is textSecondary, not ink — so the value needs its own
           // explicit ink override too, not just the label; leaving it bare
-          // silently rendered every value in the same grey as its label.
+          // would render every value in the same grey as its label.
           Flexible(
             child: Text(
               label,
@@ -377,9 +373,9 @@ class _SummaryRow extends StatelessWidget {
 
 /// A label + coloured status pill row — "Reminder"/"Notify caregiver", both
 /// On/Off in frame 368:2651. Distinct from [_SummaryRow] (used for the
-/// screen's plain-text rows) because Figma renders these two specifically as
-/// a small coloured badge, not plain text: `get_design_context` confirmed
-/// the "On" pill uses `AppColors.success`/`successBg` (the same pairing
+/// screen's plain-text rows) because the design renders these two specifically as
+/// a small coloured badge, not plain text: the "On" pill uses
+/// `AppColors.success`/`successBg` (the same pairing
 /// `StatusChip` already uses for a positive clinical status elsewhere in
 /// this app) and the "Off" pill uses `AppColors.accent`/`accentBg`.
 class _StatusRow extends StatelessWidget {

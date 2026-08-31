@@ -52,7 +52,7 @@ void main() {
     expect(find.textContaining('Metoprolol'), findsWidgets);
   });
 
-  // Fix 5 (M1) of the final-review fix wave: the "can't find your
+  // The "can't find your
   // medication?" guidance must show regardless of whether `_results` is
   // empty — it was previously gated behind `if (_results.isNotEmpty)`,
   // hiding it exactly when it is most needed.

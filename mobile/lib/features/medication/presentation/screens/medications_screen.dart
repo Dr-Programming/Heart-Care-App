@@ -20,10 +20,9 @@ import 'dose_history_screen.dart';
 import 'medication_form_screen.dart';
 import 'medication_search_screen.dart';
 
-/// The "+" action's flow (M3 Figma rework, Decision E): search first, then
-/// the form — reached via plain [Navigator] pushes, not named routes. Both
-/// the FAB and the empty state's "add" action below call this so the two
-/// entry points behave identically.
+/// The "+" action's flow: search first, then the form — reached via plain
+/// [Navigator] pushes, not named routes. Both the FAB and the empty state's
+/// "add" action below call this so the two entry points behave identically.
 ///
 /// `outcome == null` means [MedicationSearchScreen] was backed out of
 /// without a choice (see `MedicationSearchOutcome`'s doc comment for why
@@ -56,44 +55,35 @@ class MedicationsScreen extends ConsumerWidget {
 
     return AppScaffold.banded(
       // No separate AppBar: this screen is a bottom-tab root, so it never
-      // has anything to pop back to, and Figma's own header band never
-      // draws one above itself. An earlier task forced one into existence
-      // (`showBack: true`) purely to host the overflow menu below — that
-      // added a real, mostly-empty system AppBar strip on top of the
-      // band, taller than Figma's design. The menu now lives inside the
-      // band itself instead (see the top-right `PopupMenuButton` in
+      // has anything to pop back to, and the design's own header band never
+      // draws one above itself. The overflow menu lives inside the band
+      // itself instead (see the top-right `PopupMenuButton` in
       // `bandChild`), so no AppBar is needed at all.
       //
-      // `showBack` genuinely has to be passed as `false` here, not just
-      // omitted: `AppScaffold.banded`'s own default is `showBack = true`,
-      // and its `appBar:` is only actually `null` when
-      // `title == null && !showBack`. The very first version of this fix
-      // removed the explicit `showBack: true` and the old `actions:` list,
-      // but never added `showBack: false` — so the AppBar kept silently
-      // defaulting to existing (with no title/actions, so nothing visibly
-      // *in* it, but still real height, tinted `AppColors.headerBand`,
-      // stacked above the band and the offline-sync banner). That
-      // leftover AppBar — not the band itself — was the actual header
-      // still reading as oversized on a real device after that fix.
+      // `showBack` has to be passed as `false` here, not just omitted:
+      // `AppScaffold.banded`'s own default is `showBack = true`, and its
+      // `appBar:` is only actually `null` when `title == null && !showBack`.
+      // Omitting it silently leaves a real, mostly-empty AppBar rendered
+      // above the band (no title/actions visible in it, but still tinted
+      // `AppColors.headerBand` and taking up height) — an easy trap since
+      // nothing visibly appears wrong until measured against the design.
       showBack: false,
       //
       // Overrides the default `AppSpacing.headerBandHeight` (215) — that
-      // value doesn't actually match this screen's own Figma frame at all:
-      // frame 368:2846's own header-band background vector spans y=0.11% to
-      // 83.98% of an 874px canvas, i.e. ~139px. Even that measured figure
-      // read as too tall on a real device (user-reported, twice) once
-      // actually built: the real culprit was the `Spacer()` this band used
-      // to push title+subtitle to the bottom, which — on top of the
-      // `PopupMenuButton`'s own default ~48dp Material tap target above it
-      // — left a large empty cream gap up top with nothing in it. Both are
-      // fixed below (a fixed small gap instead of `Spacer`, and the menu
-      // icon's tap target tightened to match the back-arrow icons on this
+      // value doesn't match this screen's own design frame: frame 368:2846's
+      // header-band background vector spans y=0.11% to 83.98% of an 874px
+      // canvas, i.e. ~139px. Even that measured figure left visible empty
+      // space at the top of the band once built, because the `Spacer()`
+      // this band used to push title+subtitle to the bottom — on top of the
+      // `PopupMenuButton`'s own default ~48dp Material tap target above it —
+      // ate into that height with nothing to show for it. Both are fixed
+      // below (a fixed small gap instead of `Spacer`, and the menu icon's
+      // tap target tightened to match the back-arrow icons on this
       // feature's other three screens), so this height now matches the
-      // band's own natural content size rather than leaving room for a
-      // `Spacer` to fill. A local override here, not a change to the
-      // shared `AppSpacing.headerBandHeight` token, which every other
-      // screen across the app (outside this feature's scope) also uses.
-      bandHeight: 112, // empirically the band's own natural content height
+      // band's own natural content size. A local override here, not a
+      // change to the shared `AppSpacing.headerBandHeight` token, which
+      // every other screen across the app also uses.
+      bandHeight: 112, // the band's own natural content height
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,17 +91,15 @@ class MedicationsScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
-              // Entry points to the existing, already-wired Adherence and
-              // Reminder Settings routes (M3 Figma rework, Task 7) — no
-              // routing-table change, just a UI path to destinations that
-              // previously had none from here.
+              // Entry points to the Adherence and Reminder Settings routes —
+              // no routing-table change, just a UI path to destinations
+              // that otherwise have no way in from here.
               //
               // `padding: zero` + tight `constraints`, matching the
               // back-arrow icons on this feature's other three screens
               // (see e.g. `MedicationSearchScreen`'s bandChild) — the
               // default Material `IconButton` this wraps otherwise reserves
-              // a full ~48dp tap target, which was most of this band's own
-              // unwanted empty space at the top.
+              // a full ~48dp tap target, wasting space in a compact band.
               PopupMenuButton<String>(
                 padding: EdgeInsets.zero,
                 icon: const Icon(Icons.more_vert, color: AppColors.ink),
@@ -134,17 +122,15 @@ class MedicationsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           // FittedBox, not a bare Text: guards this fixed-height band
-          // against a title long enough to wrap to a second line (the
-          // exact failure `ReviewMedicationScreen`'s own title hit at a
-          // 320dp-wide viewport — see its matching comment) at any
-          // translation length, not just today's English/Amharic copy.
+          // against a title long enough to wrap to a second line (see
+          // `ReviewMedicationScreen`'s matching comment) at any translation
+          // length, not just today's English/Amharic copy.
           //
-          // fontSize 28, not bare `headlineLarge` (24): user-reported, the
-          // title read as too small once the band itself shrank — the
-          // `FittedBox` above still shrinks it back down whenever 28
-          // genuinely doesn't fit (a long name, a narrow device, Amharic),
-          // so this is a floor the title grows to fill, not a value that
-          // can itself cause an overflow.
+          // fontSize 28, not bare `headlineLarge` (24) — reads better once
+          // the band itself is compact. The `FittedBox` above still shrinks
+          // it back down whenever 28 doesn't fit (a long name, a narrow
+          // device, Amharic), so this is a floor the title grows to fill,
+          // not a value that can itself cause an overflow.
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -154,10 +140,9 @@ class MedicationsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its default,
-          // confirmed by reading app_typography.dart) — get_design_context
-          // for this frame (368:2846) shows this date line at #282a2a (ink),
-          // not grey.
+          // `bodyMedium` alone renders AppColors.textSecondary (its
+          // default) — design frame 368:2846 has this date line at #282a2a
+          // (ink), not grey.
           Text(
             DateFormatter.displayDate(DateTime.now(), context.locale.languageCode),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
@@ -172,7 +157,7 @@ class MedicationsScreen extends ConsumerWidget {
         icon: const Icon(Iconsax.add),
         label: Text('meds.add'.tr()),
       ),
-      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // the design leaves a real gap (~24px) between the band and whatever comes
       // next, rather than butting content flush against it — `AppScaffold`
       // itself doesn't add one (its body starts right after the band), so
       // each banded screen in this feature adds its own, matching the real
@@ -192,7 +177,7 @@ class MedicationsScreen extends ConsumerWidget {
   }
 }
 
-/// The screen body once medications have loaded: the Figma-matching
+/// The screen body once medications have loaded: the design-matching
 /// Today/Schedule/History segmented control (frame 368:2583) over a
 /// `TabBarView`, or the full-screen empty state when there is nothing to
 /// show tabs for at all.
@@ -240,9 +225,9 @@ class _Content extends StatelessWidget {
   }
 }
 
-/// The pill-shaped segmented control from Figma frame 368:2583 — a rounded
+/// The pill-shaped segmented control from design frame 368:2583 — a rounded
 /// track (`AppColors.surfaceAlt`) with a rounded selected-tab indicator
-/// (`AppColors.ink` — Figma reserves `AppColors.primary`/orange for primary
+/// (`AppColors.ink` — the design reserves `AppColors.primary`/orange for primary
 /// action buttons only, never a selected-tab/chip fill; see
 /// `_FrequencyChip` in medication_form_screen.dart for the same convention),
 /// built on Flutter's own `TabBar` rather than a hand-rolled row of buttons
@@ -282,38 +267,34 @@ class _MedicationsTabBar extends StatelessWidget {
           labelColor: AppColors.surface,
           unselectedLabelColor: AppColors.ink,
           // Explicit fontSize, not bare `titleSmall`: at `titleSmall`'s own
-          // size, "Schedule" — the widest of the three labels — needed its
-          // own `FittedBox` to shrink-to-fit its third of the bar, while
-          // "Today" and "History" didn't, so the three rendered at visibly
-          // different sizes (user-reported, twice: "the schedule font is
-          // different from the today and history"). 13, not 12 — reclaiming
-          // `Tab`'s own default padding above (see `labelPadding`) freed up
-          // enough width that "Schedule" no longer needed shrinking room in
-          // the first place, so the size can go back up close to
-          // `titleSmall`'s own 14 instead of staying tiny to compensate for
-          // padding that no longer needs compensating for.
+          // size, "Schedule" — the widest of the three labels — needs its
+          // own shrink-to-fit treatment to avoid clipping, which would make
+          // it render smaller than "Today"/"History" if each label were
+          // left to size itself independently. 13, not `titleSmall`'s own
+          // 14 — reclaiming `Tab`'s own default padding above (see
+          // `labelPadding`) freed up enough width that all three fit
+          // comfortably at a size close to, but safely under, that default.
           labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
           unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
           // Equal-width tabs (`isScrollable: false`, the default) divide the
           // available width three ways regardless of label length — "Dose
           // history" (this tab's page-title copy, reused here) and even
-          // plain "Schedule" were genuinely being clipped mid-word before
-          // today's copy/size fixes. Figma's own tab literally just says
-          // "History" (not "Dose history" — that longer copy is only
-          // appropriate for the full standalone page, kept as
-          // `meds.history.title` for that), so `meds.historyTab` matches it
-          // exactly.
+          // plain "Schedule" would clip mid-word without the fixes above.
+          // the design's own tab literally just says "History" (not "Dose
+          // history" — that longer copy is only appropriate for the full
+          // standalone page, kept as `meds.history.title` for that), so
+          // `meds.historyTab` matches it exactly.
           //
-          // No `FittedBox` any more, deliberately: a per-label auto-shrink
-          // is exactly what caused the reported size mismatch in the first
-          // place — whichever label needs *any* shrinking renders smaller
-          // than its neighbours that don't. `overflow: ellipsis` instead
-          // guarantees the same fixed size on all three always; combined
-          // with `labelPadding` reclaiming the width `Tab` was wasting, none
-          // of the three (including "Schedule") should ever actually need
-          // to ellipsize on a real device, but if a translation somewhere
-          // is long enough to force it, truncating beats silently resizing
-          // just that one tab.
+          // No per-label `FittedBox`, deliberately: an independent
+          // shrink-to-fit on each label means whichever one needs *any*
+          // shrinking renders smaller than its neighbours that don't —
+          // inconsistent sizing across the three tabs. `overflow: ellipsis`
+          // instead guarantees the same fixed size on all three always;
+          // combined with `labelPadding` reclaiming the width `Tab` wastes
+          // by default, none of the three (including "Schedule") should
+          // ever actually need to ellipsize on a real device, but if a
+          // translation is long enough to force it, truncating beats
+          // silently resizing just that one tab.
           tabs: <Widget>[
             Tab(
               child: Text(
@@ -390,11 +371,11 @@ class _TodayTab extends ConsumerWidget {
                 ),
               ),
             ),
-          // Missing entirely before — get_design_context for frame
-          // 368:2846 showed a "Next reminder in Xh Ym — <name>" line in
-          // accent blue right after today's dose rows. `_nextPendingDose`
-          // reuses `todaysDoses`' own sort order (ascending scheduledTime,
-          // guaranteed by `scheduledDosesFor`) rather than re-sorting.
+          // design frame 368:2846 shows a "Next reminder in Xh Ym — <name>"
+          // line in accent blue right after today's dose rows.
+          // `_nextPendingDose` reuses `todaysDoses`' own sort order
+          // (ascending scheduledTime, guaranteed by `scheduledDosesFor`)
+          // rather than re-sorting.
           if (_nextPendingDose(state.todaysDoses) case final ScheduledDose next)
             _NextReminderBanner(dose: next),
         ],

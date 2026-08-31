@@ -15,7 +15,7 @@ class TimeListField extends StatelessWidget {
   Widget build(BuildContext context) {
     // Pill roundness/padding matches the app's other selectable-chip
     // widgets (`StatusChip`, `StatusSelector`'s `_Chip`) rather than a new
-    // radius, per the M3 Figma-fidelity restyle (frame 368:2706): this is a
+    // radius, per this styling (frame 368:2706): this is a
     // visual-only change, so the `Wrap`/chip-list mechanics that fixed the
     // original overflow bug (see medication_widgets_test.dart) are untouched.
     final OutlinedBorder chipShape = RoundedRectangleBorder(
@@ -31,10 +31,10 @@ class TimeListField extends StatelessWidget {
       children: <Widget>[
         // "REMINDER TIMES" (small/bold/uppercase/grey), not the plain
         // "Times" row-label copy `meds.form.scheduleTimes` renders on
-        // ReviewMedicationScreen — confirmed against frame 368:2706 via
-        // get_design_context; a distinct key so that screen's own "Times"
-        // row label (which Figma's Review frame 368:2651 shows title-case,
-        // not this section-caption style) is unaffected.
+        // ReviewMedicationScreen — per design frame 368:2706; a distinct key
+        // so that screen's own "Times" row label (which the design's Review
+        // frame 368:2651 shows title-case, not this section-caption style)
+        // is unaffected.
         Text(
           'meds.form.reminderTimesLabel'.tr(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),

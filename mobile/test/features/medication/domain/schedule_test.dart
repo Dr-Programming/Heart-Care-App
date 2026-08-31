@@ -130,7 +130,7 @@ void main() {
       expect(custom, hasLength(4));
     });
 
-    // Second Figma follow-up, Part B: "As needed" is Custom frequency with
+    // "As needed" is Custom frequency with
     // an empty `scheduleTimes` — a real, reachable state (not a bug), so
     // this is a regression check that it produces zero scheduled doses
     // cleanly rather than crashing or defaulting back to some other slot

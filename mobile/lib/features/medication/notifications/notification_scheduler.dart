@@ -47,9 +47,8 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
   @override
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    // See Task 11's header note: hardcoded to the app's sole deployment
-    // timezone rather than detecting the device's, which would need a
-    // package this plan cannot add to pubspec.yaml.
+    // Hardcoded to the app's sole deployment timezone rather than detecting
+    // the device's, which would need an additional package.
     tz.setLocalLocation(tz.getLocation('Africa/Addis_Ababa'));
 
     const AndroidInitializationSettings android = AndroidInitializationSettings(
@@ -82,7 +81,7 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
       _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
-      // See Task 11's header note: this same-time match makes every
+      // This same-time match makes every
       // notification — including the 1-hour follow-up — repeat daily. It
       // cannot be suppressed on days the dose was already logged without
       // OS-level background work outside a local-notifications package's

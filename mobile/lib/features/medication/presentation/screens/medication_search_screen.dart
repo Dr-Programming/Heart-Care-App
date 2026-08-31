@@ -30,7 +30,7 @@ class MedicationSearchOutcome {
   final MedicationLibraryEntry? entry;
 }
 
-/// The Figma "Add medication" search screen (frame 368:2790) — a new screen
+/// The design's "Add medication" search screen (frame 368:2790) — a new screen
 /// per Decision E of docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md,
 /// reached via a plain [Navigator] push, not a named route. Pops itself with
 /// a [MedicationSearchOutcome] (see its doc comment for why); the caller
@@ -63,7 +63,7 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
     final TextTheme text = Theme.of(context).textTheme;
 
     return AppScaffold.banded(
-      // Figma frame 368:2790 draws its back arrow, title and subtitle
+      // design frame 368:2790 draws its back arrow, title and subtitle
       // inside the cream band itself, not a separate white system AppBar —
       // matching that (rather than the plain `AppScaffold(title: ...)` this
       // screen used before) needs the same `showBack: false` +
@@ -104,16 +104,16 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             child: Text('meds.search.title'.tr(), style: text.headlineLarge?.copyWith(fontSize: 28)),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its default,
-          // confirmed by reading app_typography.dart) — get_design_context
-          // for this frame shows this subtitle at #282a2a (ink), not grey.
+          // `bodyMedium` alone renders AppColors.textSecondary (its
+          // default) — this frame has this subtitle at #282a2a (ink), not
+          // grey.
           Text(
             'meds.search.subtitle'.tr(),
             style: text.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
-      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // the design leaves a real gap (~24px) between the band and whatever comes
       // next — see `MedicationsScreen`'s matching comment.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +121,7 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
           const SizedBox(height: AppSpacing.xl),
           // A raw TextField rather than AppTextField: AppTextField always
           // renders a label above the field (by design — FR-LOC-004), but
-          // Figma's search bar has no label, just a rounded pill with a
+          // the design's search bar has no label, just a rounded pill with a
           // leading search icon. Forcing an empty label onto AppTextField
           // would add unwanted vertical space that isn't in the design.
           TextField(
@@ -181,7 +181,7 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             label: 'common.enterManually'.tr(),
             // AppButtonVariant has no `.outlined` value — `.secondary` is
             // the bordered/outlined style (see its doc comment in
-            // app_button.dart), which matches Figma's outlined button here.
+            // app_button.dart), which matches the design's outlined button here.
             variant: AppButtonVariant.secondary,
             onPressed: () =>
                 Navigator.of(context).pop(const MedicationSearchOutcome(null)),
@@ -211,10 +211,10 @@ class _SuggestionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // `bodySmall` + explicit bold/ink, not `titleMedium`: confirmed
-              // via get_design_context against frame 368:2790 that suggestion
-              // names render at 12px bold `#282a2a`, matching this app's
-              // `bodySmall` size (`titleMedium` renders visibly larger).
+              // `bodySmall` + explicit bold/ink, not `titleMedium`: frame
+              // 368:2790 renders suggestion names at 12px bold `#282a2a`,
+              // matching this app's `bodySmall` size (`titleMedium` renders
+              // visibly larger).
               Text(
                 '${entry.name} $dose mg',
                 style: Theme.of(
@@ -239,7 +239,7 @@ class _SuggestionCard extends StatelessWidget {
     // SectionCard has no `backgroundColor` parameter, and its own Container
     // already paints an opaque AppColors.surface behind whatever it's given
     // — so wrapping it from the outside can't show a tint through that.
-    // Instead, for the most-common entry (Figma's pale-blue top-suggestion
+    // Instead, for the most-common entry (the design's pale-blue top-suggestion
     // row), SectionCard's own padding is zeroed out and an opaque tinted
     // Container carrying the same padding is supplied as its child, which
     // fills the card end to end within its clipped, rounded bounds.

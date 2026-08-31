@@ -35,9 +35,9 @@ class MedicationListState {
 /// longer adherence window and comfortably covers a run of two.
 const int _missedRunWindowDays = 30;
 
-/// Backs the Medications tab root and the Home card (Task 18). State is a
+/// Backs the Medications tab root and the Home card. State is a
 /// plain re-fetch after every mutation (`ref.invalidateSelf()`) rather than a
-/// live stream — see the plan header's reactivity note.
+/// live stream.
 class MedicationListController extends AsyncNotifier<MedicationListState> {
   @override
   Future<MedicationListState> build() async {

@@ -715,7 +715,7 @@ void main() {
     );
 
     final List<dynamic> doses = await repository.todaysDoses(
-      now: DateTime.now(), // any recent time; just verifies wiring, not the math (covered by Task 4)
+      now: DateTime.now(), // any recent time; just verifies wiring, not the schedule math
     );
 
     expect(doses, isNotEmpty);

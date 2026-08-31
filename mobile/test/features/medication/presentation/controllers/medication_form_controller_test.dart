@@ -198,7 +198,7 @@ void main() {
     expect(container.read(medicationFormControllerProvider).scheduleTimes.first, '08:00');
   });
 
-  test('setFrequency never produces duplicate schedule times (I3)', () {
+  test('setFrequency never produces duplicate schedule times', () {
     final _FakeRepository repo = _FakeRepository();
     final AppDatabase db = testDatabase();
     addTearDown(db.close);
@@ -344,7 +344,7 @@ void main() {
     },
   );
 
-  // Part B of the second Figma follow-up: "As needed" is Custom frequency
+  // "As needed" is Custom frequency
   // with an empty schedule, not a new persisted field — so `validate()` is
   // where the exception lives, not `validateScheduleTimes` itself (still
   // covered, unmodified, by validators_test.dart).
@@ -473,7 +473,7 @@ void main() {
   test(
     'save() persists caregiverSettings/instructions using the newly-created '
     "medication's own clientRecordId — the fix that made these usable in "
-    'add mode (third Figma follow-up), where no id exists until this call',
+    'add mode, where no id exists until this call',
     () async {
       final _FakeRepository repo = _FakeRepository();
       final AppDatabase db = testDatabase();

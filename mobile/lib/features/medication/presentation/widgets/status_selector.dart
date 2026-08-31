@@ -23,7 +23,7 @@ class StatusSelector extends StatelessWidget {
     // width regardless of the space actually available, which is what
     // produces a hard `RenderFlex` overflow once labels are long enough
     // (longer Amharic translations, a larger text-scale factor, or a
-    // narrower device than the Figma reference frame).
+    // narrower device than the design reference frame).
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,

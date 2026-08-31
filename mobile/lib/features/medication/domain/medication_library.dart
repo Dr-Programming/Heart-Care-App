@@ -17,7 +17,7 @@ class MedicationLibraryEntry {
   final String drugClass;
 
   /// Soft hint only — the single most-likely dose for this drug, shown
-  /// first and highlighted (Figma's pale-blue top-suggestion row).
+  /// first and highlighted (the design's pale-blue top-suggestion row).
   final bool mostCommon;
 }
 
