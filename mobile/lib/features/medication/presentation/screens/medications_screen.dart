@@ -63,6 +63,19 @@ class MedicationsScreen extends ConsumerWidget {
       // band itself instead (see the top-right `PopupMenuButton` in
       // `bandChild`), so no AppBar is needed at all.
       //
+      // `showBack` genuinely has to be passed as `false` here, not just
+      // omitted: `AppScaffold.banded`'s own default is `showBack = true`,
+      // and its `appBar:` is only actually `null` when
+      // `title == null && !showBack`. The very first version of this fix
+      // removed the explicit `showBack: true` and the old `actions:` list,
+      // but never added `showBack: false` — so the AppBar kept silently
+      // defaulting to existing (with no title/actions, so nothing visibly
+      // *in* it, but still real height, tinted `AppColors.headerBand`,
+      // stacked above the band and the offline-sync banner). That
+      // leftover AppBar — not the band itself — was the actual header
+      // still reading as oversized on a real device after that fix.
+      showBack: false,
+      //
       // Overrides the default `AppSpacing.headerBandHeight` (215) — that
       // value doesn't actually match this screen's own Figma frames at all:
       // both Screen 6.0 and Screen 6.4's own header-band background vectors

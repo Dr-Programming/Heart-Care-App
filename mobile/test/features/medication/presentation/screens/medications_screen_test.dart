@@ -111,6 +111,36 @@ void main() {
     expect(find.byType(MedicationsScreen), findsOneWidget);
   });
 
+  // `AppScaffold.banded`'s own default is `showBack = true`, which the
+  // Scaffold reads as "render an AppBar" whenever `title` is null too
+  // (`title == null && !showBack`) -- an earlier fix removed the explicit
+  // `showBack: true` here, intending to remove the AppBar entirely, but
+  // never added `showBack: false`, so the default silently kept it
+  // rendering (empty, but real height, tinted the header colour) above the
+  // band this whole time. Confirms it is genuinely gone now, not just
+  // visually unremarkable.
+  testWidgets(
+    'renders no AppBar at all -- MedicationsScreen is a tab root with '
+    'nothing to pop back to, and the overflow menu lives inside the band',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+        ],
+      );
+
+      expect(find.byType(AppBar), findsNothing);
+      // The menu still exists -- just inside the band, not an AppBar.
+      expect(find.byType(PopupMenuButton<String>), findsOneWidget);
+    },
+  );
+
   // Fix 1 (I1) of the final-review fix wave: the empty state's "add" action
   // must go through the same search-first flow as the FAB, not straight to
   // a blank form.
