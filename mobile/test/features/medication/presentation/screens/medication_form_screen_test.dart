@@ -472,6 +472,9 @@ void main() {
       expect(toggle.onChanged, isNotNull);
       expect(toggle.value, isFalse);
 
+      // The taller banded header (plus the gap now added below it, matching
+      // Figma) pushes the toggle below the fold on the default test surface.
+      await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
       expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isTrue);
