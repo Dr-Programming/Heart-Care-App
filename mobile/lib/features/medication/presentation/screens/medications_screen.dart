@@ -269,6 +269,12 @@ class _MedicationsTabBar extends StatelessWidget {
         child: TabBar(
           dividerColor: Colors.transparent,
           indicatorSize: TabBarIndicatorSize.tab,
+          // `Tab`'s own default `labelPadding` reserves 16dp on each side of
+          // every label (`kTabLabelPadding`) — 32dp per tab, 96dp total
+          // across all three, which was most of why "Schedule" had so
+          // little room to work with in the first place. `xs` (4dp) each
+          // side reclaims nearly all of that back into actual label width.
+          labelPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
           indicator: BoxDecoration(
             color: AppColors.ink,
             borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
@@ -280,13 +286,14 @@ class _MedicationsTabBar extends StatelessWidget {
           // own `FittedBox` to shrink-to-fit its third of the bar, while
           // "Today" and "History" didn't, so the three rendered at visibly
           // different sizes (user-reported, twice: "the schedule font is
-          // different from the today and history"). 12, not the 13 tried
-          // first, is the actual fix — 13 still left "Schedule" just wide
-          // enough on a real device to keep engaging its own `FittedBox` by
-          // a hair while the other two didn't, so the mismatch (smaller,
-          // but still there) survived that first attempt.
-          labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 12),
-          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 12),
+          // different from the today and history"). 13, not 12 — reclaiming
+          // `Tab`'s own default padding above (see `labelPadding`) freed up
+          // enough width that "Schedule" no longer needed shrinking room in
+          // the first place, so the size can go back up close to
+          // `titleSmall`'s own 14 instead of staying tiny to compensate for
+          // padding that no longer needs compensating for.
+          labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
+          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
           // Equal-width tabs (`isScrollable: false`, the default) divide the
           // available width three ways regardless of label length — "Dose
           // history" (this tab's page-title copy, reused here) and even
@@ -301,11 +308,12 @@ class _MedicationsTabBar extends StatelessWidget {
           // is exactly what caused the reported size mismatch in the first
           // place — whichever label needs *any* shrinking renders smaller
           // than its neighbours that don't. `overflow: ellipsis` instead
-          // guarantees the same fixed size on all three always; the 12px
-          // size above is chosen so none of the three (including "Schedule")
-          // ever actually needs to ellipsize on a real device, but if a
-          // translation somewhere is long enough to force it, truncating
-          // beats silently resizing just that one tab.
+          // guarantees the same fixed size on all three always; combined
+          // with `labelPadding` reclaiming the width `Tab` was wasting, none
+          // of the three (including "Schedule") should ever actually need
+          // to ellipsize on a real device, but if a translation somewhere
+          // is long enough to force it, truncating beats silently resizing
+          // just that one tab.
           tabs: <Widget>[
             Tab(
               child: Text(
