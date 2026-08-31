@@ -69,6 +69,13 @@ class TimeListField extends StatelessWidget {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      // The default radial dial asks for a precise drag gesture to land on
+      // an exact minute — a poor fit for patients with limited dexterity or
+      // vision. Plain numeric hour/minute fields with an AM/PM toggle are
+      // far easier to use correctly, and `inputOnly` (rather than `input`)
+      // removes the toggle-back-to-dial button entirely, so there is no
+      // second mode to discover or accidentally switch into.
+      initialEntryMode: TimePickerEntryMode.inputOnly,
     );
     if (picked == null) return;
     final String formatted =
