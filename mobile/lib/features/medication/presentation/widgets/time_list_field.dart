@@ -29,7 +29,16 @@ class TimeListField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('meds.form.scheduleTimes'.tr(), style: Theme.of(context).textTheme.titleMedium),
+        // "REMINDER TIMES" (small/bold/uppercase/grey), not the plain
+        // "Times" row-label copy `meds.form.scheduleTimes` renders on
+        // ReviewMedicationScreen — confirmed against frame 368:2706 via
+        // get_design_context; a distinct key so that screen's own "Times"
+        // row label (which Figma's Review frame 368:2651 shows title-case,
+        // not this section-caption style) is unaffected.
+        Text(
+          'meds.form.reminderTimesLabel'.tr(),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
+        ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,

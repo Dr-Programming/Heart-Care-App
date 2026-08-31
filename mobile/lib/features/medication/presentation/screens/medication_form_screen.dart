@@ -338,6 +338,16 @@ class _FormBody extends ConsumerWidget {
             onChanged: controller.setName,
           ),
           const SizedBox(height: AppSpacing.lg),
+          // Figma's own "DOSAGE"/"FREQUENCY"/"REMINDER TIMES"/"INSTRUCTIONS"
+          // section captions (frame 368:2706, confirmed via get_design_context)
+          // are all the same small/bold/uppercase/grey style — matching the
+          // "SUGGESTIONS" label already established on MedicationSearchScreen
+          // rather than inventing a new one.
+          Text(
+            'meds.form.dosageLabel'.tr(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           _DoseQuickPicks(
             medicationName: state.name,
             onSelected: (String dose) {
@@ -353,6 +363,11 @@ class _FormBody extends ConsumerWidget {
             onChanged: controller.setDoseMg,
           ),
           const SizedBox(height: AppSpacing.lg),
+          Text(
+            'meds.form.frequencyLabel'.tr(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
@@ -416,7 +431,10 @@ class _FormBody extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
-          Text('meds.form.instructions.title'.tr(), style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'meds.form.instructions.sectionLabel'.tr(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
+          ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
