@@ -54,17 +54,45 @@ class MedicationsScreen extends ConsumerWidget {
     final AsyncValue<MedicationListState> state = ref.watch(medicationListControllerProvider);
 
     return AppScaffold.banded(
-      // Forces the AppBar into existence so the menu below can render — see
-      // its doc comment on `actions`. Harmless in the real app: this screen
-      // is a bottom-tab root there, so `Navigator.canPop()` is false and no
-      // back chevron actually shows (AppScaffold gates the chevron on
-      // `showBack && canPop`, not `showBack` alone).
-      showBack: true,
+      // No separate AppBar: this screen is a bottom-tab root, so it never
+      // has anything to pop back to, and Figma's own header band never
+      // draws one above itself. An earlier task forced one into existence
+      // (`showBack: true`) purely to host the overflow menu below — that
+      // added a real, mostly-empty system AppBar strip on top of the
+      // band, taller than Figma's design. The menu now lives inside the
+      // band itself instead (see the top-right `PopupMenuButton` in
+      // `bandChild`), so no AppBar is needed at all.
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              // Entry points to the existing, already-wired Adherence and
+              // Reminder Settings routes (M3 Figma rework, Task 7) — no
+              // routing-table change, just a UI path to destinations that
+              // previously had none from here.
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: AppColors.ink),
+                onSelected: (String value) {
+                  if (value == 'adherence') context.pushNamed(AppRoutes.adherence);
+                  if (value == 'reminders') context.pushNamed(AppRoutes.reminderSettings);
+                },
+                itemBuilder: (BuildContext _) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'adherence',
+                    child: Text('meds.adherence.title'.tr()),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'reminders',
+                    child: Text('meds.reminders.title'.tr()),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const Spacer(),
           Text('meds.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -73,27 +101,6 @@ class MedicationsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      // Entry points to the existing, already-wired Adherence and Reminder
-      // Settings routes (M3 Figma rework, Task 7) — no routing-table change,
-      // just a UI path to destinations that previously had none from here.
-      actions: <Widget>[
-        PopupMenuButton<String>(
-          onSelected: (String value) {
-            if (value == 'adherence') context.pushNamed(AppRoutes.adherence);
-            if (value == 'reminders') context.pushNamed(AppRoutes.reminderSettings);
-          },
-          itemBuilder: (BuildContext _) => <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(
-              value: 'adherence',
-              child: Text('meds.adherence.title'.tr()),
-            ),
-            PopupMenuItem<String>(
-              value: 'reminders',
-              child: Text('meds.reminders.title'.tr()),
-            ),
-          ],
-        ),
-      ],
       // Stays visible across all three tabs (Today/Schedule/History) rather
       // than being scoped to one — it lives on the scaffold, not inside the
       // TabBarView, so switching tabs never affects it.
