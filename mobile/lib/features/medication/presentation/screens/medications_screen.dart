@@ -279,30 +279,58 @@ class _MedicationsTabBar extends StatelessWidget {
           // size, "Schedule" — the widest of the three labels — needed its
           // own `FittedBox` to shrink-to-fit its third of the bar, while
           // "Today" and "History" didn't, so the three rendered at visibly
-          // different sizes (user-reported: "the schedule font is different
-          // from the today and history"). 13 (matching `bodyMedium`'s own
-          // app-wide size) is small enough that all three fit at their
-          // natural size with nothing left to shrink — the `FittedBox`
-          // below stays on purely as a safety net for longer translations,
-          // not because it's expected to actually engage any more.
-          labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
-          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
+          // different sizes (user-reported, twice: "the schedule font is
+          // different from the today and history"). 12, not the 13 tried
+          // first, is the actual fix — 13 still left "Schedule" just wide
+          // enough on a real device to keep engaging its own `FittedBox` by
+          // a hair while the other two didn't, so the mismatch (smaller,
+          // but still there) survived that first attempt.
+          labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 12),
+          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 12),
           // Equal-width tabs (`isScrollable: false`, the default) divide the
           // available width three ways regardless of label length — "Dose
           // history" (this tab's page-title copy, reused here) and even
           // plain "Schedule" were genuinely being clipped mid-word before
-          // the 13px size above. Figma's own tab literally just says
+          // today's copy/size fixes. Figma's own tab literally just says
           // "History" (not "Dose history" — that longer copy is only
           // appropriate for the full standalone page, kept as
           // `meds.history.title` for that), so `meds.historyTab` matches it
-          // exactly. Wrapping every label in `FittedBox` on top of that is a
-          // second, independent guard: whatever the copy (including
-          // Amharic's typically-longer strings), it shrinks to fit its own
-          // third of the bar instead of ever clipping again.
+          // exactly.
+          //
+          // No `FittedBox` any more, deliberately: a per-label auto-shrink
+          // is exactly what caused the reported size mismatch in the first
+          // place — whichever label needs *any* shrinking renders smaller
+          // than its neighbours that don't. `overflow: ellipsis` instead
+          // guarantees the same fixed size on all three always; the 12px
+          // size above is chosen so none of the three (including "Schedule")
+          // ever actually needs to ellipsize on a real device, but if a
+          // translation somewhere is long enough to force it, truncating
+          // beats silently resizing just that one tab.
           tabs: <Widget>[
-            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.today'.tr()))),
-            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.schedule'.tr()))),
-            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.historyTab'.tr()))),
+            Tab(
+              child: Text(
+                'meds.today'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
+            Tab(
+              child: Text(
+                'meds.schedule'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
+            Tab(
+              child: Text(
+                'meds.historyTab'.tr(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
           ],
         ),
       ),
