@@ -316,15 +316,23 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MedicationFormScreen), findsOneWidget);
-      // The name/dose fields render without a `TextEditingController` (a
-      // pre-existing quirk of this form, unchanged by this task — see
-      // medication_form_screen.dart), so the prefill is verified against the
-      // actual form state rather than rendered text.
       final MedicationFormState state = ProviderScope.containerOf(
         tester.element(find.byType(MedicationFormScreen)),
       ).read(medicationFormControllerProvider);
       expect(state.name, 'Metoprolol');
       expect(state.doseMg, '50');
+      // Fourth Figma follow-up: the name/dose fields are now bound to real
+      // `TextEditingController`s specifically so a prefill like this one
+      // shows up on screen, not just in provider state — confirmed here
+      // directly rather than trusted from the state assertions above.
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text,
+        'Metoprolol',
+      );
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+        '50',
+      );
     },
   );
 
@@ -706,7 +714,7 @@ void main() {
         ],
       );
 
-      await tester.tap(find.text('meds.history.title'.tr()));
+      await tester.tap(find.text('meds.historyTab'.tr()));
       await tester.pumpAndSettle();
 
       // A light integration check on DoseHistoryContent's already-tested

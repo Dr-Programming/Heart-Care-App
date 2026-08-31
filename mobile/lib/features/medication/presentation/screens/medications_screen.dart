@@ -63,15 +63,18 @@ class MedicationsScreen extends ConsumerWidget {
       // band itself instead (see the top-right `PopupMenuButton` in
       // `bandChild`), so no AppBar is needed at all.
       //
-      // Also overrides the default `AppSpacing.headerBandHeight` (215) with
-      // a shorter band: that value matches Figma's own frame proportions,
-      // but on a real device it left a visibly oversized empty area above
-      // two short lines of text — real, repeated feedback from testing on
-      // an actual phone, not something the static Figma canvas surfaces.
-      // Deliberately a local override here rather than a change to the
-      // shared `AppSpacing.headerBandHeight` token, which every other
-      // screen across the app (outside this feature's scope) also uses.
-      bandHeight: 140,
+      // Overrides the default `AppSpacing.headerBandHeight` (215) — that
+      // value doesn't actually match this screen's own Figma frames at all:
+      // both Screen 6.0 and Screen 6.4's own header-band background vectors
+      // are ~128-139px tall on Figma's 402x874 canvas, not 215 (215 is
+      // presumably tuned for a taller header elsewhere in the app, outside
+      // this feature). 130 sits in that real range, still with a little
+      // breathing room for the menu row this band also now carries (which
+      // Figma's own header doesn't). Deliberately a local override here
+      // rather than a change to the shared `AppSpacing.headerBandHeight`
+      // token, which every other screen across the app (outside this
+      // feature's scope) also uses.
+      bandHeight: 130,
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,10 +219,22 @@ class _MedicationsTabBar extends StatelessWidget {
           unselectedLabelColor: AppColors.ink,
           labelStyle: Theme.of(context).textTheme.titleSmall,
           unselectedLabelStyle: Theme.of(context).textTheme.titleSmall,
+          // Equal-width tabs (`isScrollable: false`, the default) divide the
+          // available width three ways regardless of label length — "Dose
+          // history" (this tab's page-title copy, reused here) and even
+          // plain "Schedule" were genuinely being clipped mid-word on a real
+          // device at `titleSmall` size. Figma's own tab literally just says
+          // "History" (not "Dose history" — that longer copy is only
+          // appropriate for the full standalone page, kept as
+          // `meds.history.title` for that), so `meds.historyTab` matches it
+          // exactly. Wrapping every label in `FittedBox` on top of that is a
+          // second, independent guard: whatever the copy (including
+          // Amharic's typically-longer strings), it shrinks to fit its own
+          // third of the bar instead of ever clipping again.
           tabs: <Widget>[
-            Tab(text: 'meds.today'.tr()),
-            Tab(text: 'meds.schedule'.tr()),
-            Tab(text: 'meds.history.title'.tr()),
+            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.today'.tr()))),
+            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.schedule'.tr()))),
+            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text('meds.historyTab'.tr()))),
           ],
         ),
       ),

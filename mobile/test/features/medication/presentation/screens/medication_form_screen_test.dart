@@ -638,16 +638,23 @@ void main() {
         await tester.tap(find.widgetWithText(ActionChip, '50 mg'));
         await tester.pump();
 
-        // The name/dose fields render without a `TextEditingController` (see
-        // the prefill test in medications_screen_test.dart for the same
-        // quirk), so the update is verified against form state rather than
-        // rendered text — and this also proves the chip reuses
-        // `controller.setDoseMg` rather than a second source of truth: the
-        // dose field's own error-clearing logic would run too.
+        // Two checks, deliberately not just one: form state proves the chip
+        // reuses `controller.setDoseMg` rather than a second source of
+        // truth (the dose field's own error-clearing logic runs too), and
+        // the rendered field text proves the fourth Figma follow-up's fix
+        // actually shows it — the dose field is now bound to a real
+        // `TextEditingController` precisely so this second assertion holds;
+        // before that fix, state updated correctly but the field kept
+        // showing nothing, which this exact test previously had no way to
+        // catch.
         final MedicationFormState state = ProviderScope.containerOf(
           tester.element(find.byType(MedicationFormScreen)),
         ).read(medicationFormControllerProvider);
         expect(state.doseMg, '50');
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+          '50',
+        );
       },
     );
 
