@@ -78,20 +78,22 @@ class MedicationsScreen extends ConsumerWidget {
       showBack: false,
       //
       // Overrides the default `AppSpacing.headerBandHeight` (215) — that
-      // value doesn't actually match this screen's own Figma frames at all:
-      // both Screen 6.0 and Screen 6.4's own header-band background vectors
-      // are ~128-139px tall on Figma's 402x874 canvas, not 215 (215 is
-      // presumably tuned for a taller header elsewhere in the app, outside
-      // this feature). 150 sits close to that real range while still
-      // leaving room for a genuinely accessible ~48dp tap target on the
-      // menu icon this band also now carries (Figma's own mockup icon is a
-      // small static image with no real tap-target reservation at all — a
-      // fully clickable version needs a little more room than the flat
-      // design implies, confirmed by an actual overflow at this feature's
-      // narrow-width test viewports before this value was tuned). A local
-      // override here, not a change to the shared `AppSpacing.headerBandHeight`
-      // token, which every other screen across the app (outside this
-      // feature's scope) also uses.
+      // value doesn't actually match this screen's own Figma frame at all:
+      // frame 368:2846's own header-band background vector spans y=0.11% to
+      // 83.98% of an 874px canvas, i.e. ~139px, not 215. 150, not that
+      // ~139px raw figure, is deliberate: this band's own content (back
+      // icon + title + subtitle, non-scrolling inside a fixed-height
+      // Container) genuinely overflows a 320-wide test viewport below
+      // ~150 — confirmed by actually trying 139 here and getting a real
+      // `RenderFlex overflowed` failure in this feature's own narrow-width
+      // regression tests, the same failure an earlier fix on this branch
+      // already root-caused and fixed once by raising 130 -> 150. The
+      // status-bar collision this task actually reported is fixed
+      // separately, in `AppScaffold`'s own `SafeArea` (see its doc
+      // comment) — this height was never the cause of that. A local
+      // override here, not a change to the shared
+      // `AppSpacing.headerBandHeight` token, which every other screen
+      // across the app (outside this feature's scope) also uses.
       bandHeight: 150,
       scrollable: false,
       bandChild: Column(

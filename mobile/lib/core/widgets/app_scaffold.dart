@@ -89,7 +89,7 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.surface,
-      appBar: title == null && !showBack
+      appBar: !_hasAppBar
           ? null
           : AppBar(
               backgroundColor: _hasBand
@@ -117,20 +117,42 @@ class AppScaffold extends StatelessWidget {
             ),
       body: Column(
         children: <Widget>[
-          const OfflineBanner(),
-          if (_hasBand)
-            Container(
-              width: double.infinity,
-              height: bandHeight,
-              color: AppColors.headerBand,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.gutter,
-              ),
-              child: bandChild,
-            ),
+          // A screen with a real AppBar (`title != null || showBack`) gets
+          // its status-bar inset for free — the AppBar itself sits below it,
+          // and this Column starts only after that. A screen with no AppBar
+          // at all (`AppScaffold.banded(showBack: false, ...)`, used when a
+          // feature draws its own back arrow/title inside the band instead)
+          // has nothing else reserving that space, so without this the
+          // offline banner and the band below it painted straight under the
+          // system status bar, colliding with its time/wifi/battery icons.
+          // Gating on `_hasAppBar` rather than wrapping unconditionally
+          // matters: every existing `showBack: true` screen already has an
+          // AppBar handling this, and wrapping those too would double the
+          // inset, pushing their content down a second time.
+          if (_hasAppBar)
+            _bandColumn
+          else
+            SafeArea(top: true, bottom: false, child: _bandColumn),
           Expanded(child: SafeArea(top: false, child: content)),
         ],
       ),
     );
   }
+
+  bool get _hasAppBar => title != null || showBack;
+
+  Widget get _bandColumn => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      const OfflineBanner(),
+      if (_hasBand)
+        Container(
+          width: double.infinity,
+          height: bandHeight,
+          color: AppColors.headerBand,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+          child: bandChild,
+        ),
+    ],
+  );
 }
