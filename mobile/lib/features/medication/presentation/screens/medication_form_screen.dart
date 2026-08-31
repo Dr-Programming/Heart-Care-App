@@ -304,9 +304,12 @@ class _FormBody extends ConsumerWidget {
       // name is typed), not part of the header *style* fix this task scoped
       // to matching.
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: 150 leaves real room for
-      // an accessible ~48dp back-icon tap target, more than Figma's own flat
-      // ~128-136px mockup reserves for its static back-arrow image.
+      // See `MedicationsScreen`'s matching comment: this band's own content
+      // genuinely overflows a 320-wide test viewport below 150 (confirmed
+      // by trying frame 368:2706's raw ~136px figure here directly and
+      // getting a real `RenderFlex overflowed` failure) — the status-bar
+      // collision this task actually reported is fixed separately, in
+      // `AppScaffold`'s own `SafeArea`, not by this height.
       bandHeight: 150,
       scrollable: true,
       bandChild: Column(

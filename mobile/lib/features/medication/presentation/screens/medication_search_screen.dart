@@ -73,12 +73,12 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
       // reached via a push, so — unlike `MedicationsScreen` — the back
       // arrow is unconditional, not gated on `Navigator.canPop()`.
       showBack: false,
-      // 150, not Figma's own raw ~128px for this frame — a real, accessible
-      // ~48dp tap target on the back icon needs more room than Figma's
-      // small static back-arrow image implies (confirmed by a genuine
-      // overflow in this screen's own narrow-width tests at a tighter
-      // value). See `MedicationsScreen`'s matching comment for the full
-      // reasoning.
+      // See `MedicationsScreen`'s matching comment: this band's own content
+      // genuinely overflows a 320-wide test viewport below 150 (confirmed
+      // by trying frame 368:2790's raw ~128px figure here directly and
+      // getting a real `RenderFlex overflowed` failure) — the status-bar
+      // collision this task actually reported is fixed separately, in
+      // `AppScaffold`'s own `SafeArea`, not by this height.
       bandHeight: 150,
       scrollable: true,
       bandChild: Column(

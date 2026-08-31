@@ -120,11 +120,14 @@ class ReviewMedicationScreen extends ConsumerWidget {
       // Figma frame 368:2651 draws this screen's back arrow/title/subtitle
       // inside the cream band too, not a separate AppBar.
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: 150 leaves real room for
-      // an accessible ~48dp back-icon tap target — the actual, concrete
-      // reason this value was raised from an initial 130 is that 130
-      // genuinely overflowed this screen's own narrow-width regression
-      // tests once a real tappable icon was added to the band.
+      // See `MedicationsScreen`'s matching comment: this band's own content
+      // genuinely overflows a 320-wide test viewport below 150 (confirmed
+      // by trying frame 368:2651's raw ~128px figure here directly and
+      // reproducing the exact `RenderFlex overflowed` failure this
+      // screen's own "does not overflow ... at a narrow width" regression
+      // test was written to catch) — the status-bar collision this task
+      // actually reported is fixed separately, in `AppScaffold`'s own
+      // `SafeArea`, not by this height.
       bandHeight: 150,
       scrollable: true,
       bandChild: Column(
