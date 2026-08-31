@@ -173,7 +173,12 @@
         "withFood": "With food",
         "beforeMeal": "Before meal"
       },
-      "asNeededCaption": "'As needed' disables reminders — used for GTN/nitro spray"
+      "asNeededCaption": "'As needed' disables reminders — used for GTN/nitro spray",
+      "pickTimeTitle": "Enter time",
+      "pickTimeHour": "Hour",
+      "pickTimeMinute": "Minute",
+      "am": "AM",
+      "pm": "PM"
     },
     "frequency": {
       "onceDaily": "Once daily",
