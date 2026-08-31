@@ -80,21 +80,20 @@ class MedicationsScreen extends ConsumerWidget {
       // Overrides the default `AppSpacing.headerBandHeight` (215) — that
       // value doesn't actually match this screen's own Figma frame at all:
       // frame 368:2846's own header-band background vector spans y=0.11% to
-      // 83.98% of an 874px canvas, i.e. ~139px, not 215. 150, not that
-      // ~139px raw figure, is deliberate: this band's own content (back
-      // icon + title + subtitle, non-scrolling inside a fixed-height
-      // Container) genuinely overflows a 320-wide test viewport below
-      // ~150 — confirmed by actually trying 139 here and getting a real
-      // `RenderFlex overflowed` failure in this feature's own narrow-width
-      // regression tests, the same failure an earlier fix on this branch
-      // already root-caused and fixed once by raising 130 -> 150. The
-      // status-bar collision this task actually reported is fixed
-      // separately, in `AppScaffold`'s own `SafeArea` (see its doc
-      // comment) — this height was never the cause of that. A local
-      // override here, not a change to the shared
-      // `AppSpacing.headerBandHeight` token, which every other screen
-      // across the app (outside this feature's scope) also uses.
-      bandHeight: 139,
+      // 83.98% of an 874px canvas, i.e. ~139px. Even that measured figure
+      // read as too tall on a real device (user-reported, twice) once
+      // actually built: the real culprit was the `Spacer()` this band used
+      // to push title+subtitle to the bottom, which — on top of the
+      // `PopupMenuButton`'s own default ~48dp Material tap target above it
+      // — left a large empty cream gap up top with nothing in it. Both are
+      // fixed below (a fixed small gap instead of `Spacer`, and the menu
+      // icon's tap target tightened to match the back-arrow icons on this
+      // feature's other three screens), so this height now matches the
+      // band's own natural content size rather than leaving room for a
+      // `Spacer` to fill. A local override here, not a change to the
+      // shared `AppSpacing.headerBandHeight` token, which every other
+      // screen across the app (outside this feature's scope) also uses.
+      bandHeight: 112, // empirically the band's own natural content height
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +105,15 @@ class MedicationsScreen extends ConsumerWidget {
               // Reminder Settings routes (M3 Figma rework, Task 7) — no
               // routing-table change, just a UI path to destinations that
               // previously had none from here.
+              //
+              // `padding: zero` + tight `constraints`, matching the
+              // back-arrow icons on this feature's other three screens
+              // (see e.g. `MedicationSearchScreen`'s bandChild) — the
+              // default Material `IconButton` this wraps otherwise reserves
+              // a full ~48dp tap target, which was most of this band's own
+              // unwanted empty space at the top.
               PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
                 icon: const Icon(Icons.more_vert, color: AppColors.ink),
                 onSelected: (String value) {
                   if (value == 'adherence') context.pushNamed(AppRoutes.adherence);
@@ -125,16 +132,26 @@ class MedicationsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.xs),
           // FittedBox, not a bare Text: guards this fixed-height band
           // against a title long enough to wrap to a second line (the
           // exact failure `ReviewMedicationScreen`'s own title hit at a
           // 320dp-wide viewport — see its matching comment) at any
           // translation length, not just today's English/Amharic copy.
+          //
+          // fontSize 28, not bare `headlineLarge` (24): user-reported, the
+          // title read as too small once the band itself shrank — the
+          // `FittedBox` above still shrinks it back down whenever 28
+          // genuinely doesn't fit (a long name, a narrow device, Amharic),
+          // so this is a floor the title grows to fill, not a value that
+          // can itself cause an overflow.
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text('meds.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+            child: Text(
+              'meds.title'.tr(),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
@@ -258,13 +275,23 @@ class _MedicationsTabBar extends StatelessWidget {
           ),
           labelColor: AppColors.surface,
           unselectedLabelColor: AppColors.ink,
-          labelStyle: Theme.of(context).textTheme.titleSmall,
-          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall,
+          // Explicit fontSize, not bare `titleSmall`: at `titleSmall`'s own
+          // size, "Schedule" — the widest of the three labels — needed its
+          // own `FittedBox` to shrink-to-fit its third of the bar, while
+          // "Today" and "History" didn't, so the three rendered at visibly
+          // different sizes (user-reported: "the schedule font is different
+          // from the today and history"). 13 (matching `bodyMedium`'s own
+          // app-wide size) is small enough that all three fit at their
+          // natural size with nothing left to shrink — the `FittedBox`
+          // below stays on purely as a safety net for longer translations,
+          // not because it's expected to actually engage any more.
+          labelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
+          unselectedLabelStyle: Theme.of(context).textTheme.titleSmall?.copyWith(fontSize: 13),
           // Equal-width tabs (`isScrollable: false`, the default) divide the
           // available width three ways regardless of label length — "Dose
           // history" (this tab's page-title copy, reused here) and even
-          // plain "Schedule" were genuinely being clipped mid-word on a real
-          // device at `titleSmall` size. Figma's own tab literally just says
+          // plain "Schedule" were genuinely being clipped mid-word before
+          // the 13px size above. Figma's own tab literally just says
           // "History" (not "Dose history" — that longer copy is only
           // appropriate for the full standalone page, kept as
           // `meds.history.title` for that), so `meds.historyTab` matches it

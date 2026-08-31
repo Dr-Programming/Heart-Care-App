@@ -73,13 +73,12 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
       // reached via a push, so — unlike `MedicationsScreen` — the back
       // arrow is unconditional, not gated on `Navigator.canPop()`.
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: this band's own content
-      // genuinely overflows a 320-wide test viewport below 150 (confirmed
-      // by trying frame 368:2790's raw ~128px figure here directly and
-      // getting a real `RenderFlex overflowed` failure) — the status-bar
-      // collision this task actually reported is fixed separately, in
-      // `AppScaffold`'s own `SafeArea`, not by this height.
-      bandHeight: 128,
+      // See `MedicationsScreen`'s matching comment: the `Spacer()` this
+      // band used to push title+subtitle to the bottom left a large empty
+      // cream gap above the back icon with nothing in it — fixed below with
+      // a fixed small gap instead, matching this height to the band's own
+      // natural content size.
+      bandHeight: 130,
       scrollable: true,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,16 +89,19 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             icon: const Icon(Icons.arrow_back, color: AppColors.ink),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.xs),
           // FittedBox, not a bare Text: guards this fixed-height band
           // against a title long enough to wrap to a second line (the
           // exact failure `ReviewMedicationScreen`'s own title hit at a
           // 320dp-wide viewport — see its matching comment) at any
           // translation length, not just today's English/Amharic copy.
+          //
+          // fontSize 28, not bare `headlineLarge` (24) — see
+          // `MedicationsScreen`'s matching comment.
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text('meds.search.title'.tr(), style: text.headlineLarge),
+            child: Text('meds.search.title'.tr(), style: text.headlineLarge?.copyWith(fontSize: 28)),
           ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
