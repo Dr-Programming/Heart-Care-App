@@ -125,9 +125,13 @@ class MedicationsScreen extends ConsumerWidget {
           const Spacer(),
           Text('meds.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: AppSpacing.xs),
+          // `bodyMedium` alone renders AppColors.textSecondary (its default,
+          // confirmed by reading app_typography.dart) — get_design_context
+          // for this frame (368:2846) shows this date line at #282a2a (ink),
+          // not grey.
           Text(
             DateFormatter.displayDate(DateTime.now(), context.locale.languageCode),
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
