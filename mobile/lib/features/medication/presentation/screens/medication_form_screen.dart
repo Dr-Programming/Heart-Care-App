@@ -60,11 +60,25 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   /// through the controller.
   bool _caregiverEnabled = false;
 
-  /// A real `TextEditingController` (unlike the name/dose fields below it,
-  /// which this task leaves exactly as it found them) because this field is
-  /// new in this task: a phone number loaded from storage that never renders
-  /// once typed would be a fresh bug, not a preserved quirk.
   final TextEditingController _caregiverPhoneController = TextEditingController();
+
+  /// Fourth Figma follow-up: `AppTextField` without a `controller` wraps a
+  /// genuinely uncontrolled `TextField` — typing into it works (the field
+  /// owns its own anonymous controller internally), but nothing external can
+  /// ever update what it displays. The dose quick-pick chips call
+  /// `controller.setDoseMg(...)`, which updates `MedicationFormState.doseMg`
+  /// correctly, but the dose field itself never learned about that change —
+  /// tapping a chip looked like it did nothing. The prefill-from-search path
+  /// (see `initState`) had the identical latent bug for both fields, just
+  /// less visible: it only showed up as "the name/dose I searched for isn't
+  /// actually in the form," not as an interactive control failing to
+  /// respond. Bound `TextEditingController`s fix both: typing still flows
+  /// forward via `onChanged` exactly as before, and now anything that sets
+  /// `MedicationFormState.name`/`doseMg` from outside the field itself —
+  /// search prefill, `loadForEdit`, a quick-pick chip — updates `.text` here
+  /// too, so the field always shows what the state actually holds.
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _doseController = TextEditingController();
 
   /// Instructions state (second Figma follow-up), local `State` for the same
   /// reason as the caregiver fields above: `MedicationInstructionsStore` is
@@ -103,7 +117,10 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         final MedicationFormController controller =
             ref.read(medicationFormControllerProvider.notifier);
         controller.setName(entry.name);
-        controller.setDoseMg(_formatDose(entry.doseMg));
+        _nameController.text = entry.name;
+        final String dose = _formatDose(entry.doseMg);
+        controller.setDoseMg(dose);
+        _doseController.text = dose;
       });
     }
   }
@@ -111,6 +128,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   @override
   void dispose() {
     _caregiverPhoneController.dispose();
+    _nameController.dispose();
+    _doseController.dispose();
     super.dispose();
   }
 
@@ -180,6 +199,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) async {
             if (found != null) {
               ref.read(medicationFormControllerProvider.notifier).loadForEdit(found);
+              _nameController.text = found.name;
+              _doseController.text = _formatDose(found.doseMg);
             }
             // Loaded alongside the medication itself, same as `loadForEdit`
             // above — the caregiver settings and the medication both belong
@@ -206,6 +227,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     }
     return _FormBody(
       editingId: widget.editingId,
+      nameController: _nameController,
+      doseController: _doseController,
       caregiverEnabled: _caregiverEnabled,
       caregiverPhoneController: _caregiverPhoneController,
       onCaregiverEnabledChanged: _setCaregiverEnabled,
@@ -224,6 +247,8 @@ String _formatDose(double doseMg) =>
 class _FormBody extends ConsumerWidget {
   const _FormBody({
     required this.editingId,
+    required this.nameController,
+    required this.doseController,
     required this.caregiverEnabled,
     required this.caregiverPhoneController,
     required this.onCaregiverEnabledChanged,
@@ -235,6 +260,9 @@ class _FormBody extends ConsumerWidget {
   /// Null in add mode. Drives the deactivate action, which only makes sense
   /// for a medication that already exists (spec §3).
   final String? editingId;
+
+  final TextEditingController nameController;
+  final TextEditingController doseController;
 
   final bool caregiverEnabled;
   final TextEditingController caregiverPhoneController;
@@ -272,14 +300,22 @@ class _FormBody extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           AppTextField(
+            controller: nameController,
             label: 'meds.form.name'.tr(),
             hint: 'meds.form.nameHint'.tr(),
             errorText: state.nameError?.tr(),
             onChanged: controller.setName,
           ),
           const SizedBox(height: AppSpacing.lg),
-          _DoseQuickPicks(medicationName: state.name, onSelected: controller.setDoseMg),
+          _DoseQuickPicks(
+            medicationName: state.name,
+            onSelected: (String dose) {
+              controller.setDoseMg(dose);
+              doseController.text = dose;
+            },
+          ),
           AppTextField(
+            controller: doseController,
             label: 'meds.form.doseMg'.tr(),
             keyboardType: TextInputType.number,
             errorText: state.doseError?.tr(),

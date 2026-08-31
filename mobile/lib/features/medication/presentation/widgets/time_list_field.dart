@@ -68,7 +68,13 @@ class TimeListField extends StatelessWidget {
   Future<void> _pickTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      // Starting from the current wall-clock time meant the hour/minute
+      // fields opened already full of digits that meant nothing to the
+      // medication being scheduled — the user had to select-all and delete
+      // before typing the real time. 00:00 gives a neutral starting point
+      // instead, so typing the intended time is the very first thing that
+      // happens.
+      initialTime: const TimeOfDay(hour: 0, minute: 0),
       // The default radial dial asks for a precise drag gesture to land on
       // an exact minute — a poor fit for patients with limited dexterity or
       // vision. Plain numeric hour/minute fields with an AM/PM toggle are
