@@ -7,9 +7,8 @@ import 'package:libu_care/features/medication/notifications/notification_schedul
 
 /// A `MedicationRepository` that answers from in-memory lists.
 ///
-/// The individual task tests each grew their own one-off `implements
-/// MedicationRepository` fake; this is the shared version for the tests added
-/// by the final-review fix wave, so that a new test does not have to restate
+/// A shared fake rather than one-off `implements MedicationRepository`
+/// stubs per test file, so a new test does not have to restate
 /// all eleven members to stub one of them.
 class FakeMedicationRepository implements MedicationRepository {
   FakeMedicationRepository({

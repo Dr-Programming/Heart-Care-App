@@ -134,13 +134,13 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   /// three error fields either way, and returns whether all of them passed.
   ///
   /// Split out of [save] so `MedicationFormScreen`'s Save button can run the
-  /// same up-to-date check before pushing `ReviewMedicationScreen` (M3 Figma
-  /// rework) without duplicating the validator calls: a field the user never
+  /// same up-to-date check before pushing `ReviewMedicationScreen` without
+  /// duplicating the validator calls: a field the user never
   /// touched never ran its `onChanged` validator, so it must still be
   /// re-checked at submit time — exactly what `save()` always did before this
   /// method existed, and still does, via this shared call.
   ///
-  /// "As needed" (second Figma follow-up) is `frequency == custom` with an
+  /// "As needed" is `frequency == custom` with an
   /// empty `scheduleTimes` — a deliberate, real state, not an unfinished
   /// form — so that one combination skips `validateScheduleTimes` entirely
   /// rather than failing it. `validateScheduleTimes` itself stays untouched:
@@ -162,8 +162,8 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   /// controller's own state (see those stores' doc comments) — the caller
   /// (`ReviewMedicationScreen`) passes the values it was handed down from
   /// `MedicationFormScreen`'s local `State`. Persisting them here, after the
-  /// medication write above succeeds, is what makes them work in ADD mode
-  /// (third Figma follow-up): there is no `clientRecordId` to key either
+  /// medication write above succeeds, is what makes them work in ADD mode:
+  /// there is no `clientRecordId` to key either
   /// store by until this exact point, when `repository.add` returns one for
   /// the first time. A failure persisting either is treated the same way as
   /// a reminder-scheduling failure above — non-fatal, since the medication

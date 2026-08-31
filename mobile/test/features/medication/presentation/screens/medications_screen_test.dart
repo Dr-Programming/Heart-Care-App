@@ -55,7 +55,7 @@ Medication _medication(String id) => Medication(
 
 /// `MedicationsScreen` pushed onto a real (miniature) `GoRouter` stack, the
 /// same pattern `medication_form_screen_test.dart` uses — the app-bar menu
-/// (Task 7) navigates with `context.pushNamed`, which needs a real
+/// navigates with `context.pushNamed`, which needs a real
 /// `GoRouter` above it to resolve `AppRoutes.adherence` /
 /// `AppRoutes.reminderSettings`. The destinations are plain placeholder
 /// screens: this test is only proving the menu reaches the right route name,
@@ -101,7 +101,7 @@ void main() {
       ],
     );
 
-    // The `meds` translation namespace is still `{}` (Task 20 fills it in),
+    // The `meds` translation namespace is still `{}` (populated at runtime from the translation assets),
     // so `.tr()` falls back to rendering the literal key string rather than
     // throwing — asserting on that literal text would just be testing
     // easy_localization's fallback behaviour, not this screen. Assert on the
@@ -113,11 +113,10 @@ void main() {
 
   // `AppScaffold.banded`'s own default is `showBack = true`, which the
   // Scaffold reads as "render an AppBar" whenever `title` is null too
-  // (`title == null && !showBack`) -- an earlier fix removed the explicit
-  // `showBack: true` here, intending to remove the AppBar entirely, but
-  // never added `showBack: false`, so the default silently kept it
-  // rendering (empty, but real height, tinted the header colour) above the
-  // band this whole time. Confirms it is genuinely gone now, not just
+  // (`title == null && !showBack`) — easy to get wrong by omitting
+  // `showBack` rather than explicitly passing `false`, since the default
+  // silently keeps it rendering (empty, but real height, tinted the header
+  // colour) above the band. Confirms it is genuinely gone, not just
   // visually unremarkable.
   testWidgets(
     'renders no AppBar at all -- MedicationsScreen is a tab root with '
@@ -141,7 +140,7 @@ void main() {
     },
   );
 
-  // Fix 1 (I1) of the final-review fix wave: the empty state's "add" action
+  // The empty state's "add" action
   // must go through the same search-first flow as the FAB, not straight to
   // a blank form.
   testWidgets(
@@ -351,7 +350,7 @@ void main() {
       ).read(medicationFormControllerProvider);
       expect(state.name, 'Metoprolol');
       expect(state.doseMg, '50');
-      // Fourth Figma follow-up: the name/dose fields are now bound to real
+      // the name/dose fields are now bound to real
       // `TextEditingController`s specifically so a prefill like this one
       // shows up on screen, not just in provider state — confirmed here
       // directly rather than trusted from the state assertions above.
@@ -467,7 +466,7 @@ void main() {
           ),
           // `ReviewMedicationScreen`'s Save now always threads caregiver
           // settings/instructions through to `MedicationFormController.save()`
-          // (third Figma follow-up), which persists them via these two
+          //, which persists them via these two
           // providers regardless of whether the test cares about their
           // values — without a real, working store behind them here, `save()`
           // would fall through to the default `caregiverNotifyStoreProvider`/
@@ -508,7 +507,7 @@ void main() {
       await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
       await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
       await tester.pump();
-      // Fix round 1's add-mode disabled caregiver phone field + note pushes
+      // The caregiver phone field + note pushes
       // Save below the fold on the default test surface.
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
@@ -532,7 +531,7 @@ void main() {
     },
   );
 
-  // Third Figma follow-up: the caregiver toggle/phone and Instructions
+  // the caregiver toggle/phone and Instructions
   // chips used to be disabled in add mode (no `clientRecordId` to key their
   // stores by yet) — real user feedback that this read as being blocked
   // from entering real information at all, not just deferred. This proves
@@ -593,7 +592,7 @@ void main() {
       // now, not disabled.
       final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
       expect(toggle.onChanged, isNotNull, reason: 'no longer disabled in add mode');
-      // The taller banded header (matching Figma's real per-screen header)
+      // The taller banded header (matching the design's real per-screen header)
       // pushes this below the fold on the default test surface.
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
@@ -670,8 +669,8 @@ void main() {
     },
   );
 
-  // Fix 1 of the second Figma follow-up wave: the Today/Schedule/History
-  // selected-tab fill must be AppColors.ink (Figma's convention for every
+  // the Today/Schedule/History
+  // selected-tab fill must be AppColors.ink (the design's convention for every
   // selected chip/tab in this flow), not AppColors.primary — orange is
   // reserved for primary action buttons only.
   testWidgets(
@@ -702,7 +701,7 @@ void main() {
   );
 
   testWidgets(
-    'switching to the Schedule tab shows the medication list (M3 Figma rework, Task 7)',
+    'switching to the Schedule tab shows the medication list',
     (tester) async {
       await pumpApp(
         tester,
@@ -730,7 +729,7 @@ void main() {
   );
 
   testWidgets(
-    'switching to the History tab shows dose history content (M3 Figma rework, Task 7)',
+    'switching to the History tab shows dose history content',
     (tester) async {
       final _FakeDoseHistoryController historyController = _FakeDoseHistoryController(
         DoseHistoryState(
@@ -784,7 +783,7 @@ void main() {
   );
 
   testWidgets(
-    'the app-bar menu navigates to Adherence (M3 Figma rework, Task 7)',
+    'the app-bar menu navigates to Adherence',
     (tester) async {
       await pumpApp(
         tester,
@@ -808,7 +807,7 @@ void main() {
   );
 
   testWidgets(
-    'the app-bar menu navigates to Reminder Settings (M3 Figma rework, Task 7)',
+    'the app-bar menu navigates to Reminder Settings',
     (tester) async {
       await pumpApp(
         tester,

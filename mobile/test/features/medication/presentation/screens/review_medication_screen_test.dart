@@ -149,7 +149,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // Fix 2 (I2) of the final-review fix wave: the caregiver on/off row and
+  // The caregiver on/off row and
   // the "reminders set" banner copy, both previously missing.
   testWidgets(
     'shows the caregiver notify row as On when notifyCaregiverEnabled is true',
@@ -165,9 +165,8 @@ void main() {
       expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
       // Two "On" pills now (Reminder + Notify caregiver, both true for this
       // fixture's state) — the generic `meds.review.on`/`off` keys are
-      // shared across both rows (fifth Figma follow-up: get_design_context
-      // confirmed frame 368:2651 renders these as coloured status pills, not
-      // plain text, previously missing the Reminder row entirely).
+      // shared across both rows: frame 368:2651 renders these as coloured
+      // status pills, not plain text.
       expect(find.text('meds.review.on'.tr()), findsNWidgets(2));
       expect(find.text('meds.review.off'.tr()), findsNothing);
     },
@@ -212,16 +211,17 @@ void main() {
     },
   );
 
-  // Fix 3 (I3): `_SummaryRow`'s value `Text` must be flex-guarded, matching
+  // `_SummaryRow`'s value `Text` must be flex-guarded, matching
   // the unwrapped-leading / `Flexible`-trailing idiom `DoseRow` and
   // `MedicationCard` already use elsewhere in this feature.
   testWidgets(
     'does not overflow with several Custom-frequency schedule times at a '
     'narrow width',
     (tester) async {
-      // Before the fix (`_SummaryRow`'s bare, unwrapped value `Text` in a
-      // `spaceBetween` `Row`), a long joined schedule-times value on a narrow
-      // device throws a `RenderFlex overflowed` FlutterError during pump.
+      // A bare, unwrapped value `Text` in a `spaceBetween` `Row` (without
+      // the `Flexible` guard `_SummaryRow` uses) would let a long joined
+      // schedule-times value throw a `RenderFlex overflowed` FlutterError
+      // on a narrow device.
       tester.view.physicalSize = const Size(320, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -246,7 +246,7 @@ void main() {
     },
   );
 
-  // Second Figma follow-up, Part A: the Instructions summary row.
+  // the Instructions summary row.
   group('instructions row', () {
     testWidgets(
       'shows the selected instruction\'s label when one was passed in',
@@ -285,7 +285,7 @@ void main() {
     );
   });
 
-  // Second Figma follow-up, Part B: "As needed" is Custom frequency with an
+  // "As needed" is Custom frequency with an
   // empty schedule. The review screen must special-case that combination the
   // same way the form screen's chip-selection logic does, rather than
   // showing "Custom" with a blank times line.

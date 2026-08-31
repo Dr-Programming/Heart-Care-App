@@ -104,10 +104,9 @@ void main() {
       ],
     );
 
-    // Fix round 1 added a disabled phone field + note in add mode, which
-    // pushes Save below the fold on the default 800x600 test surface — the
-    // same reason the deactivate-button tests below already `ensureVisible`
-    // before tapping.
+    // The caregiver phone field + note pushes Save below the fold on the
+    // default 800x600 test surface — the same reason the deactivate-button
+    // tests below already `ensureVisible` before tapping.
     await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
     await tester.tap(find.text('meds.form.reviewButton'.tr()));
     await tester.pump();
@@ -115,7 +114,7 @@ void main() {
     expect(find.text('meds.errors.nameRequired'.tr()), findsOneWidget);
   });
 
-  // Fix 2 of the second Figma follow-up wave: the bottom button does not
+  // The bottom button does not
   // save — it navigates to ReviewMedicationScreen, which owns the real
   // "Save medication" action — so it must say "Review & confirm", with a
   // trailing arrow, rather than "Save".
@@ -143,12 +142,13 @@ void main() {
     'does not overflow on a short viewport (e.g. a small device, or the '
     'keyboard open while editing)',
     (tester) async {
-      // Before the fix (plain `AppScaffold(title:, body:)`, which defaults
-      // `scrollable: false`), an un-scrolled Column holding two text fields,
-      // a Wrap of frequency chips, TimeListField's own label + chip row, and
-      // the save button overflows vertically once the viewport is shorter
-      // than its natural content height — exactly what a small device or an
-      // open soft keyboard does. 400x400 logical px (well under any real
+      // A plain, non-scrollable `AppScaffold` here — an un-scrolled Column
+      // holding two text fields, a Wrap of frequency chips, TimeListField's
+      // own label + chip row, and the save button — would overflow
+      // vertically once the viewport is shorter than its natural content
+      // height, exactly what a small device or an open soft keyboard does.
+      // `AppScaffold.banded`'s own `scrollable: true` default avoids that.
+      // 400x400 logical px (well under any real
       // phone's available content height once the AppBar and status bar are
       // subtracted) reproduces that squeeze.
       tester.view.physicalSize = const Size(400, 400);
@@ -204,7 +204,7 @@ void main() {
     'a valid form pushes ReviewMedicationScreen when Save is tapped, '
     'without saving immediately',
     (tester) async {
-      // Before the M3 Figma rework, tapping Save called `controller.save()`
+      // Previously, tapping Save called `controller.save()`
       // directly. Now it only validates and navigates — the actual save (and
       // its I7 error handling) belongs to `ReviewMedicationScreen`, already
       // covered by review_medication_screen_test.dart.
@@ -224,7 +224,7 @@ void main() {
       );
 
       await fillValidForm(tester);
-      // Fix round 1's add-mode disabled phone field + note pushes Save below
+      // The caregiver phone field + note pushes Save below
       // the fold on the default test surface.
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
@@ -255,7 +255,7 @@ void main() {
     (tester) async {
       await pumpApp(tester, const MedicationFormScreen());
 
-      // Fix round 1's add-mode disabled phone field + note pushes Save below
+      // The caregiver phone field + note pushes Save below
       // the fold on the default test surface.
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
@@ -458,13 +458,13 @@ void main() {
   );
 
   testWidgets(
-    'add mode leaves the caregiver toggle and phone field fully enabled '
-    '(third Figma follow-up)',
+    'add mode leaves the caregiver toggle and phone field fully enabled',
     (tester) async {
-      // Fix round 1 disabled these in add mode, since `_persistCaregiverSettings`
-      // had nothing to key `CaregiverNotifyStore` by yet — but that read as
-      // being blocked from entering the information at all, per real user
-      // feedback. `MedicationFormController.save()` now persists it once the
+      // These stay enabled in add mode rather than being disabled until save
+      // — disabling them until `_persistCaregiverSettings` has a
+      // `clientRecordId` to key `CaregiverNotifyStore` by would read as
+      // being blocked from entering the information at all.
+      // `MedicationFormController.save()` instead persists it once the
       // medication's real id exists (see that method's doc comment and
       // medications_screen_test.dart's full-add-flow coverage of the actual
       // persisted result); this screen-level test only needs to prove the
@@ -484,7 +484,8 @@ void main() {
       expect(toggle.value, isFalse);
 
       // The taller banded header (plus the gap now added below it, matching
-      // Figma) pushes the toggle below the fold on the default test surface.
+      // the design) pushes the toggle below the fold on the default test
+      // surface.
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
@@ -507,7 +508,7 @@ void main() {
 
   testWidgets(
     'edit mode leaves the caregiver toggle and phone field fully enabled, '
-    'unaffected by the add-mode fix (fix round 1)',
+    'same as add mode',
     (tester) async {
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
@@ -543,7 +544,7 @@ void main() {
       );
 
       // The taller banded header (back arrow + title + subtitle, matching
-      // Figma's real header on this screen) pushes the toggle below the
+      // the design's real header on this screen) pushes the toggle below the
       // fold on the default 800x600 test surface — same reason other taps
       // in this file already `ensureVisible` first.
       await tester.ensureVisible(find.byType(SwitchListTile));
@@ -566,7 +567,7 @@ void main() {
     },
   );
 
-  // Fix 4 (I4) of the final-review fix wave: before Task 6, this file had a
+  // Before this test existed, this file had a
   // test proving a successful save closes the form with no error shown,
   // using a real GoRouter-managed page underneath (deleted, no equivalent
   // added, when Save started pushing `ReviewMedicationScreen` instead of
@@ -625,7 +626,7 @@ void main() {
     },
   );
 
-  // Fix 3 of the second Figma follow-up wave: quick-pick dose chips built
+  // quick-pick dose chips built
   // from `kMedicationLibrary`, reactive to the Name field.
   //
   // `find.byType(ActionChip)` alone isn't specific enough: `TimeListField`
@@ -641,7 +642,7 @@ void main() {
         ((w.label as Text).data?.endsWith(' mg') ?? false),
   );
 
-  group('dose quick-pick chips (Fix 3)', () {
+  group('dose quick-pick chips', () {
     testWidgets(
       'typing a known medication name shows its library doses as chips, '
       'and tapping one fills the dose field',
@@ -666,7 +667,7 @@ void main() {
         // Two checks, deliberately not just one: form state proves the chip
         // reuses `controller.setDoseMg` rather than a second source of
         // truth (the dose field's own error-clearing logic runs too), and
-        // the rendered field text proves the fourth Figma follow-up's fix
+        // the rendered field text proves the controller-binding fix
         // actually shows it — the dose field is now bound to a real
         // `TextEditingController` precisely so this second assertion holds;
         // before that fix, state updated correctly but the field kept
@@ -718,7 +719,7 @@ void main() {
     );
   });
 
-  // Requested directly by the user: "Enter manually" had no suggestions at
+  // "Enter manually" had no suggestions at
   // all, unlike MedicationSearchScreen's own search bar.
   group('name field suggestions (manual entry)', () {
     testWidgets('typing one letter shows no suggestions', (tester) async {
@@ -825,7 +826,7 @@ void main() {
     });
   });
 
-  // Second Figma follow-up, Part A: the Instructions field.
+  // the Instructions field.
   group('instructions field', () {
     testWidgets(
       'edit mode loads a previously saved instruction alongside the '
@@ -931,8 +932,7 @@ void main() {
     );
 
     testWidgets(
-      'add mode leaves the instructions chips fully interactive '
-      '(third Figma follow-up)',
+      'add mode leaves the instructions chips fully interactive',
       (tester) async {
         // Same reasoning as the caregiver toggle/phone field's own
         // "add mode leaves ... fully enabled" test above — see its doc
@@ -975,7 +975,7 @@ void main() {
     );
   });
 
-  // Second Figma follow-up, Part B: "As needed" is Custom frequency with an
+  // "As needed" is Custom frequency with an
   // empty schedule — no new enum value, no new persisted field. See
   // `MedicationFormController.validate()`'s doc comment for the binding
   // design constraint.
@@ -1114,7 +1114,7 @@ void main() {
               MedicationNotifications(RecordingScheduler(), db.preferencesDao),
             ),
             // Save now always threads caregiver settings/instructions
-            // through to the real save() (third Figma follow-up) — see
+            // through to the real save() — see
             // medications_screen_test.dart's matching override for why this
             // is required even though this test doesn't care about their
             // values.

@@ -40,8 +40,8 @@ class MedicationFormScreen extends ConsumerStatefulWidget {
 
   final String? editingId;
 
-  /// A library entry picked on `MedicationSearchScreen` (M3 Figma rework) —
-  /// pre-fills name and dose in add mode. Ignored when [editingId] is set;
+  /// A library entry picked on `MedicationSearchScreen` — pre-fills name
+  /// and dose in add mode. Ignored when [editingId] is set;
   /// editing an existing medication always loads that medication's own
   /// values instead.
   final MedicationLibraryEntry? prefillEntry;
@@ -53,8 +53,8 @@ class MedicationFormScreen extends ConsumerStatefulWidget {
 class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   bool _loaded = false;
 
-  /// Caregiver-notify state (M3 Figma rework, Decision B). Local `State`
-  /// rather than part of `MedicationFormState`: `CaregiverNotifyStore` is
+  /// Caregiver-notify state. Local `State` rather than part of
+  /// `MedicationFormState`: `CaregiverNotifyStore` is
   /// storage `MedicationFormController` doesn't own (see its own doc
   /// comment), so this screen reads/writes it directly instead of routing it
   /// through the controller.
@@ -62,8 +62,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
   final TextEditingController _caregiverPhoneController = TextEditingController();
 
-  /// Fourth Figma follow-up: `AppTextField` without a `controller` wraps a
-  /// genuinely uncontrolled `TextField` — typing into it works (the field
+  /// `AppTextField` without a `controller` wraps a genuinely uncontrolled
+  /// `TextField` — typing into it works (the field
   /// owns its own anonymous controller internally), but nothing external can
   /// ever update what it displays. The dose quick-pick chips call
   /// `controller.setDoseMg(...)`, which updates `MedicationFormState.doseMg`
@@ -80,8 +80,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _doseController = TextEditingController();
 
-  /// Instructions state (second Figma follow-up), local `State` for the same
-  /// reason as the caregiver fields above: `MedicationInstructionsStore` is
+  /// Instructions state, local `State` for the same reason as the caregiver
+  /// fields above: `MedicationInstructionsStore` is
   /// storage `MedicationFormController` doesn't own, keyed by
   /// `clientRecordId` the same way `CaregiverNotifyStore` is.
   MedicationInstructions? _instructions;
@@ -140,10 +140,10 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   /// `_caregiverPhoneController`) and are threaded through
   /// `ReviewMedicationScreen` to `MedicationFormController.save()`, which
   /// writes them for real once the medication's real id exists (see that
-  /// method's doc comment). Third Figma follow-up: this used to disable the
-  /// fields entirely in add mode instead of doing this — real, repeated user
-  /// feedback that reads as data loss ("why can't I set this before
-  /// saving?") is what changed it to always-enabled with a deferred write.
+  /// method's doc comment). The fields stay enabled in add mode rather than
+  /// being disabled until save — disabling them would read as data loss
+  /// ("why can't I set this before saving?"), so instead they capture the
+  /// value locally with a deferred write.
   void _persistCaregiverSettings() {
     final String? id = widget.editingId;
     if (id == null) return;
@@ -278,31 +278,30 @@ class _FormBody extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    // "As needed" (second Figma follow-up) is Custom frequency with an empty
-    // schedule — not a new enum value, not a new persisted field (see
+    // "As needed" is Custom frequency with an empty schedule — not a new
+    // enum value, not a new persisted field (see
     // `MedicationInstructions`' own file for the parallel local-only field,
     // and `MedicationFormController.validate()` for why this combination is
     // deliberately valid). Derived, not stored, so it needs no loading step.
     final bool isAsNeeded =
         state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
 
-    // No `ref.listen(...saved...)` here (unlike before the M3 Figma rework):
-    // this screen's Save button no longer calls `controller.save()` directly
-    // — it pushes `ReviewMedicationScreen`, which owns the actual save() call
-    // and its own pop-on-saved listener. Keeping a second listener here would
-    // fire it too, on the very same `saved` transition, popping this screen
-    // out from underneath Review's own (correct) pop.
+    // No `ref.listen(...saved...)` here: this screen's Save button doesn't
+    // call `controller.save()` directly — it pushes `ReviewMedicationScreen`,
+    // which owns the actual save() call and its own pop-on-saved listener.
+    // Keeping a second listener here would fire it too, on the very same
+    // `saved` transition, popping this screen out from underneath Review's
+    // own (correct) pop.
 
     return AppScaffold.banded(
       // Same technique as `MedicationSearchScreen`/`ReviewMedicationScreen`
-      // — see the former's doc comment. Figma frame 368:2706 draws this
+      // — see the former's doc comment. design frame 368:2706 draws this
       // screen's back arrow/title/subtitle inside the cream band too, not a
-      // separate AppBar. Title text is left as the existing static
-      // `meds.form.title` rather than switched to Figma's per-medication
-      // dynamic title ("Metoprolol 50 mg") — that's a real, separate
-      // refinement (and needs a sensible fallback for add mode before any
-      // name is typed), not part of the header *style* fix this task scoped
-      // to matching.
+      // separate AppBar. Title text is left as the static `meds.form.title`
+      // rather than switched to the design's per-medication dynamic title
+      // ("Metoprolol 50 mg") — that needs a sensible fallback for add mode
+      // before any name is typed, and is a separate enhancement from the
+      // header layout itself.
       showBack: false,
       // See `MedicationsScreen`'s matching comment: the `Spacer()` this
       // band used to push title+subtitle to the bottom left a large empty
@@ -338,17 +337,16 @@ class _FormBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its default,
-          // confirmed by reading app_typography.dart) — get_design_context
-          // for this frame (368:2706) shows this subtitle at #282a2a (ink),
-          // not grey.
+          // `bodyMedium` alone renders AppColors.textSecondary (its
+          // default) — design frame 368:2706 has this subtitle at #282a2a
+          // (ink), not grey.
           Text(
             'meds.form.subtitle'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
-      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // the design leaves a real gap (~24px) between the band and whatever comes
       // next — see `MedicationsScreen`'s matching comment.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,8 +359,8 @@ class _FormBody extends ConsumerWidget {
             errorText: state.nameError?.tr(),
             onChanged: controller.setName,
           ),
-          // Requested directly: "Enter manually" (this form, reached with no
-          // `prefillEntry`) had no suggestions at all — only
+          // "Enter manually" (this form, reached with no `prefillEntry`)
+          // otherwise has no suggestions at all — only
           // `MedicationSearchScreen`'s own search bar used
           // `searchMedicationLibrary`'s case-insensitive substring match.
           // Reusing that exact function here (rather than a new prefix-only
@@ -418,9 +416,9 @@ class _FormBody extends ConsumerWidget {
               },
             ),
           const SizedBox(height: AppSpacing.lg),
-          // Figma's own "DOSAGE"/"FREQUENCY"/"REMINDER TIMES"/"INSTRUCTIONS"
-          // section captions (frame 368:2706, confirmed via get_design_context)
-          // are all the same small/bold/uppercase/grey style — matching the
+          // the design's own "DOSAGE"/"FREQUENCY"/"REMINDER TIMES"/"INSTRUCTIONS"
+          // section captions (frame 368:2706) are all the same
+          // small/bold/uppercase/grey style — matching the
           // "SUGGESTIONS" label already established on MedicationSearchScreen
           // rather than inventing a new one.
           Text(
@@ -494,9 +492,8 @@ class _FormBody extends ConsumerWidget {
               Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
             ],
           ],
-          // Figma frame 368:2706 orders INSTRUCTIONS before NOTIFY CAREGIVER
-          // IF MISSED (confirmed via get_design_context) — this used to be
-          // the other way round.
+          // design frame 368:2706 orders INSTRUCTIONS before NOTIFY CAREGIVER
+          // IF MISSED.
           const SizedBox(height: AppSpacing.lg),
           Text(
             'meds.form.instructions.sectionLabel'.tr(),
@@ -598,8 +595,8 @@ class _FormBody extends ConsumerWidget {
   }
 }
 
-/// Quick-pick dose chips (Fix 3 of the post-Figma-fidelity fix wave) — Figma
-/// shows a row of known doses (e.g. "50 mg", "25 mg", "100 mg") above the
+/// Quick-pick dose chips — the design shows a row of known doses (e.g. "50 mg",
+/// "25 mg", "100 mg") above the
 /// free-text dose field so a recognised drug can be filled in one tap
 /// instead of typed out.
 ///
@@ -706,15 +703,15 @@ class _NameSuggestionTile extends StatelessWidget {
   }
 }
 
-/// The form's bottom "Review & confirm" button (Fix 2 of the post-Figma-
-/// fidelity fix wave). This button never saves — it only validates and
-/// pushes `ReviewMedicationScreen`, which owns the real "Save medication"
-/// action — so it is labelled and iconed to say that, rather than "Save".
+/// The form's bottom "Review & confirm" button. This button never saves —
+/// it only validates and pushes `ReviewMedicationScreen`, which owns the
+/// real "Save medication" action — so it is labelled and iconed to say
+/// that, rather than "Save".
 ///
 /// Not built on `AppButton`: that widget only renders an icon *leading* the
-/// label (see its `_label` method), but Figma's arrow here trails the label,
-/// and `AppButton` itself lives under `lib/core/**`, out of bounds for this
-/// task. This mirrors `AppButton`'s `AppButtonVariant.primary` case exactly
+/// label (see its `_label` method), but the design's arrow here trails the
+/// label, and `AppButton` itself lives under `lib/core/**`, out of bounds
+/// for this feature. This mirrors `AppButton`'s `AppButtonVariant.primary` case exactly
 /// instead — a bare `FilledButton` (picking up the same app-wide
 /// `FilledButtonThemeData`, so the same 44dp+ tap target and shape) at full
 /// width, swapping in a fixed-size spinner while saving so the button never
@@ -752,14 +749,13 @@ class _ReviewButton extends StatelessWidget {
   }
 }
 
-/// One frequency `ChoiceChip`, restyled to match Figma frame `368:2706`
-/// (M3 Figma-fidelity restyle, visual-only — see [TimeListField] for the
-/// matching time-chip restyle).
+/// One frequency `ChoiceChip`, styled to match design frame `368:2706` (see
+/// [TimeListField] for the matching time-chip styling).
 ///
 /// Reuses the tab bar's colour-fill-plus-white-label structural pattern
 /// (`MedicationsScreen`'s `_MedicationsTabBar`: coloured background, white
 /// selected label, ink unselected label) but with `AppColors.ink` as the
-/// selected fill — per the Figma spec for this chip, not the tab bar's
+/// selected fill — per the design spec for this chip, not the tab bar's
 /// `AppColors.primary` fill — rather than inventing a new selected-state
 /// colour outright. Only colour/spacing/shape change here — the `Wrap`
 /// this is built inside (and so its overflow safety) is untouched.
@@ -794,10 +790,10 @@ class _FrequencyChip extends StatelessWidget {
   }
 }
 
-/// The "As needed" frequency chip (second Figma follow-up). Not built on
-/// [_FrequencyChip] because it has no corresponding [MedicationFrequency]
-/// value to render a label for (Part B's binding design constraint — see
-/// `MedicationFormController.validate()`'s doc comment): "as needed" is
+/// The "As needed" frequency chip. Not built on [_FrequencyChip] because it
+/// has no corresponding [MedicationFrequency] value to render a label for
+/// (see `MedicationFormController.validate()`'s doc comment for the binding
+/// design constraint behind this): "as needed" is
 /// `MedicationFrequency.custom` with an empty `scheduleTimes`, derived by the
 /// caller rather than stored here. Styled identically to [_FrequencyChip]
 /// regardless, so it reads as one more member of the same chip row rather
@@ -828,12 +824,11 @@ class _AsNeededChip extends StatelessWidget {
   }
 }
 
-/// One Instructions `ChoiceChip` (After meal / With food / Before meal —
-/// second Figma follow-up, Part A). Same visual convention as
-/// [_FrequencyChip]/[_AsNeededChip] — reused deliberately rather than
-/// inventing a new chip style. Always interactive, in both add and edit mode
-/// (third Figma follow-up) — see `_persistInstructions`'s doc comment for why
-/// add mode no longer disables this.
+/// One Instructions `ChoiceChip` (After meal / With food / Before meal).
+/// Same visual convention as [_FrequencyChip]/[_AsNeededChip] — reused
+/// deliberately rather than inventing a new chip style. Always interactive,
+/// in both add and edit mode — see `_persistInstructions`'s doc comment for
+/// why add mode doesn't disable this.
 class _InstructionsChip extends StatelessWidget {
   const _InstructionsChip({
     required this.option,

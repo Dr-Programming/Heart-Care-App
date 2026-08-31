@@ -22,7 +22,7 @@ import '../../../../helpers/pump_app.dart';
 /// wording edits to the real translation files (e.g. to isolate a
 /// proportional-width assertion from unrelated copy changes) — not a
 /// workaround for a missing translation namespace; `meds.status.*` has been
-/// populated with real short copy since Task 20.
+/// populated with real short copy in the translation assets.
 class _ShortLabelAssetLoader extends AssetLoader {
   const _ShortLabelAssetLoader();
 
@@ -40,11 +40,11 @@ class _ShortLabelAssetLoader extends AssetLoader {
 }
 
 /// Serves deliberately long placeholder strings for the `meds.status.*`
-/// keys — the same length class as the pre-Task-20 accidental worst case,
-/// back when the `meds` namespace was still `{}` and `.tr()` fell back to
-/// the ~17-19 character raw key text ("meds.status.taken" etc.). Task 20
-/// populated the real (short: "Taken"/"Missed"/"Skipped") copy, so that long
-/// text no longer shows up by accident. This loader reproduces it on
+/// keys — the same length class as an unpopulated `meds` namespace would
+/// produce, back when it was still `{}` and `.tr()` fell back to
+/// the ~17-19 character raw key text ("meds.status.taken" etc.). The real
+/// translation assets now carry short copy ("Taken"/"Missed"/"Skipped"), so
+/// that long text no longer shows up by accident. This loader reproduces it on
 /// purpose so the overflow-regression tests below keep exercising the
 /// long-label-on-a-narrow-device scenario they were built to catch,
 /// independent of how long the real copy happens to be in any language.
@@ -143,7 +143,7 @@ void main() {
   });
 
   testWidgets('tapping Taken in StatusSelector calls onSelected with DoseStatus.taken', (tester) async {
-    // Task 20 populated `meds.status.taken` in assets/translations/*.json, so
+    // The translation assets populate `meds.status.taken` in assets/translations/*.json, so
     // easy_localization's .tr() now resolves to the real copy ("Taken")
     // instead of falling back to the raw key string — match on that.
     DoseStatus? selected;
@@ -161,17 +161,18 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (pending)',
     (tester) async {
-      // Worst-case simulation of the real bug: pumps deliberately long
+      // Worst-case simulation: pumps deliberately long
       // placeholder status labels via `_pumpWithLongLabels` (see
-      // `_LongLabelAssetLoader`) rather than the app's real, now-short
-      // `meds.status.*` copy — long label text is the actual risk this fix
+      // `_LongLabelAssetLoader`) rather than the app's real, shorter
+      // `meds.status.*` copy — long label text is the actual risk this
       // guards against, independent of how long the real copy is in any
       // given language. Constraining the row to 220px (narrower than any
       // realistic phone's available content width, e.g. ~360dp minus screen
-      // padding) simulates the combination this bug needs: long label text
-      // + a physically narrow device. Before the fix (bare trailing
-      // `StatusSelector`, inner `Row` instead of `Wrap`) this throws a
-      // `RenderFlex overflowed` FlutterError during pump.
+      // padding) simulates the combination that matters: long label text
+      // + a physically narrow device. A bare trailing
+      // `StatusSelector` with an inner `Row` instead of `Wrap` would throw a
+      // `RenderFlex overflowed` FlutterError during pump under those
+      // conditions.
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -538,9 +539,9 @@ void main() {
 
   testWidgets(
     'TimeListField restyled chips do not overflow a narrow width with '
-    'several times (M3 Figma-fidelity restyle)',
+    'several times (styling pass)',
     (tester) async {
-      // The restyle (Task 8 of the M3 Figma-fidelity rework) adds explicit
+      // This styling adds explicit
       // padding/borders/labelStyle to TimeListField's InputChip/ActionChip —
       // a pure colour/spacing/shape change that must not reintroduce the
       // class of RenderFlex overflow bug the DoseRow/StatusSelector suite

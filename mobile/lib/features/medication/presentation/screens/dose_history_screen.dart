@@ -28,8 +28,8 @@ class DoseHistoryScreen extends ConsumerWidget {
 }
 
 /// The dose-history list/filter/sync-status content, extracted so
-/// MedicationsScreen's History tab (Task 7 of the Figma-fidelity plan) and
-/// this screen's own route can share it without duplicating logic.
+/// MedicationsScreen's History tab and this screen's own route can share it
+/// without duplicating logic.
 class DoseHistoryContent extends ConsumerWidget {
   const DoseHistoryContent({super.key});
 
@@ -68,10 +68,10 @@ class DoseHistoryContent extends ConsumerWidget {
   }
 }
 
-/// Picks which medication's history to show (I5).
+/// Picks which medication's history to show.
 ///
-/// `DoseHistoryController.setFilter` existed from Task 15 with no UI caller at
-/// all, so the whole history was always "everything, ever".
+/// `DoseHistoryController.setFilter` had no UI caller wired up until this
+/// widget, so the whole history was always "everything, ever".
 class _FilterBar extends ConsumerWidget {
   const _FilterBar({required this.state});
 
