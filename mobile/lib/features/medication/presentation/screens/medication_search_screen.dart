@@ -79,7 +79,7 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
       // getting a real `RenderFlex overflowed` failure) — the status-bar
       // collision this task actually reported is fixed separately, in
       // `AppScaffold`'s own `SafeArea`, not by this height.
-      bandHeight: 150,
+      bandHeight: 128,
       scrollable: true,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +91,16 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
-          Text('meds.search.title'.tr(), style: text.headlineLarge),
+          // FittedBox, not a bare Text: guards this fixed-height band
+          // against a title long enough to wrap to a second line (the
+          // exact failure `ReviewMedicationScreen`'s own title hit at a
+          // 320dp-wide viewport — see its matching comment) at any
+          // translation length, not just today's English/Amharic copy.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('meds.search.title'.tr(), style: text.headlineLarge),
+          ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
           // confirmed by reading app_typography.dart) — get_design_context

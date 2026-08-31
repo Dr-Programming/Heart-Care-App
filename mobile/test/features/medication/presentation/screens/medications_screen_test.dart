@@ -497,6 +497,15 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
       await tester.enterText(find.byType(TextField).at(1), '20');
+      // "Atorvastatin" is in the medication library, so the Name field's own
+      // inline suggestion list would render below it while the Dose field
+      // is still blank — but it's gone as of the line above (that
+      // suggestion list hides itself once the dose is non-blank, see
+      // `medication_form_screen.dart`). This `pump()` lets that
+      // disappearance settle before `ensureVisible` measures where "Once
+      // daily" now sits, same as `fillValidForm`'s matching comment.
+      await tester.pump();
+      await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
       await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
       await tester.pump();
       // Fix round 1's add-mode disabled caregiver phone field + note pushes
@@ -568,6 +577,15 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
       await tester.enterText(find.byType(TextField).at(1), '20');
+      // "Atorvastatin" is in the medication library, so the Name field's own
+      // inline suggestion list would render below it while the Dose field
+      // is still blank — but it's gone as of the line above (that
+      // suggestion list hides itself once the dose is non-blank, see
+      // `medication_form_screen.dart`). This `pump()` lets that
+      // disappearance settle before `ensureVisible` measures where "Once
+      // daily" now sits, same as `fillValidForm`'s matching comment.
+      await tester.pump();
+      await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
       await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
       await tester.pump();
 

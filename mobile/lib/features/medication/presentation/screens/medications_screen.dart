@@ -94,7 +94,7 @@ class MedicationsScreen extends ConsumerWidget {
       // override here, not a change to the shared
       // `AppSpacing.headerBandHeight` token, which every other screen
       // across the app (outside this feature's scope) also uses.
-      bandHeight: 150,
+      bandHeight: 139,
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +126,16 @@ class MedicationsScreen extends ConsumerWidget {
             ],
           ),
           const Spacer(),
-          Text('meds.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          // FittedBox, not a bare Text: guards this fixed-height band
+          // against a title long enough to wrap to a second line (the
+          // exact failure `ReviewMedicationScreen`'s own title hit at a
+          // 320dp-wide viewport — see its matching comment) at any
+          // translation length, not just today's English/Amharic copy.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('meds.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
           // confirmed by reading app_typography.dart) — get_design_context
