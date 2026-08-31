@@ -241,7 +241,8 @@
       "save": "Save medication",
       "edit": "Edit details",
       "instructionsNotSet": "Not set",
-      "noFixedSchedule": "No fixed schedule"
+      "noFixedSchedule": "No fixed schedule",
+      "reminderSchedulingFailed": "Saved. Reminders may not work until notification permission is granted."
     }
   },
 

@@ -99,6 +99,22 @@ class _NoopScheduler implements NotificationScheduler {
   Future<void> cancel(int id) async {}
 }
 
+/// Simulates a missing `SCHEDULE_EXACT_ALARM` permission: the OS-level
+/// scheduling call throws, exactly as `flutter_local_notifications` does on
+/// a real device when the permission isn't granted.
+class _ThrowingScheduler implements NotificationScheduler {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> zonedSchedule({required int id, required String title, required String body, required DateTime when, required String payload}) async {
+    throw StateError('simulated missing SCHEDULE_EXACT_ALARM permission');
+  }
+  @override
+  Future<List<PendingScheduledNotification>> pending() async => const <PendingScheduledNotification>[];
+  @override
+  Future<void> cancel(int id) async {}
+}
+
 ProviderContainer _container(MedicationRepository repo, AppDatabase db) {
   return ProviderContainer(
     overrides: <Override>[
@@ -418,4 +434,37 @@ void main() {
 
     expect(container.read(medicationFormControllerProvider).isSaving, isFalse);
   });
+
+  test(
+    'save() still succeeds — and reports reminderSchedulingFailed, not a '
+    'thrown error — when the write succeeds but reminder scheduling throws',
+    () async {
+      final _FakeRepository repo = _FakeRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(repo),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(_ThrowingScheduler(), db.preferencesDao),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+      controller.setName('Atorvastatin');
+      controller.setDoseMg('20');
+      controller.setScheduleTimes(const <String>['08:00']);
+
+      final bool result = await controller.save();
+
+      expect(result, isTrue);
+      expect(repo.added, isNotNull, reason: 'the medication must still have been written');
+      final MedicationFormState state = container.read(medicationFormControllerProvider);
+      expect(state.saved, isTrue);
+      expect(state.isSaving, isFalse);
+      expect(state.reminderSchedulingFailed, isTrue);
+    },
+  );
 }
