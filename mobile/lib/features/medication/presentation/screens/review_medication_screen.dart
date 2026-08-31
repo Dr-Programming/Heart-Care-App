@@ -114,14 +114,36 @@ class ReviewMedicationScreen extends ConsumerWidget {
       }
     });
 
-    return AppScaffold(
-      title: 'meds.review.title'.tr(),
+    return AppScaffold.banded(
+      // Same technique as `MedicationSearchScreen` — see its doc comment.
+      // Figma frame 368:2651 draws this screen's back arrow/title/subtitle
+      // inside the cream band too, not a separate AppBar.
+      showBack: false,
+      // See `MedicationsScreen`'s matching comment: 150 leaves real room for
+      // an accessible ~48dp back-icon tap target — the actual, concrete
+      // reason this value was raised from an initial 130 is that 130
+      // genuinely overflowed this screen's own narrow-width regression
+      // tests once a real tappable icon was added to the band.
+      bandHeight: 150,
       scrollable: true,
+      bandChild: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const Spacer(),
+          Text('meds.review.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(height: AppSpacing.xs),
+          Text('meds.review.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('meds.review.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: AppSpacing.lg),
           SectionCard(
             title: state.name,
             child: Column(

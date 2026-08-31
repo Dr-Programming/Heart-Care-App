@@ -412,7 +412,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(MedicationSearchScreen), findsOneWidget);
 
-    await tester.pageBack();
+    // Not `tester.pageBack()`: it looks for an AppBar back-chevron, which
+    // `MedicationSearchScreen` no longer has (its back arrow now lives
+    // inside the cream band — see that screen's own doc comment). A direct
+    // Navigator pop is a faithful stand-in for a system back gesture here,
+    // since both call the exact same bare `Navigator.pop()`.
+    Navigator.of(tester.element(find.byType(MedicationSearchScreen))).pop();
     await tester.pumpAndSettle();
 
     expect(find.byType(MedicationsScreen), findsOneWidget);
@@ -570,8 +575,12 @@ void main() {
       // now, not disabled.
       final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
       expect(toggle.onChanged, isNotNull, reason: 'no longer disabled in add mode');
+      // The taller banded header (matching Figma's real per-screen header)
+      // pushes this below the fold on the default test surface.
+      await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(TextField).at(2));
       await tester.enterText(find.byType(TextField).at(2), '+251900000000');
       await tester.pump();
 
@@ -585,6 +594,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
 
+      await tester.ensureVisible(find.text('meds.review.save'.tr()));
       await tester.tap(find.text('meds.review.save'.tr()));
       await tester.pumpAndSettle();
 

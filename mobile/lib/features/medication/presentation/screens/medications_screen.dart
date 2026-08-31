@@ -81,13 +81,17 @@ class MedicationsScreen extends ConsumerWidget {
       // both Screen 6.0 and Screen 6.4's own header-band background vectors
       // are ~128-139px tall on Figma's 402x874 canvas, not 215 (215 is
       // presumably tuned for a taller header elsewhere in the app, outside
-      // this feature). 130 sits in that real range, still with a little
-      // breathing room for the menu row this band also now carries (which
-      // Figma's own header doesn't). Deliberately a local override here
-      // rather than a change to the shared `AppSpacing.headerBandHeight`
+      // this feature). 150 sits close to that real range while still
+      // leaving room for a genuinely accessible ~48dp tap target on the
+      // menu icon this band also now carries (Figma's own mockup icon is a
+      // small static image with no real tap-target reservation at all — a
+      // fully clickable version needs a little more room than the flat
+      // design implies, confirmed by an actual overflow at this feature's
+      // narrow-width test viewports before this value was tuned). A local
+      // override here, not a change to the shared `AppSpacing.headerBandHeight`
       // token, which every other screen across the app (outside this
       // feature's scope) also uses.
-      bandHeight: 130,
+      bandHeight: 150,
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

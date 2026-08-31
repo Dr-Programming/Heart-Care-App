@@ -293,9 +293,37 @@ class _FormBody extends ConsumerWidget {
     // fire it too, on the very same `saved` transition, popping this screen
     // out from underneath Review's own (correct) pop.
 
-    return AppScaffold(
-      title: 'meds.form.title'.tr(),
+    return AppScaffold.banded(
+      // Same technique as `MedicationSearchScreen`/`ReviewMedicationScreen`
+      // — see the former's doc comment. Figma frame 368:2706 draws this
+      // screen's back arrow/title/subtitle inside the cream band too, not a
+      // separate AppBar. Title text is left as the existing static
+      // `meds.form.title` rather than switched to Figma's per-medication
+      // dynamic title ("Metoprolol 50 mg") — that's a real, separate
+      // refinement (and needs a sensible fallback for add mode before any
+      // name is typed), not part of the header *style* fix this task scoped
+      // to matching.
+      showBack: false,
+      // See `MedicationsScreen`'s matching comment: 150 leaves real room for
+      // an accessible ~48dp back-icon tap target, more than Figma's own flat
+      // ~128-136px mockup reserves for its static back-arrow image.
+      bandHeight: 150,
       scrollable: true,
+      bandChild: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const Spacer(),
+          Text('meds.form.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(height: AppSpacing.xs),
+          Text('meds.form.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

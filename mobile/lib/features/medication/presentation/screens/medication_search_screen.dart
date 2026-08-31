@@ -62,14 +62,43 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
   Widget build(BuildContext context) {
     final TextTheme text = Theme.of(context).textTheme;
 
-    return AppScaffold(
-      title: 'meds.search.title'.tr(),
+    return AppScaffold.banded(
+      // Figma frame 368:2790 draws its back arrow, title and subtitle
+      // inside the cream band itself, not a separate white system AppBar —
+      // matching that (rather than the plain `AppScaffold(title: ...)` this
+      // screen used before) needs the same `showBack: false` +
+      // custom-`bandChild` technique already established on
+      // `MedicationsScreen` (see its own doc comment for why `showBack`
+      // must be passed explicitly, not omitted). This screen is always
+      // reached via a push, so — unlike `MedicationsScreen` — the back
+      // arrow is unconditional, not gated on `Navigator.canPop()`.
+      showBack: false,
+      // 150, not Figma's own raw ~128px for this frame — a real, accessible
+      // ~48dp tap target on the back icon needs more room than Figma's
+      // small static back-arrow image implies (confirmed by a genuine
+      // overflow in this screen's own narrow-width tests at a tighter
+      // value). See `MedicationsScreen`'s matching comment for the full
+      // reasoning.
+      bandHeight: 150,
       scrollable: true,
+      bandChild: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          const Spacer(),
+          Text('meds.search.title'.tr(), style: text.headlineLarge),
+          const SizedBox(height: AppSpacing.xs),
+          Text('meds.search.subtitle'.tr(), style: text.bodyMedium),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('meds.search.subtitle'.tr(), style: text.bodyMedium),
-          const SizedBox(height: AppSpacing.lg),
           // A raw TextField rather than AppTextField: AppTextField always
           // renders a label above the field (by design — FR-LOC-004), but
           // Figma's search bar has no label, just a rounded pill with a
