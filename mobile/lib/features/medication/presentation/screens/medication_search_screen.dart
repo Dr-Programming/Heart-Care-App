@@ -194,9 +194,15 @@ class _SuggestionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
+              // `bodySmall` + explicit bold/ink, not `titleMedium`: confirmed
+              // via get_design_context against frame 368:2790 that suggestion
+              // names render at 12px bold `#282a2a`, matching this app's
+              // `bodySmall` size (`titleMedium` renders visibly larger).
               Text(
                 '${entry.name} $dose mg',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.ink, fontWeight: FontWeight.bold),
               ),
               Text(
                 entry.mostCommon
