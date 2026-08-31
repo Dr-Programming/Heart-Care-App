@@ -173,7 +173,12 @@
         "withFood": "ከምግብ ጋር",
         "beforeMeal": "ከምግብ በፊት"
       },
-      "asNeededCaption": "'እንደአስፈላጊነቱ' ማስታወሻዎችን ያሰናክላል — ለ GTN/ናይትሮ ስፕሬይ ይውላል"
+      "asNeededCaption": "'እንደአስፈላጊነቱ' ማስታወሻዎችን ያሰናክላል — ለ GTN/ናይትሮ ስፕሬይ ይውላል",
+      "pickTimeTitle": "ሰዓት ያስገቡ",
+      "pickTimeHour": "ሰዓት",
+      "pickTimeMinute": "ደቂቃ",
+      "am": "ጥዋት",
+      "pm": "ከሰዓት"
     },
     "frequency": {
       "onceDaily": "በቀን አንድ ጊዜ",
