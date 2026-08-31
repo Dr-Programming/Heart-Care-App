@@ -96,9 +96,12 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
           Text('meds.search.subtitle'.tr(), style: text.bodyMedium),
         ],
       ),
+      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // next — see `MedicationsScreen`'s matching comment.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          const SizedBox(height: AppSpacing.xl),
           // A raw TextField rather than AppTextField: AppTextField always
           // renders a label above the field (by design — FR-LOC-004), but
           // Figma's search bar has no label, just a rounded pill with a

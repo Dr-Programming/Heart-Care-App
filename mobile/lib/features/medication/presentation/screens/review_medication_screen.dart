@@ -141,9 +141,12 @@ class ReviewMedicationScreen extends ConsumerWidget {
           Text('meds.review.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
+      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // next — see `MedicationsScreen`'s matching comment.
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          const SizedBox(height: AppSpacing.xl),
           SectionCard(
             title: state.name,
             child: Column(

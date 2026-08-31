@@ -139,13 +139,21 @@ class MedicationsScreen extends ConsumerWidget {
         icon: const Icon(Iconsax.add),
         label: Text('meds.add'.tr()),
       ),
-      body: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object error, StackTrace _) => ErrorView(
-          failure: error is Failure ? error : UnknownFailure(error.toString()),
-          onRetry: () => ref.invalidate(medicationListControllerProvider),
+      // Figma leaves a real gap (~24px) between the band and whatever comes
+      // next, rather than butting content flush against it — `AppScaffold`
+      // itself doesn't add one (its body starts right after the band), so
+      // each banded screen in this feature adds its own, matching the real
+      // spacing token closest to that measured gap.
+      body: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xl),
+        child: state.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (Object error, StackTrace _) => ErrorView(
+            failure: error is Failure ? error : UnknownFailure(error.toString()),
+            onRetry: () => ref.invalidate(medicationListControllerProvider),
+          ),
+          data: (MedicationListState data) => _Content(state: data),
         ),
-        data: (MedicationListState data) => _Content(state: data),
       ),
     );
   }
