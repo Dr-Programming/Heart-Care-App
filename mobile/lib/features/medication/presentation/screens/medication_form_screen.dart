@@ -310,7 +310,7 @@ class _FormBody extends ConsumerWidget {
       // getting a real `RenderFlex overflowed` failure) — the status-bar
       // collision this task actually reported is fixed separately, in
       // `AppScaffold`'s own `SafeArea`, not by this height.
-      bandHeight: 150,
+      bandHeight: 136,
       scrollable: true,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,7 +322,16 @@ class _FormBody extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const Spacer(),
-          Text('meds.form.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          // FittedBox, not a bare Text: guards this fixed-height band
+          // against a title long enough to wrap to a second line (the
+          // exact failure `ReviewMedicationScreen`'s own title hit at a
+          // 320dp-wide viewport — see its matching comment) at any
+          // translation length, not just today's English/Amharic copy.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text('meds.form.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+          ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
           // confirmed by reading app_typography.dart) — get_design_context
@@ -347,6 +356,62 @@ class _FormBody extends ConsumerWidget {
             errorText: state.nameError?.tr(),
             onChanged: controller.setName,
           ),
+          // Requested directly: "Enter manually" (this form, reached with no
+          // `prefillEntry`) had no suggestions at all — only
+          // `MedicationSearchScreen`'s own search bar used
+          // `searchMedicationLibrary`'s case-insensitive substring match.
+          // Reusing that exact function here (rather than a new prefix-only
+          // match) is what makes typing "prolol" surface "Metoprolol" too,
+          // not just names starting with the typed letters. Editing an
+          // existing medication (`editingId != null`) never shows this —
+          // the name there is already correct, and offering to silently
+          // overwrite it with a library pick is more likely to cause an
+          // accidental edit than help.
+          //
+          // Also gated on `state.doseMg` being blank: `AppTextField` has no
+          // `focusNode` parameter (it lives under `lib/core/**`, out of
+          // bounds here) to hide this once the Name field loses focus, so
+          // instead it hides once a dose exists — typed by hand or filled by
+          // tapping a suggestion — since by then the user has already moved
+          // past naming the medication. This also matches real usage: once
+          // a dose is set, further name suggestions are no longer useful.
+          if (editingId == null && state.doseMg.trim().isEmpty)
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: nameController,
+              builder: (BuildContext context, TextEditingValue value, Widget? _) {
+                final String query = value.text.trim();
+                // Two letters, not one: a single letter matches nearly every
+                // entry in the library (e.g. "a" matches nine of the current
+                // thirty), which is noise, not a suggestion.
+                if (query.length < 2) return const SizedBox.shrink();
+                final List<MedicationLibraryEntry> suggestions = searchMedicationLibrary(
+                  query,
+                ).take(4).toList();
+                if (suggestions.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (final MedicationLibraryEntry entry in suggestions)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                          child: _NameSuggestionTile(
+                            entry: entry,
+                            onTap: () {
+                              controller.setName(entry.name);
+                              nameController.text = entry.name;
+                              final String dose = _formatDose(entry.doseMg);
+                              controller.setDoseMg(dose);
+                              doseController.text = dose;
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
           const SizedBox(height: AppSpacing.lg),
           // Figma's own "DOSAGE"/"FREQUENCY"/"REMINDER TIMES"/"INSTRUCTIONS"
           // section captions (frame 368:2706, confirmed via get_design_context)
@@ -583,6 +648,53 @@ class _DoseQuickPicks extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One row in the Name field's inline suggestion list — same information
+/// (name, dose, drug class) and card styling as `MedicationSearchScreen`'s
+/// own `_SuggestionCard`, kept as a separate, simpler copy rather than a
+/// shared widget: that one also renders the "most common" pale-blue tint and
+/// a trailing chevron for its own full-screen suggestions list, neither of
+/// which fits this compact, inline-under-a-text-field context.
+class _NameSuggestionTile extends StatelessWidget {
+  const _NameSuggestionTile({required this.entry, required this.onTap});
+
+  final MedicationLibraryEntry entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final String dose = _formatDose(entry.doseMg);
+    return SectionCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  '${entry.name} $dose mg',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.ink, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  entry.drugClass,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.north_west, size: 16, color: AppColors.textTertiary),
         ],
       ),
     );

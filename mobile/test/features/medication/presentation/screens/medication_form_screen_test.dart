@@ -185,6 +185,17 @@ void main() {
   Future<void> fillValidForm(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
     await tester.enterText(find.byType(TextField).at(1), '20');
+    // "Atorvastatin" is in the medication library, so the Name field's own
+    // inline suggestion list would render below it while the Dose field is
+    // still blank — but it's gone as of the line above (that suggestion
+    // list hides itself once `state.doseMg` is non-blank, see
+    // `medication_form_screen.dart`). This `pump()` lets that disappearance
+    // actually settle into the tree before `ensureVisible` measures where
+    // "Once daily" now sits — without it, `ensureVisible` can scroll to the
+    // chip's *pre*-disappearance position, which the still-pending rebuild
+    // then shifts out from under the following `tap()`.
+    await tester.pump();
+    await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
     await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
     await tester.pump();
   }
@@ -705,6 +716,113 @@ void main() {
         expect(doseChips(), findsNothing);
       },
     );
+  });
+
+  // Requested directly by the user: "Enter manually" had no suggestions at
+  // all, unlike MedicationSearchScreen's own search bar.
+  group('name field suggestions (manual entry)', () {
+    testWidgets('typing one letter shows no suggestions', (tester) async {
+      await pumpApp(tester, const MedicationFormScreen());
+
+      await tester.enterText(find.byType(TextField).at(0), 'M');
+      await tester.pump();
+
+      expect(find.text('Metoprolol 25 mg'), findsNothing);
+    });
+
+    testWidgets(
+      'typing two or more letters shows matching library entries, capped '
+      'at four, most-common first',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        // Substring, not prefix: "etoprolol" only appears mid-word in
+        // "Metoprolol", proving this reuses `searchMedicationLibrary`'s own
+        // case-insensitive substring match rather than a stricter one.
+        // ("prolol" was tried first here and rejected — it also matches
+        // "Bisoprolol", which pushes Metoprolol's own third dose past the
+        // 4-item cap below; "etoprolol" matches only Metoprolol.)
+        await tester.enterText(find.byType(TextField).at(0), 'etoprolol');
+        await tester.pump();
+
+        expect(find.text('Metoprolol 25 mg'), findsOneWidget);
+        expect(find.text('Metoprolol 50 mg'), findsOneWidget);
+        expect(find.text('Metoprolol 100 mg'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping a suggestion fills both name and dose, and the list '
+      'disappears',
+      (tester) async {
+        await pumpApp(tester, const MedicationFormScreen());
+
+        await tester.enterText(find.byType(TextField).at(0), 'prolol');
+        await tester.pump();
+
+        await tester.tap(find.text('Metoprolol 50 mg'));
+        await tester.pump();
+
+        final MedicationFormState state = ProviderScope.containerOf(
+          tester.element(find.byType(MedicationFormScreen)),
+        ).read(medicationFormControllerProvider);
+        expect(state.name, 'Metoprolol');
+        expect(state.doseMg, '50');
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text,
+          'Metoprolol',
+        );
+        expect(
+          tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+          '50',
+        );
+        // Gone, not just unchanged: a dose now exists, and this list hides
+        // itself once it does (see medication_form_screen.dart's own
+        // comment on why — no `focusNode` on `AppTextField` to hide it on
+        // blur instead).
+        expect(find.text('Metoprolol 25 mg'), findsNothing);
+        expect(find.text('Metoprolol 100 mg'), findsNothing);
+      },
+    );
+
+    testWidgets('typing an unrecognized name shows no suggestions', (tester) async {
+      await pumpApp(tester, const MedicationFormScreen());
+
+      await tester.enterText(find.byType(TextField).at(0), 'Zzz Not A Real Drug');
+      await tester.pump();
+
+      expect(find.byType(SectionCard), findsNothing);
+    });
+
+    testWidgets('never shows in edit mode, however the name is typed', (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).at(0), 'prolol');
+      await tester.pump();
+
+      expect(find.text('Metoprolol 25 mg'), findsNothing);
+      expect(find.byType(SectionCard), findsNothing);
+    });
   });
 
   // Second Figma follow-up, Part A: the Instructions field.
