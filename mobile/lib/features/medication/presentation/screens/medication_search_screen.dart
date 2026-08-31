@@ -93,7 +93,13 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
           const Spacer(),
           Text('meds.search.title'.tr(), style: text.headlineLarge),
           const SizedBox(height: AppSpacing.xs),
-          Text('meds.search.subtitle'.tr(), style: text.bodyMedium),
+          // `bodyMedium` alone renders AppColors.textSecondary (its default,
+          // confirmed by reading app_typography.dart) — get_design_context
+          // for this frame shows this subtitle at #282a2a (ink), not grey.
+          Text(
+            'meds.search.subtitle'.tr(),
+            style: text.bodyMedium?.copyWith(color: AppColors.ink),
+          ),
         ],
       ),
       // Figma leaves a real gap (~24px) between the band and whatever comes

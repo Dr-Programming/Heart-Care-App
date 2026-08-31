@@ -138,7 +138,14 @@ class ReviewMedicationScreen extends ConsumerWidget {
           const Spacer(),
           Text('meds.review.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: AppSpacing.xs),
-          Text('meds.review.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
+          // `bodyMedium` alone renders AppColors.textSecondary (its default,
+          // confirmed by reading app_typography.dart) — get_design_context
+          // for this frame (368:2651) shows this subtitle at #282a2a (ink),
+          // not grey.
+          Text(
+            'meds.review.subtitle'.tr(),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
+          ),
         ],
       ),
       // Figma leaves a real gap (~24px) between the band and whatever comes
@@ -211,18 +218,23 @@ class ReviewMedicationScreen extends ConsumerWidget {
                   // sentence — for exactly the "as needed" case, so this
                   // reuses the form's own caption copy instead of that
                   // template with nothing to fill in.
+                  // `bodySmall` alone renders AppColors.textSecondary (its
+                  // default) — get_design_context confirmed both lines in
+                  // this banner render at #1d4ed8 (AppColors.accent), the
+                  // same blue as the notification bell icon beside them, not
+                  // grey.
                   Text(
                     isAsNeeded
                         ? 'meds.form.asNeededCaption'.tr()
                         : 'meds.review.remindersSet'.tr(
                             namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
                           ),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.accent),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'meds.review.offlineNote'.tr(),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.accent),
                   ),
                 ],
               ),
@@ -301,10 +313,11 @@ class _SummaryRow extends StatelessWidget {
           // a label — in English or Amharic — turns out to be long.
           // Colours confirmed via get_design_context against frame 368:2651:
           // every row label is `#6b7280` (AppColors.textSecondary) at 12px
-          // regular, every value is `#282a2a` (AppColors.ink, already
-          // bodyMedium's default) at 12px bold — this row previously used
-          // the theme's default (ink-ish, unstyled) label colour and a
-          // semibold (w600) rather than a true bold (w700) value weight.
+          // regular, every value is `#282a2a` (AppColors.ink) at 12px bold.
+          // `bodyMedium`'s own default is textSecondary, not ink (confirmed
+          // by reading app_typography.dart) — so the value needs its own
+          // explicit ink override too, not just the label; leaving it bare
+          // silently rendered every value in the same grey as its label.
           Flexible(
             child: Text(
               label,
@@ -318,7 +331,9 @@ class _SummaryRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.ink, fontWeight: FontWeight.bold),
             ),
           ),
         ],

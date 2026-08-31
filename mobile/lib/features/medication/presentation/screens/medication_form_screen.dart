@@ -321,7 +321,14 @@ class _FormBody extends ConsumerWidget {
           const Spacer(),
           Text('meds.form.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: AppSpacing.xs),
-          Text('meds.form.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
+          // `bodyMedium` alone renders AppColors.textSecondary (its default,
+          // confirmed by reading app_typography.dart) — get_design_context
+          // for this frame (368:2706) shows this subtitle at #282a2a (ink),
+          // not grey.
+          Text(
+            'meds.form.subtitle'.tr(),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
+          ),
         ],
       ),
       // Figma leaves a real gap (~24px) between the band and whatever comes
@@ -414,22 +421,9 @@ class _FormBody extends ConsumerWidget {
               Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
             ],
           ],
-          const SizedBox(height: AppSpacing.lg),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('meds.form.notifyCaregiver'.tr()),
-            value: caregiverEnabled,
-            onChanged: onCaregiverEnabledChanged,
-          ),
-          if (caregiverEnabled) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
-            AppTextField(
-              label: 'meds.form.caregiverPhone'.tr(),
-              controller: caregiverPhoneController,
-              keyboardType: TextInputType.phone,
-              onChanged: onCaregiverPhoneChanged,
-            ),
-          ],
+          // Figma frame 368:2706 orders INSTRUCTIONS before NOTIFY CAREGIVER
+          // IF MISSED (confirmed via get_design_context) — this used to be
+          // the other way round.
           const SizedBox(height: AppSpacing.lg),
           Text(
             'meds.form.instructions.sectionLabel'.tr(),
@@ -452,6 +446,22 @@ class _FormBody extends ConsumerWidget {
                 ),
             ],
           ),
+          const SizedBox(height: AppSpacing.lg),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('meds.form.notifyCaregiver'.tr()),
+            value: caregiverEnabled,
+            onChanged: onCaregiverEnabledChanged,
+          ),
+          if (caregiverEnabled) ...<Widget>[
+            const SizedBox(height: AppSpacing.sm),
+            AppTextField(
+              label: 'meds.form.caregiverPhone'.tr(),
+              controller: caregiverPhoneController,
+              keyboardType: TextInputType.phone,
+              onChanged: onCaregiverPhoneChanged,
+            ),
+          ],
           const SizedBox(height: AppSpacing.xxl),
           _ReviewButton(
             isLoading: state.isSaving,
