@@ -62,6 +62,16 @@ class MedicationsScreen extends ConsumerWidget {
       // band, taller than Figma's design. The menu now lives inside the
       // band itself instead (see the top-right `PopupMenuButton` in
       // `bandChild`), so no AppBar is needed at all.
+      //
+      // Also overrides the default `AppSpacing.headerBandHeight` (215) with
+      // a shorter band: that value matches Figma's own frame proportions,
+      // but on a real device it left a visibly oversized empty area above
+      // two short lines of text — real, repeated feedback from testing on
+      // an actual phone, not something the static Figma canvas surfaces.
+      // Deliberately a local override here rather than a change to the
+      // shared `AppSpacing.headerBandHeight` token, which every other
+      // screen across the app (outside this feature's scope) also uses.
+      bandHeight: 140,
       scrollable: false,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

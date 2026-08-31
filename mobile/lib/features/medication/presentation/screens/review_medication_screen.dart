@@ -6,6 +6,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../data/caregiver_notify_store.dart';
 import '../../data/medication_instructions_store.dart';
 import '../../domain/entities/medication.dart';
 import '../controllers/medication_form_controller.dart';
@@ -17,6 +18,7 @@ import '../controllers/medication_form_controller.dart';
 class ReviewMedicationScreen extends ConsumerWidget {
   const ReviewMedicationScreen({
     required this.notifyCaregiverEnabled,
+    this.caregiverPhone = '',
     this.instructions,
     super.key,
   });
@@ -27,6 +29,14 @@ class ReviewMedicationScreen extends ConsumerWidget {
   /// not on `MedicationFormState`, so it has to be handed down explicitly
   /// rather than read off the watched form state below.
   final bool notifyCaregiverEnabled;
+
+  /// The caregiver phone number typed so far, read from
+  /// `_MedicationFormScreenState._caregiverPhoneController.text` at push
+  /// time — same reasoning as [notifyCaregiverEnabled]. Needed here (third
+  /// Figma follow-up) so [_save] can pass a complete `CaregiverNotifySettings`
+  /// into `MedicationFormController.save()`, which is what finally persists
+  /// it once the medication's real id exists, in both add and edit mode.
+  final String caregiverPhone;
 
   /// The selected Instructions chip (second Figma follow-up, Part A), read
   /// from `_MedicationFormScreenState._instructions` at push time — same
@@ -208,7 +218,13 @@ class ReviewMedicationScreen extends ConsumerWidget {
   /// verbatim, or `errors.generic` for anything else, in a `SnackBar`.
   Future<void> _save(BuildContext context, MedicationFormController controller) async {
     try {
-      await controller.save();
+      await controller.save(
+        caregiverSettings: CaregiverNotifySettings(
+          enabled: notifyCaregiverEnabled,
+          phone: caregiverPhone,
+        ),
+        instructions: instructions ?? MedicationInstructions.none,
+      );
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

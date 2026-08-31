@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:libu_care/core/router/routes.dart';
 import 'package:libu_care/core/theme/app_colors.dart';
 import 'package:libu_care/core/widgets/widgets.dart';
+import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
+import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dart';
@@ -420,6 +422,21 @@ void main() {
           medicationNotificationsProvider.overrideWithValue(
             MedicationNotifications(RecordingScheduler(), db.preferencesDao),
           ),
+          // `ReviewMedicationScreen`'s Save now always threads caregiver
+          // settings/instructions through to `MedicationFormController.save()`
+          // (third Figma follow-up), which persists them via these two
+          // providers regardless of whether the test cares about their
+          // values — without a real, working store behind them here, `save()`
+          // would fall through to the default `caregiverNotifyStoreProvider`/
+          // `medicationInstructionsStoreProvider`, which build a real
+          // `AppDatabase` via `appDatabaseProvider` this test never sets up,
+          // and hang.
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(
+            MedicationInstructionsStore(db.preferencesDao),
+          ),
         ],
       );
 
@@ -459,6 +476,90 @@ void main() {
       expect(find.byType(MedicationSearchScreen), findsNothing);
       expect(repository.medications, hasLength(1));
       expect(repository.medications.single.name, 'Atorvastatin');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  // Third Figma follow-up: the caregiver toggle/phone and Instructions
+  // chips used to be disabled in add mode (no `clientRecordId` to key their
+  // stores by yet) — real user feedback that this read as being blocked
+  // from entering real information at all, not just deferred. This proves
+  // the fix end-to-end: filled in during the add flow, they must actually
+  // land in their stores once `MedicationFormController.save()` has a real
+  // id to key them by, not just visually accept the input.
+  testWidgets(
+    'the full add flow persists caregiver settings and instructions, '
+    'entered while there was still no clientRecordId to key them by',
+    (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final FakeMedicationRepository repository = FakeMedicationRepository();
+      final CaregiverNotifyStore caregiverStore = CaregiverNotifyStore(db.preferencesDao);
+      final MedicationInstructionsStore instructionsStore = MedicationInstructionsStore(
+        db.preferencesDao,
+      );
+
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            ),
+          ),
+          medicationRepositoryProvider.overrideWithValue(repository),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(caregiverStore),
+          medicationInstructionsStoreProvider.overrideWithValue(instructionsStore),
+        ],
+      );
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('common.enterManually'.tr()));
+      await tester.pumpAndSettle();
+      expect(find.byType(MedicationFormScreen), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
+      await tester.enterText(find.byType(TextField).at(1), '20');
+      await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
+      await tester.pump();
+
+      // Caregiver toggle + phone: must be genuinely interactive in add mode
+      // now, not disabled.
+      final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
+      expect(toggle.onChanged, isNotNull, reason: 'no longer disabled in add mode');
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(2), '+251900000000');
+      await tester.pump();
+
+      // Instructions: must also be genuinely interactive in add mode now.
+      await tester.ensureVisible(find.text('meds.form.instructions.afterMeal'.tr()));
+      await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+      await tester.tap(find.text('meds.form.reviewButton'.tr()));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+
+      await tester.tap(find.text('meds.review.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MedicationsScreen), findsOneWidget);
+      expect(repository.medications, hasLength(1));
+      final String newId = repository.medications.single.clientRecordId;
+
+      final CaregiverNotifySettings savedCaregiver = await caregiverStore.get(newId);
+      expect(savedCaregiver.enabled, isTrue);
+      expect(savedCaregiver.phone, '+251900000000');
+
+      final MedicationInstructions savedInstructions = await instructionsStore.get(newId);
+      expect(savedInstructions, MedicationInstructions.afterMeal);
       expect(tester.takeException(), isNull);
     },
   );

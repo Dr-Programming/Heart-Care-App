@@ -165,14 +165,12 @@
       "scheduleTimes": "ሰዓቶች",
       "notifyCaregiver": "ካልተወሰደ አሳዳጊን አሳውቅ",
       "caregiverPhone": "የአሳዳጊ ስልክ ቁጥር",
-      "caregiverUnavailableNote": "መድሃኒቱ ከተቀመጠ በኋላ ይገኛል",
       "reviewButton": "ይገምግሙ እና ያረጋግጡ",
       "instructions": {
         "title": "መመሪያ",
         "afterMeal": "ከምግብ በኋላ",
         "withFood": "ከምግብ ጋር",
-        "beforeMeal": "ከምግብ በፊት",
-        "unavailableNote": "መመሪያ መድሃኒቱ ከተቀመጠ በኋላ ይገኛል"
+        "beforeMeal": "ከምግብ በፊት"
       },
       "asNeededCaption": "'እንደአስፈላጊነቱ' ማስታወሻዎችን ያሰናክላል — ለ GTN/ናይትሮ ስፕሬይ ይውላል"
     },

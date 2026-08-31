@@ -165,14 +165,12 @@
       "scheduleTimes": "Times",
       "notifyCaregiver": "Notify caregiver if missed",
       "caregiverPhone": "Caregiver phone number",
-      "caregiverUnavailableNote": "Available after the medication is saved",
       "reviewButton": "Review & confirm",
       "instructions": {
         "title": "Instructions",
         "afterMeal": "After meal",
         "withFood": "With food",
-        "beforeMeal": "Before meal",
-        "unavailableNote": "Instructions available after the medication is saved"
+        "beforeMeal": "Before meal"
       },
       "asNeededCaption": "'As needed' disables reminders — used for GTN/nitro spray"
     },

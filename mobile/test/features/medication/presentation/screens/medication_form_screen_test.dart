@@ -34,7 +34,10 @@ class _FakeFormController extends MedicationFormController {
   void setName(String value) => state = _state = _state.copyWith(name: value);
 
   @override
-  Future<bool> save() async {
+  Future<bool> save({
+    CaregiverNotifySettings? caregiverSettings,
+    MedicationInstructions? instructions,
+  }) async {
     _state = _state.copyWith(nameError: 'meds.errors.nameRequired');
     state = _state;
     return false;
@@ -439,14 +442,17 @@ void main() {
   );
 
   testWidgets(
-    'add mode disables the caregiver toggle and phone field with an '
-    'explanatory note, and neither responds to input (fix round 1)',
+    'add mode leaves the caregiver toggle and phone field fully enabled '
+    '(third Figma follow-up)',
     (tester) async {
-      // Fix round 1: `_persistCaregiverSettings()` silently no-ops in add
-      // mode (no `clientRecordId` to key `CaregiverNotifyStore` by yet), so a
-      // toggle/field that looked and behaved fully live was data loss with no
-      // indication anything was dropped. This asserts the disabled-with-note
-      // fix, not just that the widgets are present.
+      // Fix round 1 disabled these in add mode, since `_persistCaregiverSettings`
+      // had nothing to key `CaregiverNotifyStore` by yet — but that read as
+      // being blocked from entering the information at all, per real user
+      // feedback. `MedicationFormController.save()` now persists it once the
+      // medication's real id exists (see that method's doc comment and
+      // medications_screen_test.dart's full-add-flow coverage of the actual
+      // persisted result); this screen-level test only needs to prove the
+      // fields are genuinely interactive here, not that the write lands.
       await pumpApp(
         tester,
         const MedicationFormScreen(),
@@ -458,51 +464,23 @@ void main() {
       );
 
       final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
-      expect(
-        toggle.onChanged,
-        isNull,
-        reason: 'disabled: no id to key caregiver storage by yet in add mode',
-      );
+      expect(toggle.onChanged, isNotNull);
       expect(toggle.value, isFalse);
 
-      expect(
-        find.text('meds.form.caregiverUnavailableNote'.tr()),
-        findsOneWidget,
-      );
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isTrue);
 
-      // The phone field is visibly present (not hidden behind the toggle,
-      // unlike edit mode) so the user can see it is unavailable rather than
-      // wondering where it went — but it must be genuinely disabled.
       final AppTextField phoneField = tester.widget(
         find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
       );
-      expect(phoneField.enabled, isFalse);
-      expect(phoneField.onChanged, isNull);
-      final TextField rawPhoneField = tester.widget(find.byType(TextField).at(2));
-      expect(rawPhoneField.enabled, isFalse);
+      expect(phoneField.enabled, isTrue);
 
-      // Tapping a `SwitchListTile` with `onChanged: null` is a no-op in
-      // Flutter — this proves it end-to-end rather than trusting that alone.
-      await tester.tap(find.byType(SwitchListTile));
+      await tester.enterText(find.byType(TextField).at(2), '+251900000000');
       await tester.pump();
-      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isFalse);
-
-      // A disabled `TextField` refuses focus, so a real tap on it (unlike
-      // `WidgetTester.enterText`, which drives the platform text-input
-      // channel directly and would bypass the disabled state entirely) never
-      // opens a keyboard session — proof a user cannot type into it, not
-      // just that the widget claims to be disabled.
-      expect(tester.testTextInput.hasAnyClients, isFalse);
-      await tester.tap(find.byType(TextField).at(2), warnIfMissed: false);
-      await tester.pump();
-      expect(
-        tester.testTextInput.hasAnyClients,
-        isFalse,
-        reason: 'a disabled TextField must not accept focus/keyboard input',
-      );
       expect(
         tester.widget<TextField>(find.byType(TextField).at(2)).controller!.text,
-        isEmpty,
+        '+251900000000',
       );
       expect(tester.takeException(), isNull);
     },
@@ -537,7 +515,6 @@ void main() {
 
       final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
       expect(toggle.onChanged, isNotNull);
-      expect(find.text('meds.form.caregiverUnavailableNote'.tr()), findsNothing);
 
       // Same as before this fix: the phone field stays hidden until the
       // toggle is switched on, rather than always showing (add mode only).
@@ -815,9 +792,16 @@ void main() {
     );
 
     testWidgets(
-      'add mode disables the instructions chips with an explanatory note, '
-      'and none of them respond to input',
+      'add mode leaves the instructions chips fully interactive '
+      '(third Figma follow-up)',
       (tester) async {
+        // Same reasoning as the caregiver toggle/phone field's own
+        // "add mode leaves ... fully enabled" test above — see its doc
+        // comment. `MedicationInstructionsStore`'s write happens once
+        // `MedicationFormController.save()` has a real id, proven end-to-end
+        // in medications_screen_test.dart's full-add-flow coverage; this
+        // screen-level test only needs the chip to genuinely respond to a
+        // tap here.
         await pumpApp(
           tester,
           const MedicationFormScreen(),
@@ -831,19 +815,10 @@ void main() {
         final ChoiceChip afterMeal = tester.widget(
           find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
         );
-        expect(
-          afterMeal.onSelected,
-          isNull,
-          reason: 'disabled: no id to key instructions storage by yet in add mode',
-        );
+        expect(afterMeal.onSelected, isNotNull);
         expect(afterMeal.selected, isFalse);
 
-        // A near-identical (but distinct) key from the caregiver field's own
-        // add-mode note, so this note doesn't collide with — or change the
-        // count asserted by — the pre-existing caregiver add-mode test.
-        expect(find.text('meds.form.instructions.unavailableNote'.tr()), findsOneWidget);
-
-        await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()), warnIfMissed: false);
+        await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
         await tester.pump();
         expect(
           tester
@@ -851,7 +826,7 @@ void main() {
                 find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
               )
               .selected,
-          isFalse,
+          isTrue,
         );
         expect(tester.takeException(), isNull);
       },
@@ -995,6 +970,17 @@ void main() {
             medicationRepositoryProvider.overrideWithValue(repository),
             medicationNotificationsProvider.overrideWithValue(
               MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+            ),
+            // Save now always threads caregiver settings/instructions
+            // through to the real save() (third Figma follow-up) — see
+            // medications_screen_test.dart's matching override for why this
+            // is required even though this test doesn't care about their
+            // values.
+            caregiverNotifyStoreProvider.overrideWithValue(
+              CaregiverNotifyStore(db.preferencesDao),
+            ),
+            medicationInstructionsStoreProvider.overrideWithValue(
+              MedicationInstructionsStore(db.preferencesDao),
             ),
           ],
         );
