@@ -120,16 +120,16 @@ class ReviewMedicationScreen extends ConsumerWidget {
       // Figma frame 368:2651 draws this screen's back arrow/title/subtitle
       // inside the cream band too, not a separate AppBar.
       showBack: false,
-      // Matches frame 368:2651's own header-band vector directly: inset
-      // top 0, bottom 85.36% of an 874px canvas => ~128px. This screen's
-      // own "does not overflow ... at a narrow width" test previously
-      // failed at this height specifically because "Review medication" —
-      // this band's longest title of the four — wraps to a second line at
-      // a 320dp-wide viewport; the `FittedBox` below fixes the actual
-      // cause (an unbounded title that can wrap) rather than papering over
-      // it with extra container height no real device this narrow would
-      // even need, since Figma's own canvas is ~402dp wide.
-      bandHeight: 128,
+      // See `MedicationsScreen`'s matching comment: the `Spacer()` this
+      // band used to push title+subtitle to the bottom left a large empty
+      // cream gap above the back icon with nothing in it — fixed below with
+      // a fixed small gap instead, matching this height to the band's own
+      // natural content size. The `FittedBox` below still exists for its
+      // own, separate reason: "Review medication" — this band's longest
+      // title of the four — wraps to a second line at a 320dp-wide
+      // viewport otherwise, which is what this screen's own "does not
+      // overflow ... at a narrow width" test caught.
+      bandHeight: 130,
       scrollable: true,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,11 +140,16 @@ class ReviewMedicationScreen extends ConsumerWidget {
             icon: const Icon(Icons.arrow_back, color: AppColors.ink),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.xs),
+          // fontSize 28, not bare `headlineLarge` (24) — see
+          // `MedicationsScreen`'s matching comment.
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text('meds.review.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+            child: Text(
+              'meds.review.title'.tr(),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,

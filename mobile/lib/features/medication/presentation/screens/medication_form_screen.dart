@@ -304,13 +304,12 @@ class _FormBody extends ConsumerWidget {
       // name is typed), not part of the header *style* fix this task scoped
       // to matching.
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: this band's own content
-      // genuinely overflows a 320-wide test viewport below 150 (confirmed
-      // by trying frame 368:2706's raw ~136px figure here directly and
-      // getting a real `RenderFlex overflowed` failure) — the status-bar
-      // collision this task actually reported is fixed separately, in
-      // `AppScaffold`'s own `SafeArea`, not by this height.
-      bandHeight: 136,
+      // See `MedicationsScreen`'s matching comment: the `Spacer()` this
+      // band used to push title+subtitle to the bottom left a large empty
+      // cream gap above the back icon with nothing in it — fixed below with
+      // a fixed small gap instead, matching this height to the band's own
+      // natural content size.
+      bandHeight: 130,
       scrollable: true,
       bandChild: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,16 +320,22 @@ class _FormBody extends ConsumerWidget {
             icon: const Icon(Icons.arrow_back, color: AppColors.ink),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const Spacer(),
+          const SizedBox(height: AppSpacing.xs),
           // FittedBox, not a bare Text: guards this fixed-height band
           // against a title long enough to wrap to a second line (the
           // exact failure `ReviewMedicationScreen`'s own title hit at a
           // 320dp-wide viewport — see its matching comment) at any
           // translation length, not just today's English/Amharic copy.
+          //
+          // fontSize 28, not bare `headlineLarge` (24) — see
+          // `MedicationsScreen`'s matching comment.
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text('meds.form.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
+            child: Text(
+              'meds.form.title'.tr(),
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28),
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           // `bodyMedium` alone renders AppColors.textSecondary (its default,
