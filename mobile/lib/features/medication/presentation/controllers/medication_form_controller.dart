@@ -18,6 +18,7 @@ class MedicationFormState {
     this.scheduleError,
     this.isSaving = false,
     this.saved = false,
+    this.reminderSchedulingFailed = false,
   });
 
   final String name;
@@ -29,6 +30,16 @@ class MedicationFormState {
   final String? scheduleError;
   final bool isSaving;
   final bool saved;
+
+  /// Set when the medication itself saved successfully but scheduling its
+  /// reminder notifications afterward threw (e.g. a missing/denied
+  /// `SCHEDULE_EXACT_ALARM` permission on the device). The write already
+  /// happened by this point — `save()` deliberately does not fail the whole
+  /// operation for a reminder-scheduling problem, since that previously left
+  /// a genuinely-saved medication reporting as failed, inviting a retry that
+  /// would silently create a duplicate. The UI surfaces this as a soft
+  /// warning instead of a save error.
+  final bool reminderSchedulingFailed;
 
   bool get isValid => nameError == null && doseError == null && scheduleError == null;
 
@@ -42,6 +53,7 @@ class MedicationFormState {
     Object? scheduleError = _sentinel,
     bool? isSaving,
     bool? saved,
+    bool? reminderSchedulingFailed,
   }) {
     return MedicationFormState(
       name: name ?? this.name,
@@ -53,6 +65,7 @@ class MedicationFormState {
       scheduleError: identical(scheduleError, _sentinel) ? this.scheduleError : scheduleError as String?,
       isSaving: isSaving ?? this.isSaving,
       saved: saved ?? this.saved,
+      reminderSchedulingFailed: reminderSchedulingFailed ?? this.reminderSchedulingFailed,
     );
   }
 }
@@ -146,11 +159,11 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     if (!validate()) return false;
 
     state = state.copyWith(isSaving: true);
+    final Medication medication;
     try {
       final repository = ref.read(medicationRepositoryProvider);
       final double doseValue = double.parse(state.doseMg);
 
-      final Medication medication;
       if (_editingClientRecordId == null) {
         medication = await repository.add(
           name: state.name.trim(),
@@ -170,15 +183,32 @@ class MedicationFormController extends Notifier<MedicationFormState> {
           ),
         );
       }
-
-      await ref.read(medicationNotificationsProvider).scheduleFor(medication);
-      ref.invalidate(medicationListControllerProvider);
-      state = state.copyWith(isSaving: false, saved: true);
-      return true;
     } catch (_) {
+      // The write itself failed — nothing was saved, so this is the one
+      // case save() still reports as a failure.
       state = state.copyWith(isSaving: false);
       rethrow;
     }
+
+    // From here on the medication is already persisted. A reminder-
+    // scheduling failure (e.g. a missing SCHEDULE_EXACT_ALARM permission)
+    // must not make save() report failure — that previously left a
+    // genuinely-saved medication looking like nothing happened, inviting a
+    // retry that would silently duplicate it.
+    bool reminderSchedulingFailed = false;
+    try {
+      await ref.read(medicationNotificationsProvider).scheduleFor(medication);
+    } catch (_) {
+      reminderSchedulingFailed = true;
+    }
+
+    ref.invalidate(medicationListControllerProvider);
+    state = state.copyWith(
+      isSaving: false,
+      saved: true,
+      reminderSchedulingFailed: reminderSchedulingFailed,
+    );
+    return true;
   }
 }
 

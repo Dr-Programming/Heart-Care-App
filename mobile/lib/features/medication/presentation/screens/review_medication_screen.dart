@@ -79,6 +79,26 @@ class ReviewMedicationScreen extends ConsumerWidget {
         // makes each pop a no-op once there is nowhere left to go, so this is
         // "pop up to two levels" rather than "pop exactly two, always".
         final NavigatorState navigator = Navigator.of(context);
+        if (next.reminderSchedulingFailed) {
+          // The medication saved fine; only reminder scheduling failed
+          // afterward. Give the warning a moment on screen before popping —
+          // a SnackBar shown right before `pop()` would be torn down with
+          // this route before anyone could read it.
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('meds.review.reminderSchedulingFailed'.tr()),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          Future<void>.delayed(const Duration(milliseconds: 1200), () {
+            if (!context.mounted) return;
+            if (navigator.canPop()) navigator.pop();
+            if (navigator.canPop()) navigator.pop();
+          });
+          return;
+        }
         if (navigator.canPop()) navigator.pop();
         if (navigator.canPop()) navigator.pop();
       }

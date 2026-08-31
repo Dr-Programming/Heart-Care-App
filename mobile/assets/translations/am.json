@@ -241,7 +241,8 @@
       "save": "መድሃኒት አስቀምጥ",
       "edit": "ዝርዝሮችን አርትዕ",
       "instructionsNotSet": "አልተቀናበረም",
-      "noFixedSchedule": "ቋሚ መርሃ ግብር የለም"
+      "noFixedSchedule": "ቋሚ መርሃ ግብር የለም",
+      "reminderSchedulingFailed": "ተቀምጧል። የማሳወቂያ ፈቃድ እስኪሰጥ ድረስ ማሳወቂያዎች ላይሰሩ ይችላሉ።"
     }
   },
 

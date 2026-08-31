@@ -1,4 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for medication reminder notifications (flutter_local_notifications).
+         POST_NOTIFICATIONS: Android 13+ runtime permission to show any
+         notification at all; requested at runtime, this declaration is what
+         makes that request possible.
+         SCHEDULE_EXACT_ALARM: Android 12+ permission needed for
+         AndroidScheduleMode.exactAllowWhileIdle (medication reminders must
+         fire at their exact scheduled time, not "eventually"). On Android
+         14+ this is not auto-granted — the user may need to enable it via
+         Settings > Apps > Libu Care > Alarms & reminders. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <application
         android:label="Libu Care"
         android:name="${applicationName}"
