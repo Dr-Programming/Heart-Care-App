@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/caregiver_notify_store.dart';
+import '../../data/medication_instructions_store.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/validators.dart';
 import '../../medication_providers.dart';
@@ -155,7 +157,22 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     return nameError == null && doseError == null && scheduleError == null;
   }
 
-  Future<bool> save() async {
+  /// [caregiverSettings]/[instructions] are optional because they are owned
+  /// by `CaregiverNotifyStore`/`MedicationInstructionsStore`, not this
+  /// controller's own state (see those stores' doc comments) — the caller
+  /// (`ReviewMedicationScreen`) passes the values it was handed down from
+  /// `MedicationFormScreen`'s local `State`. Persisting them here, after the
+  /// medication write above succeeds, is what makes them work in ADD mode
+  /// (third Figma follow-up): there is no `clientRecordId` to key either
+  /// store by until this exact point, when `repository.add` returns one for
+  /// the first time. A failure persisting either is treated the same way as
+  /// a reminder-scheduling failure above — non-fatal, since the medication
+  /// itself is already saved by this point and must not be reported as
+  /// failed over a problem with a local-only, best-effort side field.
+  Future<bool> save({
+    CaregiverNotifySettings? caregiverSettings,
+    MedicationInstructions? instructions,
+  }) async {
     if (!validate()) return false;
 
     state = state.copyWith(isSaving: true);
@@ -200,6 +217,25 @@ class MedicationFormController extends Notifier<MedicationFormState> {
       await ref.read(medicationNotificationsProvider).scheduleFor(medication);
     } catch (_) {
       reminderSchedulingFailed = true;
+    }
+
+    if (caregiverSettings != null) {
+      try {
+        await ref
+            .read(caregiverNotifyStoreProvider)
+            .set(medication.clientRecordId, caregiverSettings);
+      } catch (_) {
+        // Best-effort, local-only side field — see this method's doc comment.
+      }
+    }
+    if (instructions != null) {
+      try {
+        await ref
+            .read(medicationInstructionsStoreProvider)
+            .set(medication.clientRecordId, instructions);
+      } catch (_) {
+        // Best-effort, local-only side field — see this method's doc comment.
+      }
     }
 
     ref.invalidate(medicationListControllerProvider);

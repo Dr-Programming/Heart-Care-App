@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/db/app_database.dart' hide Medication, DoseLog;
+import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
+import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
 import 'package:libu_care/features/medication/domain/entities/adherence.dart';
 import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
@@ -465,6 +467,52 @@ void main() {
       expect(state.saved, isTrue);
       expect(state.isSaving, isFalse);
       expect(state.reminderSchedulingFailed, isTrue);
+    },
+  );
+
+  test(
+    'save() persists caregiverSettings/instructions using the newly-created '
+    "medication's own clientRecordId — the fix that made these usable in "
+    'add mode (third Figma follow-up), where no id exists until this call',
+    () async {
+      final _FakeRepository repo = _FakeRepository();
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final CaregiverNotifyStore caregiverStore = CaregiverNotifyStore(db.preferencesDao);
+      final MedicationInstructionsStore instructionsStore = MedicationInstructionsStore(
+        db.preferencesDao,
+      );
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(repo),
+          medicationNotificationsProvider.overrideWithValue(
+            MedicationNotifications(_NoopScheduler(), db.preferencesDao),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(caregiverStore),
+          medicationInstructionsStoreProvider.overrideWithValue(instructionsStore),
+        ],
+      );
+      addTearDown(container.dispose);
+      final MedicationFormController controller = container.read(medicationFormControllerProvider.notifier);
+
+      controller.setName('Atorvastatin');
+      controller.setDoseMg('20');
+      controller.setScheduleTimes(const <String>['08:00']);
+
+      final bool result = await controller.save(
+        caregiverSettings: const CaregiverNotifySettings(enabled: true, phone: '+251900000000'),
+        instructions: MedicationInstructions.afterMeal,
+      );
+
+      expect(result, isTrue);
+      final String newId = repo.added!.clientRecordId;
+
+      final CaregiverNotifySettings savedCaregiver = await caregiverStore.get(newId);
+      expect(savedCaregiver.enabled, isTrue);
+      expect(savedCaregiver.phone, '+251900000000');
+
+      final MedicationInstructions savedInstructions = await instructionsStore.get(newId);
+      expect(savedInstructions, MedicationInstructions.afterMeal);
     },
   );
 }

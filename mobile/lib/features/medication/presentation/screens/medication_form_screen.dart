@@ -114,12 +114,17 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     super.dispose();
   }
 
-  /// Writes the caregiver toggle + phone to storage. A no-op in add mode:
-  /// there is no `clientRecordId` to key it by until the medication is
-  /// actually saved (which happens later, from `ReviewMedicationScreen`, and
-  /// generates that id inside `MedicationRepository.add` with no way back to
-  /// here) — a known, narrow limitation of this local-only feature, not a
-  /// bug in the edit-mode path this actually supports.
+  /// Writes the caregiver toggle + phone to storage immediately — but only
+  /// in edit mode. In add mode there is no `clientRecordId` yet to key it
+  /// by, so this is a deliberate no-op here: the values the user enters
+  /// still live in this screen's own `State` (`_caregiverEnabled`,
+  /// `_caregiverPhoneController`) and are threaded through
+  /// `ReviewMedicationScreen` to `MedicationFormController.save()`, which
+  /// writes them for real once the medication's real id exists (see that
+  /// method's doc comment). Third Figma follow-up: this used to disable the
+  /// fields entirely in add mode instead of doing this — real, repeated user
+  /// feedback that reads as data loss ("why can't I set this before
+  /// saving?") is what changed it to always-enabled with a deferred write.
   void _persistCaregiverSettings() {
     final String? id = widget.editingId;
     if (id == null) return;
@@ -141,9 +146,10 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
   void _onCaregiverPhoneChanged(String _) => _persistCaregiverSettings();
 
-  /// Writes the selected instructions to storage. A no-op in add mode, for
+  /// Writes the selected instructions to storage — a no-op in add mode, for
   /// the identical reason as `_persistCaregiverSettings` — see its doc
-  /// comment.
+  /// comment, including why add mode is a no-op *here* specifically without
+  /// losing the value.
   void _persistInstructions() {
     final String? id = widget.editingId;
     if (id == null) return;
@@ -244,18 +250,6 @@ class _FormBody extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    // Caregiver settings are keyed by `clientRecordId` in
-    // `CaregiverNotifyStore`, and add mode has no id yet (see
-    // `_persistCaregiverSettings`'s doc comment) — so in add mode the toggle
-    // and phone field are shown disabled with an explanatory note instead of
-    // silently accepting input that would then be discarded on Save.
-    final bool caregiverSettingsAvailable = editingId != null;
-
-    // Instructions are keyed by `clientRecordId` in
-    // `MedicationInstructionsStore`, exactly like the caregiver settings
-    // above — same reasoning, same add-mode limitation.
-    final bool instructionsAvailable = editingId != null;
-
     // "As needed" (second Figma follow-up) is Custom frequency with an empty
     // schedule — not a new enum value, not a new persisted field (see
     // `MedicationInstructions`' own file for the parallel local-only field,
@@ -343,25 +337,15 @@ class _FormBody extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
             title: Text('meds.form.notifyCaregiver'.tr()),
             value: caregiverEnabled,
-            onChanged: caregiverSettingsAvailable ? onCaregiverEnabledChanged : null,
+            onChanged: onCaregiverEnabledChanged,
           ),
-          if (!caregiverSettingsAvailable) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'meds.form.caregiverUnavailableNote'.tr(),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
-            ),
-          ],
-          if (caregiverEnabled || !caregiverSettingsAvailable) ...<Widget>[
+          if (caregiverEnabled) ...<Widget>[
             const SizedBox(height: AppSpacing.sm),
             AppTextField(
               label: 'meds.form.caregiverPhone'.tr(),
               controller: caregiverPhoneController,
               keyboardType: TextInputType.phone,
-              enabled: caregiverSettingsAvailable,
-              onChanged: caregiverSettingsAvailable ? onCaregiverPhoneChanged : null,
+              onChanged: onCaregiverPhoneChanged,
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
@@ -379,19 +363,10 @@ class _FormBody extends ConsumerWidget {
                 _InstructionsChip(
                   option: option,
                   selected: instructions == option,
-                  onSelected: instructionsAvailable ? () => onInstructionsChanged(option) : null,
+                  onSelected: () => onInstructionsChanged(option),
                 ),
             ],
           ),
-          if (!instructionsAvailable) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'meds.form.instructions.unavailableNote'.tr(),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
-            ),
-          ],
           const SizedBox(height: AppSpacing.xxl),
           _ReviewButton(
             isLoading: state.isSaving,
@@ -421,6 +396,7 @@ class _FormBody extends ConsumerWidget {
       MaterialPageRoute<void>(
         builder: (_) => ReviewMedicationScreen(
           notifyCaregiverEnabled: caregiverEnabled,
+          caregiverPhone: caregiverPhoneController.text,
           instructions: instructions,
         ),
       ),
@@ -640,12 +616,9 @@ class _AsNeededChip extends StatelessWidget {
 /// One Instructions `ChoiceChip` (After meal / With food / Before meal —
 /// second Figma follow-up, Part A). Same visual convention as
 /// [_FrequencyChip]/[_AsNeededChip] — reused deliberately rather than
-/// inventing a new chip style. `onSelected` is nullable so add mode (no
-/// `clientRecordId` to key `MedicationInstructionsStore` by yet — see
-/// `_MedicationFormScreenState._persistInstructions`) can pass `null` and get
-/// the same visually-disabled, non-interactive chip `ChoiceChip` already
-/// gives a null callback, matching the caregiver fields' own add-mode
-/// treatment.
+/// inventing a new chip style. Always interactive, in both add and edit mode
+/// (third Figma follow-up) — see `_persistInstructions`'s doc comment for why
+/// add mode no longer disables this.
 class _InstructionsChip extends StatelessWidget {
   const _InstructionsChip({
     required this.option,
@@ -655,14 +628,14 @@ class _InstructionsChip extends StatelessWidget {
 
   final MedicationInstructions option;
   final bool selected;
-  final VoidCallback? onSelected;
+  final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
     return ChoiceChip(
       label: Text('meds.form.instructions.${option.name}'.tr()),
       selected: selected,
-      onSelected: onSelected == null ? null : (_) => onSelected!(),
+      onSelected: (_) => onSelected(),
       showCheckmark: false,
       selectedColor: AppColors.ink,
       backgroundColor: AppColors.surfaceAlt,

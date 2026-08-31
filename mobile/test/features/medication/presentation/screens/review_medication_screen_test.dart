@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
 import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/medication_providers.dart';
@@ -17,13 +18,20 @@ class _FakeSavingController extends MedicationFormController {
   _FakeSavingController(this._state);
   MedicationFormState _state;
   bool saveCalled = false;
+  CaregiverNotifySettings? receivedCaregiverSettings;
+  MedicationInstructions? receivedInstructions;
 
   @override
   MedicationFormState build() => _state;
 
   @override
-  Future<bool> save() async {
+  Future<bool> save({
+    CaregiverNotifySettings? caregiverSettings,
+    MedicationInstructions? instructions,
+  }) async {
     saveCalled = true;
+    receivedCaregiverSettings = caregiverSettings;
+    receivedInstructions = instructions;
     _state = _state.copyWith(saved: true);
     state = _state;
     return true;
