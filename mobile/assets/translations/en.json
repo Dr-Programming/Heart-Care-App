@@ -132,6 +132,7 @@
     "today": "Today",
     "schedule": "Schedule",
     "historyTab": "History",
+    "nextReminder": "Next reminder in {duration} — {name}",
     "todayEmpty": "Nothing due right now",
     "yourMedications": "Your medications",
     "emptyTitle": "No medications yet",

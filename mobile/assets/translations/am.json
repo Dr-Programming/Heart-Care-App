@@ -132,6 +132,7 @@
     "today": "ዛሬ",
     "schedule": "መርሃ ግብር",
     "historyTab": "ታሪክ",
+    "nextReminder": "ቀጣይ ማስታወሻ በ {duration} ውስጥ — {name}",
     "todayEmpty": "አሁን የሚወሰድ የለም",
     "yourMedications": "የእርስዎ መድሃኒቶች",
     "emptyTitle": "እስካሁን መድሃኒት የለም",

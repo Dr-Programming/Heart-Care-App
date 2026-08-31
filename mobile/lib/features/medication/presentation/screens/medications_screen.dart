@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/dose_log.dart';
+import '../../domain/entities/scheduled_dose.dart';
 import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
 import '../widgets/medication_card.dart';
@@ -296,7 +297,7 @@ class _TodayTab extends ConsumerWidget {
         const SizedBox(height: AppSpacing.md),
         if (state.todaysDoses.isEmpty)
           Text('meds.todayEmpty'.tr(), style: Theme.of(context).textTheme.bodyMedium)
-        else
+        else ...<Widget>[
           for (final dose in state.todaysDoses)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -315,7 +316,83 @@ class _TodayTab extends ConsumerWidget {
                 ),
               ),
             ),
+          // Missing entirely before — get_design_context for frame
+          // 368:2846 showed a "Next reminder in Xh Ym — <name>" line in
+          // accent blue right after today's dose rows. `_nextPendingDose`
+          // reuses `todaysDoses`' own sort order (ascending scheduledTime,
+          // guaranteed by `scheduledDosesFor`) rather than re-sorting.
+          if (_nextPendingDose(state.todaysDoses) case final ScheduledDose next)
+            _NextReminderBanner(dose: next),
+        ],
       ],
+    );
+  }
+}
+
+/// The earliest dose in [doses] still ahead of now today, or null when
+/// nothing is left to remind about (every dose today is logged/overdue, or
+/// there are no doses at all). `doses` is already sorted ascending by
+/// `scheduledTime` (see `scheduledDosesFor`), so the first `pending` entry
+/// — pending meaning strictly not-yet-due, per `ScheduledDoseStatus`'s own
+/// doc comment — is the next one, with no re-sort needed here.
+ScheduledDose? _nextPendingDose(List<ScheduledDose> doses) {
+  for (final ScheduledDose dose in doses) {
+    if (dose.status == ScheduledDoseStatus.pending) return dose;
+  }
+  return null;
+}
+
+/// "Next reminder in 6h 22m — Metoprolol 50 mg" (frame 368:2846) — a
+/// standing, non-dismissible heads-up under today's dose list, not a
+/// per-dose element, so it lives once beneath the whole list rather than on
+/// [DoseRow] itself.
+class _NextReminderBanner extends StatelessWidget {
+  const _NextReminderBanner({required this.dose});
+
+  final ScheduledDose dose;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<String> parts = dose.scheduledTime.split(':');
+    final DateTime now = DateTime.now();
+    final DateTime due = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+    final Duration remaining = due.difference(now);
+    final int hours = remaining.inHours;
+    final int minutes = remaining.inMinutes.remainder(60);
+    final String duration = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+    // Same dose-mg formatting already duplicated in DoseRow/MedicationCard/
+    // MedicationSearchScreen's suggestion card ("50" not "50.0") — kept
+    // local here rather than extracted, matching how those three do it.
+    final String doseLabel = dose.doseMg == dose.doseMg.roundToDouble()
+        ? dose.doseMg.toStringAsFixed(0)
+        : dose.doseMg.toString();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(Iconsax.notification, color: AppColors.accent, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'meds.nextReminder'.tr(
+                namedArgs: <String, String>{
+                  'duration': duration,
+                  'name': '${dose.medicationName} $doseLabel mg',
+                },
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.accent),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
