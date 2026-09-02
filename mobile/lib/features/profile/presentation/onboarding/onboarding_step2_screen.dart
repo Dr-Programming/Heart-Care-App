@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,16 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../domain/validators.dart';
+import '../widgets/comorbidity_options.dart';
 import 'onboarding_controller.dart';
-
-const List<String> _suggestedComorbidities = [
-  'Diabetes',
-  'Hypertension',
-  'Kidney disease',
-  'High cholesterol',
-  'Previous heart attack',
-  'Stroke',
-];
 
 class OnboardingStep2Screen extends ConsumerStatefulWidget {
   const OnboardingStep2Screen({super.key});
@@ -29,6 +22,7 @@ class _OnboardingStep2ScreenState
   final _formKey = GlobalKey<FormState>();
   final _chdStageController = TextEditingController();
   final _diseaseHistoryController = TextEditingController();
+  final _managementPlanController = TextEditingController();
   final _otherController = TextEditingController();
   final Set<String> _selectedComorbidities = {};
 
@@ -36,36 +30,28 @@ class _OnboardingStep2ScreenState
   void dispose() {
     _chdStageController.dispose();
     _diseaseHistoryController.dispose();
+    _managementPlanController.dispose();
     _otherController.dispose();
     super.dispose();
-  }
-
-  void _toggle(String label) {
-    setState(() {
-      if (_selectedComorbidities.contains(label)) {
-        _selectedComorbidities.remove(label);
-      } else {
-        _selectedComorbidities.add(label);
-      }
-    });
   }
 
   void _continue() {
     if (!_formKey.currentState!.validate()) return;
 
-    final comorbidities = [..._selectedComorbidities];
-    if (_otherController.text.trim().isNotEmpty) {
-      comorbidities.add(_otherController.text.trim());
-    }
-
     ref.read(onboardingControllerProvider.notifier).updateMedicalProfile(
           chdStage: _chdStageController.text.isEmpty
               ? null
               : _chdStageController.text,
-          comorbidities: comorbidities,
+          comorbidities: mergeComorbidities(
+            _selectedComorbidities,
+            _otherController.text,
+          ),
           diseaseHistory: _diseaseHistoryController.text.isEmpty
               ? null
               : _diseaseHistoryController.text,
+          managementPlan: _managementPlanController.text.isEmpty
+              ? null
+              : _managementPlanController.text,
         );
 
     context.push('/onboarding/step-3');
@@ -98,14 +84,14 @@ class _OnboardingStep2ScreenState
                       ),
                       Expanded(
                         child: Text(
-                          'Medical profile',
+                          'profile.onboarding.step2.title'.tr(),
                           style: Theme.of(context).textTheme.headlineLarge,
                         ),
                       ),
                     ],
                   ),
                   Text(
-                    'Step 2 of 3 — Heart condition details',
+                    'profile.onboarding.step2.progress'.tr(),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -120,59 +106,68 @@ class _OnboardingStep2ScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Diagnosis',
+                        'profile.fields.diagnosis'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       TextFormField(
                         controller: _chdStageController,
                         maxLength: 50,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. Coronary artery disease',
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.diagnosisHint'.tr(),
                         ),
                         validator: (value) {
-                          final result =
-                              ProfileValidators.chdStage(value);
-                          return result.isValid ? null : result.errorMessage;
+                          final result = ProfileValidators.chdStage(value);
+                          return result.isValid
+                              ? null
+                              : result.errorMessage!.tr();
                         },
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'Disease history',
+                        'profile.fields.diseaseHistory'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       TextFormField(
                         controller: _diseaseHistoryController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. Diagnosed 2019, one prior surgery',
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.diseaseHistoryHint'.tr(),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'profile.fields.managementPlan'.tr(),
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextFormField(
+                        controller: _managementPlanController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.managementPlanHint'.tr(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Text(
-                        'Comorbidities (optional)',
+                        'profile.fields.comorbiditiesOptional'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.sm,
-                        runSpacing: AppSpacing.sm,
-                        children: _suggestedComorbidities.map((label) {
-                          final selected =
-                              _selectedComorbidities.contains(label);
-                          return _ComorbidityChip(
-                            label: label,
-                            selected: selected,
-                            onTap: () => _toggle(label),
-                          );
-                        }).toList(),
+                      ComorbidityChips(
+                        selected: _selectedComorbidities,
+                        onToggle: (value) => setState(() {
+                          _selectedComorbidities.contains(value)
+                              ? _selectedComorbidities.remove(value)
+                              : _selectedComorbidities.add(value);
+                        }),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       TextFormField(
                         controller: _otherController,
-                        decoration: const InputDecoration(
-                          hintText: 'Other (optional)',
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.comorbidityOther'.tr(),
                         ),
                       ),
                     ],
@@ -184,49 +179,10 @@ class _OnboardingStep2ScreenState
               padding: const EdgeInsets.all(AppSpacing.gutter),
               child: FilledButton(
                 onPressed: _continue,
-                child: const Text('Continue  →'),
+                child: Text('${'common.next'.tr()}  →'),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ComorbidityChip extends StatelessWidget {
-  const _ComorbidityChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.ink : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
-          border: Border.all(
-            color: selected ? AppColors.ink : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: selected ? AppColors.surface : AppColors.ink,
-              ),
         ),
       ),
     );

@@ -10,6 +10,9 @@ import '../core/shell/home_card.dart';
 import '../features/profile/presentation/onboarding/onboarding_step1_screen.dart';
 import '../features/profile/presentation/onboarding/onboarding_step2_screen.dart';
 import '../features/profile/presentation/onboarding/onboarding_step3_screen.dart';
+import '../features/profile/presentation/profile/profile_edit_screen.dart';
+import '../features/profile/presentation/profile/profile_screen.dart';
+import '../features/profile/presentation/settings/settings_screen.dart';
 
 // ---------------------------------------------------------------------------
 // THE ONE FILE WHERE FEATURES MEET.
@@ -68,6 +71,24 @@ FeatureRoutes buildFeatureRoutes() {
                 const OnboardingStep3Screen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: AppRoutes.profilePath,
+        name: AppRoutes.profile,
+        builder: (BuildContext context, GoRouterState state) =>
+            const ProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profileEditPath,
+        name: AppRoutes.profileEdit,
+        builder: (BuildContext context, GoRouterState state) =>
+            const ProfileEditScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsPath,
+        name: AppRoutes.settings,
+        builder: (BuildContext context, GoRouterState state) =>
+            const SettingsScreen(),
       ),
     ],
 
