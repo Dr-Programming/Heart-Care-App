@@ -30,11 +30,18 @@ final Provider<ProfileRepository> profileRepositoryProvider =
     throw StateError('profileRepositoryProvider read with no cached user.');
   }
 
-  return ProfileRepositoryImpl(
+  // Passing the live connectivity stream here means a profile edit made
+  // offline retries on its own the moment the device reconnects, rather
+  // than waiting for the patient to open the edit form again (M2 spec §5).
+  final ProfileRepositoryImpl repository = ProfileRepositoryImpl(
     local: ref.watch(profileLocalDatasourceProvider),
     remote: ref.watch(profileRemoteDatasourceProvider),
     userId: cachedUser.id,
+    prefsDao: ref.watch(appDatabaseProvider).preferencesDao,
+    connectivity: ref.watch(connectivityStreamProvider),
   );
+  ref.onDispose(repository.dispose);
+  return repository;
 });
 
 final Provider<GetProfile> getProfileProvider = Provider<GetProfile>(

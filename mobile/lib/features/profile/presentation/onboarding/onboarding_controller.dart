@@ -13,6 +13,7 @@ class OnboardingState {
   final String? chdStage;
   final List<String> comorbidities;
   final String? diseaseHistory;
+  final String? managementPlan;
   final HealthGoals? goals;
 
   const OnboardingState({
@@ -22,6 +23,7 @@ class OnboardingState {
     this.chdStage,
     this.comorbidities = const [],
     this.diseaseHistory,
+    this.managementPlan,
     this.goals,
   });
 
@@ -32,6 +34,7 @@ class OnboardingState {
     String? chdStage,
     List<String>? comorbidities,
     String? diseaseHistory,
+    String? managementPlan,
     HealthGoals? goals,
   }) {
     return OnboardingState(
@@ -41,6 +44,7 @@ class OnboardingState {
       chdStage: chdStage ?? this.chdStage,
       comorbidities: comorbidities ?? this.comorbidities,
       diseaseHistory: diseaseHistory ?? this.diseaseHistory,
+      managementPlan: managementPlan ?? this.managementPlan,
       goals: goals ?? this.goals,
     );
   }
@@ -53,6 +57,7 @@ class OnboardingState {
       chdStage: chdStage,
       diseaseHistory: diseaseHistory,
       comorbidities: comorbidities,
+      managementPlan: managementPlan,
       goals: goals,
     );
   }
@@ -78,11 +83,13 @@ class OnboardingController extends Notifier<OnboardingState> {
     String? chdStage,
     List<String>? comorbidities,
     String? diseaseHistory,
+    String? managementPlan,
   }) {
     state = state.copyWith(
       chdStage: chdStage,
       comorbidities: comorbidities,
       diseaseHistory: diseaseHistory,
+      managementPlan: managementPlan,
     );
   }
 
