@@ -1,5 +1,9 @@
 class ValidationResult {
   final bool isValid;
+
+  /// A translation key, not literal text — callers `.tr()` it. Keeping
+  /// English out of the domain layer is what lets the same validator serve
+  /// both languages (FR-LOC-002).
   final String? errorMessage;
 
   const ValidationResult.valid() : isValid = true, errorMessage = null;
@@ -10,9 +14,7 @@ class ProfileValidators {
   static ValidationResult birthYear(int? year) {
     if (year == null) return const ValidationResult.valid();
     if (year < 1900 || year > 2100) {
-      return const ValidationResult.invalid(
-        'Birth year must be between 1900 and 2100',
-      );
+      return const ValidationResult.invalid('profile.errors.birthYearRange');
     }
     return const ValidationResult.valid();
   }
@@ -20,9 +22,7 @@ class ProfileValidators {
   static ValidationResult heightCm(double? height) {
     if (height == null) return const ValidationResult.valid();
     if (height < 50 || height > 250) {
-      return const ValidationResult.invalid(
-        'Height must be between 50 and 250 cm',
-      );
+      return const ValidationResult.invalid('profile.errors.heightRange');
     }
     return const ValidationResult.valid();
   }
@@ -30,17 +30,15 @@ class ProfileValidators {
   static ValidationResult chdStage(String? stage) {
     if (stage == null) return const ValidationResult.valid();
     if (stage.length > 50) {
-      return const ValidationResult.invalid(
-        'Diagnosis must be 50 characters or fewer',
-      );
+      return const ValidationResult.invalid('profile.errors.diagnosisLength');
     }
     return const ValidationResult.valid();
   }
 
-  static ValidationResult nonNegative(num? value, String fieldName) {
+  static ValidationResult nonNegative(num? value) {
     if (value == null) return const ValidationResult.valid();
     if (value < 0) {
-      return ValidationResult.invalid('$fieldName cannot be negative');
+      return const ValidationResult.invalid('profile.errors.negativeValue');
     }
     return const ValidationResult.valid();
   }

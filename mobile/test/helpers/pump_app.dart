@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
@@ -28,14 +29,24 @@ void setUpWidgetTests() {
   EasyLocalization.logger.enableBuildModes = const [];
 
   // easy_localization remembers the chosen locale in SharedPreferences, which
-  // has no plugin implementation under `flutter test`. Answering the channel
-  // with an empty store is enough, and is preferable to taking a direct
-  // dependency on shared_preferences just for its test helper.
+  // has no plugin implementation under `flutter test`. An empty store on
+  // read is enough for a cold start; the `set*`/`remove`/`clear` calls a
+  // `context.setLocale` makes mid-test need an answer too (any reply, since
+  // nothing here asserts on the write) — an unanswered one leaves the
+  // platform call's `!` null-check to throw.
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
         const MethodChannel('plugins.flutter.io/shared_preferences'),
-        (MethodCall call) async =>
-            call.method == 'getAll' ? <String, Object>{} : null,
+        (MethodCall call) async {
+          if (call.method == 'getAll') return <String, Object>{};
+          if (call.method.startsWith('set') ||
+              call.method == 'remove' ||
+              call.method == 'clear' ||
+              call.method == 'clearWithParameters') {
+            return true;
+          }
+          return null;
+        },
       );
 
   setUpAll(() async => EasyLocalization.ensureInitialized());
@@ -121,3 +132,71 @@ Future<void> pumpApp(
     const Duration(seconds: 10),
   );
 }
+
+/// [pumpApp]'s sibling for the handful of screens that need real
+/// `GoRouter` navigation to work under test — anything that calls
+/// `context.push`/`context.pop`/`context.go` rather than the plain
+/// `Navigator`. `pumpApp` deliberately does not provide a router (most
+/// screens don't need one); this does, wired from [routes].
+///
+/// Returns the `GoRouter` so a test can drive further navigation
+/// (`router.push(...)`) or inspect where it ended up.
+Future<GoRouter> pumpRoutedApp(
+  WidgetTester tester, {
+  required List<RouteBase> routes,
+  required String initialLocation,
+  List<Override> overrides = const <Override>[],
+  AppLanguage language = AppLanguage.en,
+}) async {
+  final GoRouter router = GoRouter(
+    initialLocation: initialLocation,
+    routes: routes,
+  );
+
+  final ProviderContainer container = ProviderContainer(overrides: overrides);
+  addTearDown(container.dispose);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: EasyLocalization(
+          supportedLocales: AppLanguage.values
+              .map((AppLanguage l) => l.locale)
+              .toList(growable: false),
+          path: 'assets/translations',
+          fallbackLocale: AppLanguage.en.locale,
+          startLocale: language.locale,
+          useFallbackTranslations: true,
+          child: Builder(
+            builder: (BuildContext context) => MaterialApp.router(
+              theme: AppTheme.light(context.locale.languageCode),
+              localizationsDelegates: context.localizationDelegates,
+              supportedLocales: context.supportedLocales,
+              locale: context.locale,
+              routerConfig: router,
+            ),
+          ),
+        ),
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  });
+
+  await tester.pumpAndSettle(
+    const Duration(milliseconds: 100),
+    EnginePhase.sendSemanticsUpdate,
+    const Duration(seconds: 10),
+  );
+
+  return router;
+}
+
+/// Real async I/O (Drift, `context.setLocale`) doesn't advance inside the
+/// fake-async zone a plain `pump`/`pumpAndSettle` runs in — the same reason
+/// the initial pump in [pumpApp] and [pumpRoutedApp] uses `runAsync`. Wrap an
+/// action that triggers such I/O (a tap, `router.push`) in this before the
+/// following `pumpAndSettle`, or the effect may never be observed.
+Future<void> settleAsync(WidgetTester tester) => tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );

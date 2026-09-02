@@ -122,7 +122,104 @@
   },
 
   "profile": {
-    "title": "መገለጫ"
+    "title": "መገለጫ",
+
+    "screen": {
+      "headline": "የእኔ መገለጫ",
+      "subtitle": "የጤና መረጃዎ"
+    },
+
+    "sections": {
+      "medical": "የሕክምና መረጃ",
+      "personal": "የግል መረጃ",
+      "goals": "ግቦች"
+    },
+
+    "fields": {
+      "name": "ስም",
+      "birthYear": "የትውልድ ዓመት",
+      "birthYearHint": "ለምሳሌ 1965",
+      "heightCm": "ቁመት (ሴ.ሜ)",
+      "heightCmHint": "ለምሳሌ 172",
+      "preferredLanguage": "የሚመርጡት ቋንቋ",
+      "diagnosis": "ምርመራ",
+      "diagnosisHint": "ለምሳሌ የልብ ደም ስር በሽታ",
+      "diseaseHistory": "የበሽታ ታሪክ",
+      "diseaseHistoryHint": "ለምሳሌ በ2019 ተመረመረ፣ አንድ ቀዶ ጥገና ተደርጓል",
+      "managementPlan": "የአሁኑ የሕክምና ዕቅድ",
+      "managementPlanHint": "ለምሳሌ አስፕሪን፣ ስታቲን፣ በሳምንት ሁለቴ የልብ ማገገሚያ",
+      "comorbidities": "አብሮ ያሉ በሽታዎች",
+      "comorbiditiesOptional": "አብሮ ያሉ በሽታዎች (አማራጭ)",
+      "comorbidityOther": "ሌላ (አማራጭ)",
+      "targetBp": "የደም ግፊት ግብ",
+      "systolicHint": "ሲስቶሊክ",
+      "diastolicHint": "ዲያስቶሊክ",
+      "targetWeight": "የክብደት ግብ (ኪ.ግ)",
+      "targetWeightHint": "ለምሳሌ 70",
+      "stepsGoal": "የዕለት ርምጃ ግብ",
+      "stepsGoalHint": "ለምሳሌ 6000",
+      "targetCholesterol": "የኮሌስትሮል ግብ",
+      "targetCholesterolHint": "ለምሳሌ 180",
+      "dietNote": "የአመጋገብ ማስታወሻ",
+      "dietNoteHint": "ለምሳሌ ጨው የቀነሰ፣ ስኳር ያልታከለበት"
+    },
+
+    "comorbidityOptions": {
+      "diabetes": "የስኳር በሽታ",
+      "hypertension": "የደም ግፊት",
+      "kidneyDisease": "የኩላሊት በሽታ",
+      "highCholesterol": "ከፍተኛ ኮሌስትሮል",
+      "previousHeartAttack": "ቀደም ሲል የደረሰ የልብ ድካም",
+      "stroke": "ስትሮክ"
+    },
+
+    "values": {
+      "notSet": "አልተመዘገበም",
+      "noneRecorded": "ምንም አልተመዘገበም"
+    },
+
+    "actions": {
+      "editProfile": "መገለጫ አስተካክል",
+      "settings": "ቅንብሮች",
+      "saveChanges": "ለውጦችን አስቀምጥ"
+    },
+
+    "errors": {
+      "loadFailed": "መገለጫዎን መጫን አልተቻለም።",
+      "birthYearRange": "የትውልድ ዓመት ከ1900 እስከ 2100 መሆን አለበት",
+      "heightRange": "ቁመት ከ50 እስከ 250 ሴ.ሜ መሆን አለበት",
+      "diagnosisLength": "ምርመራ ከ50 ፊደላት መብለጥ የለበትም",
+      "negativeValue": "ከ0 ወይም በላይ ዋጋ ያስገቡ"
+    },
+
+    "onboarding": {
+      "step1": {
+        "progress": "ደረጃ 1 ከ3 — የግል መረጃ",
+        "title": "ስለ እርስዎ ይንገሩን"
+      },
+      "step2": {
+        "progress": "ደረጃ 2 ከ3 — የልብ ሁኔታ ዝርዝሮች",
+        "title": "የሕክምና መገለጫ"
+      },
+      "step3": {
+        "progress": "ደረጃ 3 ከ3 — የግል ግቦችዎን ያስቀምጡ",
+        "title": "ግቦችዎ",
+        "intro": "እነዚህ አማራጭ ናቸው — በማንኛውም ጊዜ ከመገለጫዎ ሊያዘጋጁ ወይም ሊቀይሩ ይችላሉ።",
+        "finish": "ማዋቀርን ጨርስ",
+        "skip": "አሁን ዝለል"
+      }
+    },
+
+    "settings": {
+      "title": "ቅንብሮች",
+      "preferencesSection": "ምርጫዎች",
+      "syncSection": "ማመሳሰል",
+      "language": "ቋንቋ",
+      "pendingSync": "በመጠባበቅ ላይ ያለ ማመሳሰል",
+      "upToDate": "ወቅታዊ ነው",
+      "signOutTitle": "ይውጡ?",
+      "signOutBody": "በማንኛውም ጊዜ መልሰው መግባት ይችላሉ።"
+    }
   },
 
   "meds": {},

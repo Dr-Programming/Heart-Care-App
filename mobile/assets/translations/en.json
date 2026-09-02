@@ -122,7 +122,104 @@
   },
 
   "profile": {
-    "title": "Profile"
+    "title": "Profile",
+
+    "screen": {
+      "headline": "My Profile",
+      "subtitle": "Your health information"
+    },
+
+    "sections": {
+      "medical": "Medical",
+      "personal": "Personal",
+      "goals": "Goals"
+    },
+
+    "fields": {
+      "name": "Name",
+      "birthYear": "Birth year",
+      "birthYearHint": "e.g. 1965",
+      "heightCm": "Height (cm)",
+      "heightCmHint": "e.g. 172",
+      "preferredLanguage": "Preferred language",
+      "diagnosis": "Diagnosis",
+      "diagnosisHint": "e.g. Coronary artery disease",
+      "diseaseHistory": "Disease history",
+      "diseaseHistoryHint": "e.g. Diagnosed 2019, one prior surgery",
+      "managementPlan": "Current management plan",
+      "managementPlanHint": "e.g. Aspirin, statin, cardiac rehab twice weekly",
+      "comorbidities": "Comorbidities",
+      "comorbiditiesOptional": "Comorbidities (optional)",
+      "comorbidityOther": "Other (optional)",
+      "targetBp": "Target blood pressure",
+      "systolicHint": "Systolic",
+      "diastolicHint": "Diastolic",
+      "targetWeight": "Target weight (kg)",
+      "targetWeightHint": "e.g. 70",
+      "stepsGoal": "Daily steps goal",
+      "stepsGoalHint": "e.g. 6000",
+      "targetCholesterol": "Target cholesterol",
+      "targetCholesterolHint": "e.g. 180",
+      "dietNote": "Diet note",
+      "dietNoteHint": "e.g. Low salt, no added sugar"
+    },
+
+    "comorbidityOptions": {
+      "diabetes": "Diabetes",
+      "hypertension": "Hypertension",
+      "kidneyDisease": "Kidney disease",
+      "highCholesterol": "High cholesterol",
+      "previousHeartAttack": "Previous heart attack",
+      "stroke": "Stroke"
+    },
+
+    "values": {
+      "notSet": "Not set",
+      "noneRecorded": "None recorded"
+    },
+
+    "actions": {
+      "editProfile": "Edit profile",
+      "settings": "Settings",
+      "saveChanges": "Save changes"
+    },
+
+    "errors": {
+      "loadFailed": "Could not load your profile.",
+      "birthYearRange": "Birth year must be between 1900 and 2100",
+      "heightRange": "Height must be between 50 and 250 cm",
+      "diagnosisLength": "Diagnosis must be 50 characters or fewer",
+      "negativeValue": "Enter a value of 0 or more"
+    },
+
+    "onboarding": {
+      "step1": {
+        "progress": "Step 1 of 3 — Personal details",
+        "title": "Tell us about yourself"
+      },
+      "step2": {
+        "progress": "Step 2 of 3 — Heart condition details",
+        "title": "Medical profile"
+      },
+      "step3": {
+        "progress": "Step 3 of 3 — Set your personal targets",
+        "title": "Your goals",
+        "intro": "These are optional — you can set or change them anytime from your profile.",
+        "finish": "Finish setup",
+        "skip": "Skip for now"
+      }
+    },
+
+    "settings": {
+      "title": "Settings",
+      "preferencesSection": "PREFERENCES",
+      "syncSection": "SYNC",
+      "language": "Language",
+      "pendingSync": "Pending sync",
+      "upToDate": "Up to date",
+      "signOutTitle": "Sign out?",
+      "signOutBody": "You can sign back in anytime."
+    }
   },
 
   "meds": {},

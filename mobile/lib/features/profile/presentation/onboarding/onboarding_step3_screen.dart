@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,8 +7,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../domain/entities/health_goals.dart';
 import '../../domain/validators.dart';
-import 'onboarding_controller.dart';
 import '../providers/profile_providers.dart';
+import 'onboarding_controller.dart';
 
 class OnboardingStep3Screen extends ConsumerStatefulWidget {
   const OnboardingStep3Screen({super.key});
@@ -110,14 +111,14 @@ class _OnboardingStep3ScreenState
                       ),
                       Expanded(
                         child: Text(
-                          'Your goals',
+                          'profile.onboarding.step3.title'.tr(),
                           style: Theme.of(context).textTheme.headlineLarge,
                         ),
                       ),
                     ],
                   ),
                   Text(
-                    'Step 3 of 3 — Set your personal targets',
+                    'profile.onboarding.step3.progress'.tr(),
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -132,12 +133,12 @@ class _OnboardingStep3ScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'These are optional — you can set or change them anytime from your profile.',
+                        'profile.onboarding.step3.intro'.tr(),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Target blood pressure',
+                        'profile.fields.targetBp'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -147,8 +148,8 @@ class _OnboardingStep3ScreenState
                             child: TextFormField(
                               controller: _systolicController,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                hintText: 'Systolic',
+                              decoration: InputDecoration(
+                                hintText: 'profile.fields.systolicHint'.tr(),
                               ),
                             ),
                           ),
@@ -157,8 +158,8 @@ class _OnboardingStep3ScreenState
                             child: TextFormField(
                               controller: _diastolicController,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                hintText: 'Diastolic',
+                              decoration: InputDecoration(
+                                hintText: 'profile.fields.diastolicHint'.tr(),
                               ),
                             ),
                           ),
@@ -166,7 +167,7 @@ class _OnboardingStep3ScreenState
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Target weight (kg)',
+                        'profile.fields.targetWeight'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -175,40 +176,44 @@ class _OnboardingStep3ScreenState
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(hintText: 'e.g. 70'),
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.targetWeightHint'.tr(),
+                        ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return null;
                           final result = ProfileValidators.nonNegative(
                             double.tryParse(value),
-                            'Target weight',
                           );
-                          return result.isValid ? null : result.errorMessage;
+                          return result.isValid
+                              ? null
+                              : result.errorMessage!.tr();
                         },
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Daily steps goal',
+                        'profile.fields.stepsGoal'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       TextFormField(
                         controller: _stepsController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. 6000',
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.stepsGoalHint'.tr(),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return null;
                           final result = ProfileValidators.nonNegative(
                             int.tryParse(value),
-                            'Steps goal',
                           );
-                          return result.isValid ? null : result.errorMessage;
+                          return result.isValid
+                              ? null
+                              : result.errorMessage!.tr();
                         },
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Target cholesterol',
+                        'profile.fields.targetCholesterol'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -217,21 +222,22 @@ class _OnboardingStep3ScreenState
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. 180',
+                        decoration: InputDecoration(
+                          hintText:
+                              'profile.fields.targetCholesterolHint'.tr(),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'Diet note',
+                        'profile.fields.dietNote'.tr(),
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       TextFormField(
                         controller: _dietNoteController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'e.g. Low salt, no added sugar',
+                        decoration: InputDecoration(
+                          hintText: 'profile.fields.dietNoteHint'.tr(),
                         ),
                       ),
                     ],
@@ -256,11 +262,11 @@ class _OnboardingStep3ScreenState
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Finish setup  →'),
+                        : Text('${'profile.onboarding.step3.finish'.tr()}  →'),
                   ),
                   TextButton(
                     onPressed: _saving ? null : _skip,
-                    child: const Text('Skip for now'),
+                    child: Text('profile.onboarding.step3.skip'.tr()),
                   ),
                 ],
               ),
