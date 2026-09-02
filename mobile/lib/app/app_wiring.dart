@@ -1,10 +1,15 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` lives in flutter_riverpod's `misc.dart`, not its main barrel.
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
 import '../core/router/app_router.dart';
+import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
+import '../features/profile/presentation/onboarding/onboarding_step1_screen.dart';
+import '../features/profile/presentation/onboarding/onboarding_step2_screen.dart';
+import '../features/profile/presentation/onboarding/onboarding_step3_screen.dart';
 
 // ---------------------------------------------------------------------------
 // THE ONE FILE WHERE FEATURES MEET.
@@ -40,26 +45,43 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
 
 /// Everything the five slices plug into the router.
 FeatureRoutes buildFeatureRoutes() {
-  return const FeatureRoutes(
+  return FeatureRoutes(
     topLevel: <RouteBase>[
       // ── M1 auth ────────────────────────────────────────────────────────
       // splash, language picker, login, register, forgot-PIN
       //
       // ── M2 profile ─────────────────────────────────────────────────────
-      // onboarding wizard, profile, profile edit, settings
+      GoRoute(
+        path: AppRoutes.onboardingPath,
+        name: AppRoutes.onboarding,
+        builder: (BuildContext context, GoRouterState state) =>
+            const OnboardingStep1Screen(),
+        routes: <RouteBase>[
+          GoRoute(
+            path: 'step-2',
+            builder: (BuildContext context, GoRouterState state) =>
+                const OnboardingStep2Screen(),
+          ),
+          GoRoute(
+            path: 'step-3',
+            builder: (BuildContext context, GoRouterState state) =>
+                const OnboardingStep3Screen(),
+          ),
+        ],
+      ),
     ],
 
     // ── M3 medications ───────────────────────────────────────────────────
-    medications: TabRoutes(),
+    medications: const TabRoutes(),
 
     // ── M4 vitals ────────────────────────────────────────────────────────
-    vitals: TabRoutes(),
+    vitals: const TabRoutes(),
 
     // ── M5 symptoms & activity ───────────────────────────────────────────
-    checkIn: TabRoutes(),
+    checkIn: const TabRoutes(),
 
     // ── M5 education & diet ──────────────────────────────────────────────
-    learn: TabRoutes(),
+    learn: const TabRoutes(),
   );
 }
 
