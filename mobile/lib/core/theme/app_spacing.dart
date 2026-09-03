@@ -8,10 +8,10 @@ abstract final class AppSpacing {
   static const double buttonRadius = 24;
   static const double pillHeight = 44;
 
-  /// Header band + logo, measured off Figma frame `368:680` (402x874). Without
-  /// the mockup's status-bar strip the full 215 of cream reads as too tall, so
-  /// the band is trimmed to 195; the logo sits top-aligned near the frame top.
-  static const double headerBandHeight = 195;
+  /// Header band + logo, measured off Figma frame `368:680` (402x874, ~214px
+  /// band). 212 = logoTopInset (36) + logoHeight (160) + 16px cream below the
+  /// mark, matching the frame's ~15px bottom slack; the logo sits top-aligned.
+  static const double headerBandHeight = 212;
   static const double logoHeight = 160;
   static const double logoTopInset = 36;
 
