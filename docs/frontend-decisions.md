@@ -74,7 +74,7 @@ Related: per-slice specs in `docs/design/`, architecture in `ARCHITECTURE.md` / 
 
 Font **Poppins** (Regular 400 / Bold 700). Type scale: display 30 · h1 24 · section 15 · body 13–14 · caption 12 · micro 10–11.
 
-**Still to extract at build time** (vector/gradient fills, not text layers): the **critical red** (Alerts screen) and the **cream header band** atop each screen.
+**Still to extract at build time** (vector/gradient fills, not text layers): the **critical red** (Alerts screen). The **cream header band** was extracted during slice 1 — `#DBD5B5` (see §7); the **critical red** is still outstanding for the Vitals/Alerts work.
 
 ---
 
@@ -92,7 +92,7 @@ Mismatches logged during design review (reconcile when each slice is reached):
 ## 6. Future planning
 
 ### Frontend slice roadmap (tentative order)
-1. **Foundation & Auth** — *designed, next to build.* (backend phone+PIN rework + Flutter foundation + auth)
+1. **Foundation & Auth** — **built 2026-09-03** (backend phone+PIN rework shipped at `v1.0.0`; Flutter foundation + auth verified end-to-end against the live backend — see §7).
 2. **Patient profile + onboarding wizard** — the full 3-step Figma onboarding (medical profile, reminders), `GET/PUT /patients/me`, first offline read/write + sync.
 3. **Home dashboard + bottom nav** — the real Home shell (replaces the auth-slice placeholder).
 4. **Medications & dose logs** — Today/Schedule/History, add medication.
@@ -111,15 +111,83 @@ Mismatches logged during design review (reconcile when each slice is reached):
 - **DOB = year only** (per scope decisions) — enforce in the profile slice.
 
 ### Backend security items still open (tracked in `backend/docs/SecurityReview.md`)
-- **M-1 (login rate limiting)** — being closed *by this slice* via PIN lockout.
-- **M-2 (token lifetime / revocation)** — best decided alongside this auth flow; a `token_version` claim is the cheapest path. Revisit during the auth build.
+- **M-1 (login rate limiting)** — **closed** by this slice: 5 failed PINs → `423 Locked` for 15 min (`app.auth.lockout.*`). Verified by curl in slice 1 (5th attempt returns 423, correct PIN also refused during the lockout).
+- **M-2 (token lifetime / revocation)** — **still open by decision.** 7-day tokens, no revocation path. Not addressed in slice 1.
+- **M-3 (registration enumerates phones)** — **still open by decision.** `POST /auth/register` returns `409 "Phone already registered"`, revealing whether a number is in use.
 - **HTTPS at the platform edge** — deployment concern, confirm on Railway.
 
 ---
 
-## 7. References
+## 7. Slice 1 — Foundation & Auth — built 2026-09-03
+
+The first mobile slice is built and verified end-to-end against the running
+backend. See `mobile/README.md` for run/test instructions.
+
+**What shipped**
+- Flutter app scaffolded: package `com.libucare.app`, `minSdk 21`, portrait-only,
+  plus a **web dev-preview** target (not a shipping platform — see caveats below).
+- `core/` layer: theme (exact Figma tokens), config (`--dart-define API_BASE_URL`,
+  default `http://10.0.2.2:8080`), network (Dio + bearer-token interceptor +
+  `Failure` mapping), Drift DB (cached user + preferences), localization
+  (EN/AM, device-local language store), `security/jwt.dart` (local `exp` check),
+  go_router with the offline auth-gate redirect, Riverpod providers.
+- Auth feature, three layers: phone+PIN **register / login / me** against the live
+  API, offline-aware repository (local datasource is source of truth), JWT-expiry
+  gate, secure-storage token + Drift-cached user for an offline greeting.
+- Screens: splash gate, first-run language picker, Login, Create account
+  (identity fields only), Home placeholder, Forgot-PIN info.
+- **98 tests**, `flutter analyze` clean. curl contract check green (register 200 /
+  duplicate 409 / login 200 / wrong-PIN 401 / lockout **423 "Try again in 15
+  minutes."** / me 200). Chrome-driven against the live backend: first-run
+  language picker → pick አማርኛ → Amharic renders with **no tofu** → picker does
+  not reappear on reload → register a fresh number → Home greeting → reload stays
+  on Home → sign out returns to Login.
+
+**Decisions settled by this slice**
+- **Figma file in use for the frontend is `2ulgCN3pghwu6g4bzzi4mw`** (the `§4` /
+  References key `B2D41kike6v4YRjHQMlszS` is the earlier "Capstone" file). Its
+  **"Screen 2" is the 3-step medical wizard**, so **Create account was composed
+  from that frame's visual system with an identity-only field set** — DOB /
+  height / sex are deferred to the patient-profile slice.
+- **First-run language picker** and **Forgot-PIN info screen** were built from the
+  design system — no Figma frames exist for them.
+- **Fonts are bundled** (Poppins + Noto Sans Ethiopic under `assets/fonts/`)
+  instead of `google_fonts` runtime fetch. Reasons: the offline-first constraint
+  (no runtime download), it fixes Amharic tofu, and `fontFamilyFallback` keeps
+  Latin text in Poppins on Amharic screens. This supersedes the §2 "Poppins via
+  `google_fonts`" row for the shipped app.
+- **`preferredLanguage` is device-local for this slice.** `users.preferred_language`
+  still has no update endpoint; which column owns the setting is a
+  patient-profile-slice decision (the open question in `CLAUDE.md` stands
+  unchanged).
+- **Brand hexes:** header band `#DBD5B5`, primary button `#FCAB10` — from this
+  doc's earlier extraction. The Figma file has no variables and both are
+  flattened SVG fills, so **confirm on a real colour-pick when convenient.**
+  Header band **212px**, logo **160px** at **36px** top-inset (frame `368:680`,
+  ~214px band); 212 = 36 + 160 + 16px of cream below the mark.
+- **Confirm-PIN field added to Create account** (not on any frame): a mistyped
+  4-digit PIN with no self-service reset is a permanent lockout. Client-side
+  check only.
+- **Backend security items M-2** (7-day tokens, no revocation path) **and M-3**
+  (registration reveals whether a phone is in use) **remain open by decision** —
+  see §6.
+- **Web dev-preview caveats:** `flutter build web` needs `--no-tree-shake-icons`
+  (the `iconsax` 0.0.8 font breaks the icon subsetter); drift's WASM DB runs on
+  `sharedIndexedDb` and is not durable across a hard refresh, so the web app
+  recovers its session via `GET /auth/me` when online and a true fresh restore is
+  server-side. Native (SQLite + secure storage) persistence is durable.
+
+**Deviations from the spec, and why** — see the plan's Self-Review; the load-bearing
+ones are the bundled-font swap (above), the composed (not traced) Create account,
+and the toolchain (Flutter 3.44.8 / Dart 3.12.2, Riverpod pinned 2.6.x without
+codegen, `freezed` 3.2.x prerelease).
+
+---
+
+## 8. References
 - Slice spec: `docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md`
 - Backend API contract: `backend/docs/API.md`
 - Security findings: `backend/docs/SecurityReview.md`
-- Figma file key: `B2D41kike6v4YRjHQMlszS`
+- Frontend run/test instructions: `mobile/README.md`
+- Figma file key: `B2D41kike6v4YRjHQMlszS` ("Capstone"); **frontend build uses `2ulgCN3pghwu6g4bzzi4mw`** (see §7)
 - Architectural rules & stack: `CLAUDE.md`
