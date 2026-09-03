@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG ONLY. Permits cleartext HTTP to the local development backend so
+  `flutter run` can reach it over http://. Release builds do NOT include this
+  file and stay HTTPS-only.
+
+  10.0.2.2  -> the host loopback as seen from the Android emulator
+  localhost / 127.0.0.1 -> host-side port forwarding (e.g. `adb reverse`)
+
+  A real device on the same LAN as the backend cannot use 10.0.2.2 — add that
+  host's LAN IP (e.g. 192.168.x.x) as another <domain> entry here.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>
