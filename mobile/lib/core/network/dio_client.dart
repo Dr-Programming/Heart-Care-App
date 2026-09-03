@@ -41,7 +41,7 @@ Failure failureFromDioException(DioException e) {
     case DioExceptionType.connectionError:
       return const NetworkFailure(_offlineMessage);
     case DioExceptionType.cancel:
-      return const UnknownFailure('Request cancelled.');
+      return const UnknownFailure('errors.requestCancelled');
     case DioExceptionType.badCertificate:
       return const NetworkFailure('errors.secureConnection');
     case DioExceptionType.unknown:
