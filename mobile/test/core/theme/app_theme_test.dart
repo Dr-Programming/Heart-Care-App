@@ -9,7 +9,7 @@ void main() {
   });
 
   group('AppColors', () {
-    test('carries the exact Figma palette', () {
+    test('carries the Libu Care palette tokens', () {
       expect(AppColors.primary, const Color(0xFFFCAB10));
       expect(AppColors.accent, const Color(0xFF1D4ED8));
       expect(AppColors.critical, const Color(0xFFDC2626));

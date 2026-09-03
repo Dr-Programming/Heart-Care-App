@@ -29,11 +29,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _phone = TextEditingController(text: '+251');
   final TextEditingController _pin = TextEditingController();
 
+  /// The last submit failure, held per-screen. `authControllerProvider` is
+  /// shared, so reading its `AsyncError` directly would leak this screen's
+  /// error onto Register (and vice-versa) after navigation.
+  Failure? _submitError;
+
+  @override
+  void initState() {
+    super.initState();
+    _phone.addListener(_clearSubmitError);
+    _pin.addListener(_clearSubmitError);
+  }
+
   @override
   void dispose() {
     _phone.dispose();
     _pin.dispose();
     super.dispose();
+  }
+
+  void _clearSubmitError() {
+    if (_submitError != null) setState(() => _submitError = null);
   }
 
   Future<void> _submit() async {
@@ -42,12 +58,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           phone: _phone.text.trim(),
           pin: _pin.text.trim(),
         );
+    if (!mounted) return;
+    // `login()` swallows the error into the controller's AsyncError state
+    // rather than rethrowing, so read it back here.
+    final Object? err = ref.read(authControllerProvider).error;
+    setState(() => _submitError = err is Failure ? err : null);
   }
 
   @override
   Widget build(BuildContext context) {
     final AsyncValue<AuthState> auth = ref.watch(authControllerProvider);
-    final Object? error = auth.error;
+    final Failure? error = _submitError;
 
     return Scaffold(
       body: SingleChildScrollView(

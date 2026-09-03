@@ -39,9 +39,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   AppLanguage _language = AppLanguage.en;
 
+  /// The last submit failure, held per-screen — see the note in `LoginScreen`.
+  /// Reading the shared `authControllerProvider.error` here would show a stale
+  /// Login failure (e.g. "Invalid phone or PIN") on this empty form.
+  Failure? _submitError;
+
   @override
   void initState() {
     super.initState();
+    for (final TextEditingController c in <TextEditingController>[
+      _phone,
+      _name,
+      _pin,
+      _confirmPin,
+    ]) {
+      c.addListener(_clearSubmitError);
+    }
     ref.read(languageStoreProvider).read().then((AppLanguage? stored) {
       if (stored != null && mounted) setState(() => _language = stored);
     });
@@ -56,6 +69,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  void _clearSubmitError() {
+    if (_submitError != null) setState(() => _submitError = null);
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     await ref.read(authControllerProvider.notifier).register(
@@ -64,12 +81,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           name: _name.text.trim(),
           language: _language,
         );
+    if (!mounted) return;
+    // `register()` swallows the error into the controller's AsyncError state
+    // rather than rethrowing, so read it back here.
+    final Object? err = ref.read(authControllerProvider).error;
+    setState(() => _submitError = err is Failure ? err : null);
   }
 
   @override
   Widget build(BuildContext context) {
     final AsyncValue<AuthState> auth = ref.watch(authControllerProvider);
-    final Object? error = auth.error;
+    final Failure? error = _submitError;
 
     return Scaffold(
       body: SingleChildScrollView(
