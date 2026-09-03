@@ -5,6 +5,7 @@ import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/features/auth/auth_providers.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 import 'package:libu_care/features/auth/presentation/screens/login_screen.dart';
+import 'package:libu_care/features/auth/presentation/widgets/failure_message.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'helpers.dart';
@@ -67,6 +68,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('login_pin')), '9999');
     await tester.tap(find.byKey(const Key('login_submit')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('12'), findsWidgets);
+    expect(find.byType(FailureMessage), findsOneWidget);
+    expect(find.text('Too many attempts. Try again in 12 min.'), findsOneWidget);
+    expect(find.text('Invalid phone or PIN'), findsNothing);
   });
 }

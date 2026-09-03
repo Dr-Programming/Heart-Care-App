@@ -2,16 +2,16 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../features/auth/presentation/screens/forgot_pin_screen.dart';
-import '../../features/auth/presentation/screens/home_placeholder_screen.dart';
-import '../../features/auth/presentation/screens/language_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../providers/core_providers.dart';
-import 'redirect.dart';
-import 'routes.dart';
+import 'core/providers/core_providers.dart';
+import 'core/router/redirect.dart';
+import 'core/router/routes.dart';
+import 'features/auth/presentation/controllers/auth_controller.dart';
+import 'features/auth/presentation/screens/forgot_pin_screen.dart';
+import 'features/auth/presentation/screens/home_placeholder_screen.dart';
+import 'features/auth/presentation/screens/language_screen.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/auth/presentation/screens/register_screen.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
 
 /// Whether the first-run language choice has been made. Invalidated by the
 /// language screen once the user commits.

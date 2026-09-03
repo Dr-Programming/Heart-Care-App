@@ -6,6 +6,10 @@ import '../../../../core/providers/core_providers.dart';
 import '../../auth_providers.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/usecases/get_me.dart';
+import '../../domain/usecases/login.dart';
+import '../../domain/usecases/logout.dart';
+import '../../domain/usecases/register.dart';
 
 /// Sealed so the router and the screens cannot forget a case.
 sealed class AuthState {
@@ -22,7 +26,14 @@ final class AuthAuthenticated extends AuthState {
 }
 
 class AuthController extends AsyncNotifier<AuthState> {
+  // Session-restore reads (`hasValidSession`, `cachedUser`) have no use case of
+  // their own and stay on the repository; every auth *action* goes through a
+  // use case per spec §3.4.
   AuthRepository get _repository => ref.read(authRepositoryProvider);
+  Login get _login => ref.read(loginUseCaseProvider);
+  Register get _register => ref.read(registerUseCaseProvider);
+  GetMe get _getMe => ref.read(getMeUseCaseProvider);
+  Logout get _logout => ref.read(logoutUseCaseProvider);
 
   /// Restores the session on start.
   ///
@@ -48,8 +59,13 @@ class AuthController extends AsyncNotifier<AuthState> {
     final Future<bool> Function() isOnline = ref.read(isOnlineProvider);
     if (!await isOnline()) return const AuthUnauthenticated();
     try {
-      return AuthAuthenticated(await _repository.getMe());
+      return AuthAuthenticated(await _getMe());
     } on Failure {
+      return const AuthUnauthenticated();
+    } catch (_) {
+      // A malformed 2xx envelope in `me()` throws a raw TypeError/CastError
+      // rather than a Failure; treat it the same — unauthenticated, not a
+      // crash on boot.
       return const AuthUnauthenticated();
     }
   }
@@ -57,7 +73,7 @@ class AuthController extends AsyncNotifier<AuthState> {
   Future<void> login({required String phone, required String pin}) async {
     state = const AsyncValue<AuthState>.loading();
     state = await AsyncValue.guard(() async {
-      final AuthUser user = await _repository.login(phone: phone, pin: pin);
+      final AuthUser user = await _login(phone: phone, pin: pin);
       return AuthAuthenticated(user);
     });
   }
@@ -70,7 +86,7 @@ class AuthController extends AsyncNotifier<AuthState> {
   }) async {
     state = const AsyncValue<AuthState>.loading();
     state = await AsyncValue.guard(() async {
-      final AuthUser user = await _repository.register(
+      final AuthUser user = await _register(
         phone: phone, pin: pin, name: name, language: language,
       );
       return AuthAuthenticated(user);
@@ -78,7 +94,7 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
-    await _repository.logout();
+    await _logout();
     state = const AsyncValue<AuthState>.data(AuthUnauthenticated());
   }
 }
