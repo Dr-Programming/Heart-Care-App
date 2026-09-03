@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Poppins is the design font, but it ships **no Ethiopic glyphs** — Amharic
-/// text rendered in Poppins comes out as tofu. The Figma file never exposed
-/// this because it labels the language option "Amharic" in Latin script.
+/// Poppins is the design font and is now **bundled** as a pubspec asset, so
+/// Latin text renders in Poppins offline — no runtime font fetch.
 ///
-/// So: Latin locales get Poppins exactly as designed; the Amharic locale gets
-/// Noto Sans Ethiopic. This is an addition for a script the design font cannot
-/// draw, not a substitution of the design font.
+/// Poppins ships **no Ethiopic glyphs**, so Amharic text rendered in Poppins
+/// alone comes out as tofu. Every style therefore carries a
+/// `fontFamilyFallback` of `Noto Sans Ethiopic` (also bundled): Latin always
+/// draws from Poppins, and the Ethiopic fallback fills in the glyphs Poppins
+/// cannot. This is script coverage, not a substitution of the design font, and
+/// it is locale-independent — the fallback engages per-glyph, not per-locale.
 abstract final class AppTypography {
+  /// [languageCode] is retained for future locale-specific metrics (callers
+  /// pass `context.locale.languageCode`); the Ethiopic fallback is
+  /// locale-independent so it is currently unused.
   static TextTheme textTheme(String languageCode) {
-    final TextTheme base = languageCode == 'am'
-        ? GoogleFonts.notoSansEthiopicTextTheme()
-        : GoogleFonts.poppinsTextTheme();
+    final TextTheme base = Typography.material2021().black.apply(
+      fontFamily: 'Poppins',
+      fontFamilyFallback: const <String>['Noto Sans Ethiopic'],
+    );
 
     return base.copyWith(
       displayLarge: base.displayLarge?.copyWith(

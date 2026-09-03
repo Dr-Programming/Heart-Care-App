@@ -14,12 +14,15 @@ class HeaderBand extends StatelessWidget {
       height: AppSpacing.headerBandHeight,
       width: double.infinity,
       color: AppColors.headerBand,
-      alignment: Alignment.center,
-      child: Image.asset(
-        'assets/images/libu_care_logo.png',
-        height: 150,
-        fit: BoxFit.contain,
-        excludeFromSemantics: true,
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.logoTopInset),
+        child: Image.asset(
+          'assets/images/libu_care_logo.png',
+          height: AppSpacing.logoHeight,
+          fit: BoxFit.contain,
+          excludeFromSemantics: true,
+        ),
       ),
     );
   }

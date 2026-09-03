@@ -1,37 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:libu_care/core/theme/app_colors.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
 
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    GoogleFonts.config.allowRuntimeFetching = false;
-
-    // Under `flutter test` google_fonts can neither fetch nor find a bundled
-    // Poppins / Noto Sans Ethiopic file, so for every requested family it logs a
-    // multi-line "unable to load font" block via debugPrint. The requested
-    // family name is still stamped onto the TextStyle (the assertions below rely
-    // on exactly that), so the block is pure noise. Filter that one block and
-    // pass every other message straight through, keeping test output pristine.
-    final superPrint = debugPrint;
-    var inGoogleFontsNoise = false;
-    debugPrint = (String? message, {int? wrapWidth}) {
-      if (message != null &&
-          message.contains('google_fonts was unable to load font')) {
-        inGoogleFontsNoise = true;
-        return;
-      }
-      if (inGoogleFontsNoise) {
-        if (message == null ||
-            message.contains('github.com/flutter/flutter/issues/new/choose')) {
-          inGoogleFontsNoise = false;
-        }
-        return;
-      }
-      superPrint(message, wrapWidth: wrapWidth);
-    };
   });
 
   group('AppColors', () {
@@ -55,15 +29,17 @@ void main() {
       expect(theme.scaffoldBackgroundColor, AppColors.surface);
     });
 
-    test('English uses Poppins', () {
+    test('English text renders in the bundled Poppins', () {
       final theme = AppTheme.light('en');
-      expect(theme.textTheme.bodyMedium!.fontFamily, contains('Poppins'));
+      expect(theme.textTheme.bodyMedium!.fontFamily, 'Poppins');
     });
 
-    test('Amharic falls back to an Ethiopic-capable family, because Poppins '
-        'has no Ethiopic glyphs', () {
+    test('Amharic keeps Poppins for Latin but falls back to a bundled '
+        'Ethiopic-capable family, because Poppins has no Ethiopic glyphs', () {
       final theme = AppTheme.light('am');
-      expect(theme.textTheme.bodyMedium!.fontFamily, contains('Noto'));
+      expect(theme.textTheme.bodyMedium!.fontFamily, 'Poppins');
+      expect(theme.textTheme.bodyMedium!.fontFamilyFallback,
+          contains('Noto Sans Ethiopic'));
     });
 
     test('carries the contractual Figma type sizes', () {
