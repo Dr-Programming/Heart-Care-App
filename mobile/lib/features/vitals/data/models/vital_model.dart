@@ -35,7 +35,7 @@ abstract class VitalModel with _$VitalModel {
     @JsonKey(includeToJson: false) double? bmi,
     @JsonKey(fromJson: _measuredAtFromJson, toJson: _measuredAtToJson)
     required DateTime measuredAt,
-    String? note,
+    @JsonKey(includeIfNull: false) String? note,
   }) = _VitalModel;
 
   factory VitalModel.fromEntity(VitalReading reading) => VitalModel(
