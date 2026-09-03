@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/failure.dart';
 import '../../../../core/localization/language.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../auth_providers.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -22,21 +24,34 @@ final class AuthAuthenticated extends AuthState {
 class AuthController extends AsyncNotifier<AuthState> {
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
-  /// Restores the session from disk only.
+  /// Restores the session on start.
   ///
-  /// Deliberately does **not** call `GET /auth/me` — that would make a cold
-  /// start fail without a network, the exact scenario the app is built for.
-  /// The token's `exp` is checked locally; if the server has since rejected
-  /// it, the first authenticated request surfaces that.
+  /// The happy path is disk-only: a valid token plus a cached user means we
+  /// land on Home with **no** network call — the offline cold-start the app is
+  /// built for. `GET /auth/me` is never reached when the cache is populated.
+  ///
+  /// The one exception is a valid token with **no** cached user. That should
+  /// not happen on mobile, but on web a browser refresh can drop the
+  /// Drift/IndexedDB write that `saveSession()` made (the WASM database has no
+  /// durability guarantee and the app never closes it) while the JWT in
+  /// `localStorage` survives. Rather than force a needless re-login, repopulate
+  /// the cache from the server when online; when offline there is nothing to
+  /// do but fall back to unauthenticated.
   @override
   Future<AuthState> build() async {
     if (!await _repository.hasValidSession()) {
       return const AuthUnauthenticated();
     }
     final AuthUser? cached = await _repository.cachedUser();
-    return cached == null
-        ? const AuthUnauthenticated()
-        : AuthAuthenticated(cached);
+    if (cached != null) return AuthAuthenticated(cached);
+
+    final Future<bool> Function() isOnline = ref.read(isOnlineProvider);
+    if (!await isOnline()) return const AuthUnauthenticated();
+    try {
+      return AuthAuthenticated(await _repository.getMe());
+    } on Failure {
+      return const AuthUnauthenticated();
+    }
   }
 
   Future<void> login({required String phone, required String pin}) async {
