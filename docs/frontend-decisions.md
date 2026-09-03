@@ -22,10 +22,10 @@ Related: per-slice specs in `docs/design/`, architecture in `ARCHITECTURE.md` / 
 
 | Decision | Choice | Why |
 |---|---|---|
-| **State management** | **Riverpod** (+ code-gen) | Compile-safe, excellent testability (`ProviderContainer` overrides), strong async/loading/error model (`AsyncNotifier`) — ideal for offline flows. CLAUDE.md deliberately left this open; now decided. |
-| **Dependency injection** | **Riverpod** (no `get_it`) | Riverpod's providers are the DI graph — one tool instead of two. |
+| **State management** | **Riverpod** — codegen dropped, see §7 | Compile-safe, excellent testability (`ProviderContainer` overrides), strong async/loading/error model (`AsyncNotifier`) — ideal for offline flows. CLAUDE.md deliberately left this open; now decided. `riverpod_generator` can't co-resolve with `drift_dev` on this toolchain, so every provider is hand-declared. |
+| **Dependency injection** | **Riverpod** (no `get_it`; no codegen — see §7) | Riverpod's providers are the DI graph — one tool instead of two. |
 | **Routing** | **go_router** | Declarative + a redirect hook that implements the auth gate cleanly. |
-| **Fonts** | **Poppins** via `google_fonts` | Exact design font; it's a Google Font, so no manual bundling. |
+| **Fonts** | **Poppins + Noto Sans Ethiopic**, bundled as assets (`google_fonts` removed) — see §7 | Exact design font. Bundled rather than fetched at runtime: offline-first requires no runtime download, and it fixes Amharic tofu (Poppins has no Ethiopic glyphs); Latin stays Poppins via `fontFamilyFallback`. |
 | **Icons** | **iconsax** | The Figma design uses the Iconsax "linear" set — the Flutter package is an exact match. Custom marks (Libu Care logo) exported as assets. |
 | **Local DB** | `drift` (SQLite) | Offline source of truth (per CLAUDE.md). |
 | **HTTP** | `dio` | Interceptors for JWT injection + error mapping. |
