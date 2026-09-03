@@ -93,9 +93,11 @@ GoogleService-Info.plist
 # Flutter build output
 mobile/build/
 
-# Generated files
-*.g.dart               # Only if NOT checking in generated Drift/Riverpod code
-*.freezed.dart         # Remove this line if your team commits generated files
+# Generated code (Drift / freezed / json_serializable). Regenerate after checkout:
+#   cd mobile && dart run build_runner build --delete-conflicting-outputs
+# Delete these two patterns if the team decides to commit generated files instead.
+*.g.dart
+*.freezed.dart
 
 # Android (inside mobile/)
 mobile/android/.gradle/
