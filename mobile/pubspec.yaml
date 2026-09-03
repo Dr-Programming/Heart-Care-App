@@ -45,7 +45,6 @@ dependencies:
   flutter_secure_storage: ^11.0.0
   connectivity_plus: ^7.3.1
   easy_localization: ^3.0.8
-  google_fonts: ^8.2.1
   iconsax: ^0.0.8
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
@@ -82,6 +81,21 @@ flutter:
   assets:
     - assets/translations/
     - assets/images/
+
+  # Bundled so Latin + Amharic text render offline (no runtime font fetch).
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+    - family: Noto Sans Ethiopic
+      fonts:
+        - asset: assets/fonts/NotoSansEthiopic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansEthiopic-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

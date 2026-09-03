@@ -53,7 +53,7 @@ class _Pill extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.fieldRadius),
       child: Container(
-        height: 44,
+        height: AppSpacing.pillHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? AppColors.ink : AppColors.surface,
