@@ -127,7 +127,45 @@
 
   "meds": {},
 
-  "vitals": {},
+  "vitals": {
+    "type": {
+      "bloodPressure": "የደም ግፊት",
+      "glucose": "የደም ስኳር",
+      "heartRate": "የልብ ምት",
+      "weight": "ክብደት",
+      "cholesterol": "ኮሌስትሮል"
+    },
+    "field": {
+      "systolic": "ሲስቶሊክ",
+      "diastolic": "ዳያስቶሊክ",
+      "glucose": "ስኳር",
+      "heartRate": "የልብ ምት",
+      "weight": "ክብደት",
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "total": "ጠቅላላ ኮሌስትሮል"
+    },
+    "error": {
+      "systolicMustExceedDiastolic": "ሲስቶሊክ ከዳያስቶሊክ መብለጥ አለበት"
+    },
+    "logTitle": "ንባብ መዝግብ",
+    "noteLabel": "ማስታወሻ (አማራጭ)",
+    "logAnother": "ሌላ መዝግብ",
+    "tabTitle": "ወሳኝ ምልክቶች",
+    "emptyTitle": "እስካሁን ንባቦች የሉም",
+    "emptyBody": "የመጀመሪያ የደም ግፊት፣ ስኳር፣ የልብ ምት፣ ክብደት ወይም ኮሌስትሮል ንባብዎን ይመዝግቡ።",
+    "logAction": "ንባብ መዝግብ",
+    "viewHistory": "ታሪክ ይመልከቱ",
+    "historyTitle": "የወሳኝ ምልክቶች ታሪክ",
+    "filterAll": "ሁሉም",
+    "historyEmptyTitle": "በዚህ ጊዜ ውስጥ ንባቦች የሉም",
+    "range7": "7 ቀናት",
+    "range30": "30 ቀናት",
+    "trendInsufficientData": "አዝማሚያ ለማሳየት ቢያንስ {count} ንባቦች ያስፈልጋሉ። እስካሁን የመዘገቡት ይህ ነው፦",
+    "trendEmptyTitle": "በዚህ ጊዜ ውስጥ ገና ንባቦች የሉም",
+    "seriesSummary": "{key}፦ ዝቅተኛ {min}፣ ከፍተኛ {max}፣ አማካይ {avg}",
+    "homeCardTitle": "ወሳኝ ምልክቶች"
+  },
 
   "symptoms": {},
 
