@@ -127,7 +127,45 @@
 
   "meds": {},
 
-  "vitals": {},
+  "vitals": {
+    "type": {
+      "bloodPressure": "Blood pressure",
+      "glucose": "Blood glucose",
+      "heartRate": "Heart rate",
+      "weight": "Weight",
+      "cholesterol": "Cholesterol"
+    },
+    "field": {
+      "systolic": "Systolic",
+      "diastolic": "Diastolic",
+      "glucose": "Glucose",
+      "heartRate": "Heart rate",
+      "weight": "Weight",
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "total": "Total cholesterol"
+    },
+    "error": {
+      "systolicMustExceedDiastolic": "Systolic must be higher than diastolic"
+    },
+    "logTitle": "Log a reading",
+    "noteLabel": "Note (optional)",
+    "logAnother": "Log another",
+    "tabTitle": "Vitals",
+    "emptyTitle": "No readings yet",
+    "emptyBody": "Log your first blood pressure, glucose, heart rate, weight or cholesterol reading.",
+    "logAction": "Log a reading",
+    "viewHistory": "View history",
+    "historyTitle": "Vitals history",
+    "filterAll": "All",
+    "historyEmptyTitle": "No readings in this range",
+    "range7": "7 days",
+    "range30": "30 days",
+    "trendInsufficientData": "At least {count} readings are needed to show a trend. Here's what you've recorded so far:",
+    "trendEmptyTitle": "No readings in this range yet",
+    "seriesSummary": "{key}: min {min}, max {max}, avg {avg}",
+    "homeCardTitle": "Vitals"
+  },
 
   "symptoms": {},
 
