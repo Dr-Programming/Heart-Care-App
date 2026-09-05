@@ -13,11 +13,7 @@ class TimeListField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pill roundness/padding matches the app's other selectable-chip
-    // widgets (`StatusChip`, `StatusSelector`'s `_Chip`) rather than a new
-    // radius, per this styling (frame 368:2706): this is a
-    // visual-only change, so the `Wrap`/chip-list mechanics that fixed the
-    // original overflow bug (see medication_widgets_test.dart) are untouched.
+
     final OutlinedBorder chipShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSpacing.lg),
     );
@@ -29,12 +25,7 @@ class TimeListField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // "REMINDER TIMES" (small/bold/uppercase/grey), not the plain
-        // "Times" row-label copy `meds.form.scheduleTimes` renders on
-        // ReviewMedicationScreen — per design frame 368:2706; a distinct key
-        // so that screen's own "Times" row label (which the design's Review
-        // frame 368:2651 shows title-case, not this section-caption style)
-        // is unaffected.
+
         Text(
           'meds.form.reminderTimesLabel'.tr(),
           style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
@@ -76,12 +67,7 @@ class TimeListField extends StatelessWidget {
   }
 
   Future<void> _pickTime(BuildContext context) async {
-    // Not `showTimePicker`: its `inputOnly` mode still places a cursor
-    // inside whatever digits are already in the field on tap, rather than
-    // selecting them, so typing the real time means deleting first —
-    // Flutter has no parameter for the "select-all on focus" behaviour this
-    // app's patients need. `SimpleTimePicker` is a small purpose-built
-    // replacement for exactly that (see its own doc comment).
+
     final TimeOfDay? picked = await SimpleTimePicker.show(context);
     if (picked == null) return;
     final String formatted =

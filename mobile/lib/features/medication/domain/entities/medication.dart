@@ -1,5 +1,4 @@
-/// A medication the patient is taking. Mutable — can be renamed, re-dosed,
-/// rescheduled and soft-deactivated. Never hard-deleted (Decision 1).
+
 class Medication {
   const Medication({
     required this.clientRecordId,
@@ -19,8 +18,6 @@ class Medication {
   final double doseMg;
   final MedicationFrequency frequency;
 
-  /// "HH:mm" strings. The full set of times this medication is due at, for
-  /// every frequency — frequency does not independently generate times.
   final List<String> scheduleTimes;
   final bool active;
   final DateTime createdAt;
@@ -49,7 +46,6 @@ class Medication {
   }
 }
 
-/// Wire-identical to the backend's `Frequency` enum.
 enum MedicationFrequency {
   onceDaily('ONCE_DAILY'),
   bid('BID'),
@@ -63,10 +59,6 @@ enum MedicationFrequency {
   static MedicationFrequency fromWire(String value) =>
       values.firstWhere((MedicationFrequency f) => f.wire == value);
 
-  /// How many time-of-day fields the add/edit form suggests by default.
-  /// Soft guidance only — never enforced against `scheduleTimes.length`,
-  /// mirroring the backend's deliberate non-validation (the client owns
-  /// this UX; see `backend/docs/DEVELOPMENT.md`/API design decision).
   int get suggestedTimeCount => switch (this) {
     MedicationFrequency.onceDaily => 1,
     MedicationFrequency.bid => 2,

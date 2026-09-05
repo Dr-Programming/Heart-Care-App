@@ -1,9 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-// `app_database.dart` re-exports `tables.dart`, whose Drift-generated row
-// class for the `Medications` table defaults to the name `Medication` —
-// identical to this feature's domain entity, imported below. Hiding it
-// avoids an ambiguous-import error (see `medication_repository_impl_test.dart`
-// for the same pattern).
+
 import 'package:libu_care/core/db/app_database.dart' hide Medication;
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
@@ -85,7 +81,7 @@ void main() {
 
   test('schedules one main and one follow-up notification per time', () async {
     await notifications.scheduleFor(_medication());
-    expect(scheduler.scheduled, hasLength(4)); // 2 times x (main + follow-up)
+    expect(scheduler.scheduled, hasLength(4));
   });
 
   test('the follow-up fires one hour after the main notification', () async {

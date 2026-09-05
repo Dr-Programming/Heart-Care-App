@@ -9,13 +9,6 @@ import '../../domain/entities/adherence.dart';
 import '../../domain/entities/medication.dart';
 import '../controllers/adherence_controller.dart';
 
-/// "12 of 14 doses (86%)", or the honest no-data line.
-///
-/// Decision 5: the denominator is always shown, never a bare percentage — a
-/// figure computed from two due doses must not read like one computed from
-/// sixty. The percentage rides alongside it because it is the number a
-/// patient (and their health worker) actually compares week to week, and
-/// `Adherence.percentage` existed with no reader at all until finding I4.
 String adherenceLabel(Adherence? adherence) {
   if (adherence == null || !adherence.hasData) {
     return 'meds.adherence.noData'.tr();
@@ -78,12 +71,6 @@ class _AdherenceCard extends StatelessWidget {
   }
 }
 
-/// The per-medication breakdown (I4).
-///
-/// `AdherenceController` computed `perMedication7`/`perMedication30` from the
-/// start; nothing rendered them, so a patient on three medications could only
-/// see one pooled figure and had no way to tell which one they were actually
-/// missing.
 class _PerMedicationCard extends StatelessWidget {
   const _PerMedicationCard({required this.state});
 

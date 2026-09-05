@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-// `app_database.dart` re-exports `tables.dart`, whose Drift-generated row
-// class for the `Medications` table defaults to the name `Medication` —
-// identical to this feature's domain entity. Hiding it avoids an
-// ambiguous-import error.
+
 import 'package:libu_care/core/db/app_database.dart' hide Medication;
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/notifications/medication_notifications.dart';
@@ -48,7 +45,6 @@ void main() {
   test('start() reschedules every active medication (Decision 4)', () async {
     await bootstrap.start();
 
-    // Two active medications, one scheduled time each, main + follow-up.
     expect(scheduler.scheduledPayloads, hasLength(4));
     expect(
       scheduler.scheduledPayloads.map((String p) => p.split('|').first).toSet(),
@@ -69,8 +65,6 @@ void main() {
 
     await bootstrap.start();
 
-    // The plugin still has to be initialised — the switch can be turned back
-    // on without restarting the app — but nothing is armed.
     expect(scheduler.initCalls, 1);
     expect(scheduler.scheduledPayloads, isEmpty);
   });
@@ -92,9 +86,7 @@ void main() {
   });
 
   test('cancelAll() sweeps a deactivated medication\'s stale reminders', () async {
-    // Armed while it was still active, then deactivated — `activeMedications`
-    // would no longer report it, which is why `cancelAll` goes over
-    // `allMedications(includeInactive: true)`.
+
     await scheduler.zonedSchedule(
       id: 99,
       title: 't',

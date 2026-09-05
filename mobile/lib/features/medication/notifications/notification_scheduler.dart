@@ -2,16 +2,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-/// A pending notification the OS still holds, as far as this feature needs
-/// to know about it — just enough to filter by [payload] for cancellation.
 class PendingScheduledNotification {
   const PendingScheduledNotification({required this.id, required this.payload});
   final int id;
   final String? payload;
 }
 
-/// Thin seam over `flutter_local_notifications` so [MedicationNotifications]
-/// is unit-testable without the real plugin binding.
 abstract interface class NotificationScheduler {
   Future<void> init();
 
@@ -47,8 +43,7 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
   @override
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    // Hardcoded to the app's sole deployment timezone rather than detecting
-    // the device's, which would need an additional package.
+
     tz.setLocalLocation(tz.getLocation('Africa/Addis_Ababa'));
 
     const AndroidInitializationSettings android = AndroidInitializationSettings(
@@ -81,12 +76,7 @@ class FlutterLocalNotificationsScheduler implements NotificationScheduler {
       _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payload,
-      // This same-time match makes every
-      // notification — including the 1-hour follow-up — repeat daily. It
-      // cannot be suppressed on days the dose was already logged without
-      // OS-level background work outside a local-notifications package's
-      // reach, so a patient who already logged today's dose may still see
-      // the follow-up fire.
+
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }

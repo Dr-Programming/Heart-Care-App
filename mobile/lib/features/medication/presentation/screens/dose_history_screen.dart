@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../../../core/clinical/alert_evaluator.dart';
-// Hidden for the same reason as everywhere else in this feature: the Drift
-// row classes share their names with the domain entities. Only
-// `LocalSyncStatus` is needed from here.
+
 import '../../../../core/db/app_database.dart' hide DoseLog, Medication;
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -27,9 +25,6 @@ class DoseHistoryScreen extends ConsumerWidget {
   }
 }
 
-/// The dose-history list/filter/sync-status content, extracted so
-/// MedicationsScreen's History tab and this screen's own route can share it
-/// without duplicating logic.
 class DoseHistoryContent extends ConsumerWidget {
   const DoseHistoryContent({super.key});
 
@@ -68,10 +63,6 @@ class DoseHistoryContent extends ConsumerWidget {
   }
 }
 
-/// Picks which medication's history to show.
-///
-/// `DoseHistoryController.setFilter` had no UI caller wired up until this
-/// widget, so the whole history was always "everything, ever".
 class _FilterBar extends ConsumerWidget {
   const _FilterBar({required this.state});
 
@@ -132,9 +123,7 @@ class _HistoryRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                // Which medication this log belongs to — the row used to show
-                // only a date and a status, which is unreadable for a patient
-                // on more than one medication (I5).
+
                 Text(
                   entry.medicationName ?? 'common.noValue'.tr(),
                   style: text.titleMedium,
@@ -159,12 +148,6 @@ class _HistoryRow extends StatelessWidget {
   }
 }
 
-/// What to say about a record the server has not accepted yet, or refused.
-///
-/// Null means "nothing worth saying": either it is safely on the server, or
-/// its queue entry is gone, which amounts to the same thing. Offline-first
-/// means a pending record is normal, not an error — the wording says the
-/// record is safe rather than that something went wrong.
 String? syncStatusLabel(LocalSyncStatus? status) => switch (status) {
   null || LocalSyncStatus.synced => null,
   LocalSyncStatus.pending ||

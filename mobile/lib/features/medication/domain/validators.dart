@@ -1,5 +1,4 @@
-/// Pure form validation. Every non-null return is a `meds.errors.*`
-/// translation key, never a rendered sentence.
+
 final RegExp _timePattern = RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
 
 String? validateMedicationName(String value) {

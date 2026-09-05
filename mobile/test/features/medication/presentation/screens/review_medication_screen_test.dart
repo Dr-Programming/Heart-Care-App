@@ -38,10 +38,6 @@ class _FakeSavingController extends MedicationFormController {
   }
 }
 
-/// Loads real (prefilled) state but otherwise defers to the real
-/// `MedicationFormController.save()` — used by the error-handling tests
-/// below so they exercise the screen's actual `catch` block against a
-/// genuine save failure, not a stubbed one.
 class _PrefilledFormController extends MedicationFormController {
   _PrefilledFormController(this._initial);
   final MedicationFormState _initial;
@@ -90,12 +86,6 @@ void main() {
     expect(fake.saveCalled, isTrue);
   });
 
-  // The two tests below drive the *real* `MedicationFormController.save()`
-  // (not a stub) against a `FakeMedicationRepository` configured to throw —
-  // confirming this screen's own `_save` reproduces `MedicationFormScreen`'s
-  // I7 error handling exactly: a `Failure`'s own message verbatim, or the
-  // `errors.generic` translation for anything else, in a `SnackBar`, with
-  // no unhandled async error escaping the tap.
   testWidgets('a failed save shows the failure\'s own message in a SnackBar (I7)', (
     tester,
   ) async {
@@ -149,8 +139,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // The caregiver on/off row and
-  // the "reminders set" banner copy, both previously missing.
   testWidgets(
     'shows the caregiver notify row as On when notifyCaregiverEnabled is true',
     (tester) async {
@@ -163,10 +151,7 @@ void main() {
       );
 
       expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
-      // Two "On" pills now (Reminder + Notify caregiver, both true for this
-      // fixture's state) — the generic `meds.review.on`/`off` keys are
-      // shared across both rows: frame 368:2651 renders these as coloured
-      // status pills, not plain text.
+
       expect(find.text('meds.review.on'.tr()), findsNWidgets(2));
       expect(find.text('meds.review.off'.tr()), findsNothing);
     },
@@ -184,8 +169,7 @@ void main() {
       );
 
       expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
-      // Reminder is On (this fixture's state has real schedule times) and
-      // Notify caregiver is Off — one of each pill.
+
       expect(find.text('meds.review.on'.tr()), findsOneWidget);
       expect(find.text('meds.review.off'.tr()), findsOneWidget);
     },
@@ -211,17 +195,11 @@ void main() {
     },
   );
 
-  // `_SummaryRow`'s value `Text` must be flex-guarded, matching
-  // the unwrapped-leading / `Flexible`-trailing idiom `DoseRow` and
-  // `MedicationCard` already use elsewhere in this feature.
   testWidgets(
     'does not overflow with several Custom-frequency schedule times at a '
     'narrow width',
     (tester) async {
-      // A bare, unwrapped value `Text` in a `spaceBetween` `Row` (without
-      // the `Flexible` guard `_SummaryRow` uses) would let a long joined
-      // schedule-times value throw a `RenderFlex overflowed` FlutterError
-      // on a narrow device.
+
       tester.view.physicalSize = const Size(320, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -246,7 +224,6 @@ void main() {
     },
   );
 
-  // the Instructions summary row.
   group('instructions row', () {
     testWidgets(
       'shows the selected instruction\'s label when one was passed in',
@@ -285,10 +262,6 @@ void main() {
     );
   });
 
-  // "As needed" is Custom frequency with an
-  // empty schedule. The review screen must special-case that combination the
-  // same way the form screen's chip-selection logic does, rather than
-  // showing "Custom" with a blank times line.
   group('"As needed" frequency display', () {
     const asNeededState = MedicationFormState(
       name: 'GTN spray',
@@ -347,9 +320,6 @@ void main() {
     );
   });
 
-  // Kept last in the file on purpose: `pumpApp(language:)` switches
-  // easy_localization's singleton locale, which the bare `'key'.tr()` calls
-  // in the tests above read.
   testWidgets(
     'does not overflow with several Custom-frequency schedule times in '
     'Amharic on a narrow width (I9)',
@@ -377,9 +347,7 @@ void main() {
 
       final String notifyOn = 'meds.review.on'.tr();
       expect(notifyOn, isNot('On'));
-      // Two "On" pills now (Reminder + Notify caregiver) — this fixture's
-      // Custom-with-times state means Reminder is also On, not just the
-      // caregiver toggle this test originally targeted.
+
       expect(find.text(notifyOn), findsNWidgets(2));
       expect(tester.takeException(), isNull);
     },

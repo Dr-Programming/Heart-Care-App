@@ -16,16 +16,9 @@ class AdherenceState {
   final Adherence overall7;
   final Adherence overall30;
 
-  /// Keyed by `Medication.clientRecordId`.
   final Map<String, Adherence> perMedication7;
   final Map<String, Adherence> perMedication30;
 
-  /// The medications the per-window maps are keyed by, in display order.
-  ///
-  /// The maps alone carry only client record ids, which are UUIDs — the
-  /// screen needs the names to render them at all (I4). Defaults to empty so
-  /// a test that only exercises the overall figures does not have to supply
-  /// it.
   final List<Medication> medications;
 }
 

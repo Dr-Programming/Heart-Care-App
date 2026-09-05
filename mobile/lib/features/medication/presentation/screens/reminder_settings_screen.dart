@@ -23,18 +23,12 @@ class _NotificationsEnabledController extends AsyncNotifier<bool> {
   }
 
   Future<void> setEnabled(bool value) async {
-    // The preference is written first on purpose: `scheduleFor` reads this
-    // key itself and refuses to arm anything while it says `false`, so
-    // re-enabling would silently schedule nothing if the order were flipped.
+
     await ref
         .read(appDatabaseProvider)
         .preferencesDao
         .set(PreferenceKeys.notificationsEnabled, value.toString());
 
-    // Decision 4 / spec: "cancel everything when it is off — do not just
-    // suppress display". Turning the switch off has to reach the OS, because
-    // an alarm that is already armed keeps firing no matter what this app
-    // would have chosen to render.
     final MedicationReminderBootstrap bootstrap = ref.read(
       medicationReminderBootstrapProvider,
     );

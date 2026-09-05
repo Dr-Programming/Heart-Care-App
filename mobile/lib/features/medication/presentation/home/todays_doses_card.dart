@@ -13,14 +13,6 @@ import '../controllers/medication_list_controller.dart';
 import '../widgets/dose_row.dart';
 import '../widgets/missed_run_alert.dart';
 
-/// Today's doses, order 100 — the today's-actions band (`HomeCard.order`).
-///
-/// Per `core/shell/home_card.dart`'s contract, a Home card must render
-/// something offline and must never throw. The controller only ever reads
-/// local Drift data (never awaits the network — CONTRIBUTING.md §5/§8), so
-/// `loading` is transient and `error` is reachable only from a genuine local
-/// read failure; both branches still render a normal `SectionCard` rather
-/// than letting anything propagate.
 HomeCard todaysDosesHomeCard() {
   return const HomeCard(id: 'meds-today', order: 100, builder: _TodaysDosesCard.build);
 }
@@ -40,17 +32,7 @@ class _CardState extends ConsumerState<_Card> {
   @override
   void initState() {
     super.initState();
-    // The app-start hook for reminders (C2 / Decision 4): Android clears
-    // pending alarms on reboot and force-stop, so something has to
-    // re-schedule them every launch. This card is mounted at app start
-    // because Home is the shell's initial tab, which makes it this feature's
-    // own equivalent of `AppShell`'s `syncServiceProvider` read — and it
-    // keeps the bootstrap inside `lib/features/medication/` rather than
-    // adding another edit to the shared `app_wiring.dart`.
-    //
-    // Reading a `Provider` runs its body once per container and caches it, so
-    // remounting this card (a tab switch, a rebuild) does not re-run the
-    // bootstrap.
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(medicationRemindersStartupProvider);
     });
@@ -71,8 +53,7 @@ class _CardState extends ConsumerState<_Card> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          // Two consecutive misses (FR-DEC-002) surface on Home as well as on
-          // the tab: Home is the screen the patient actually opens.
+
           if (data.hasMissedRunAlert) ...<Widget>[
             MissedRunAlert(medications: data.missedRunAlerts),
             const SizedBox(height: AppSpacing.md),

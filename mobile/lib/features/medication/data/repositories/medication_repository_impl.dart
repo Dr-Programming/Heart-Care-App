@@ -3,12 +3,6 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
-// `app_database.dart` re-exports `tables.dart`, whose Drift-generated row
-// classes for the `Medications`/`DoseLogs` tables default to the names
-// `Medication` and `DoseLog` — identical to this feature's domain entities,
-// imported below. Hiding them avoids an ambiguous-import error; this file
-// only needs `SyncEnqueuer`/`SyncEntityType` and `PreferencesDao`'s type from
-// this import (the `AppDatabase` type itself is not referenced here).
 import '../../../../core/db/app_database.dart' hide Medication, DoseLog;
 import '../../../../core/db/daos/preferences_dao.dart';
 import '../../../../core/sync/sync_queue_dao.dart';
@@ -25,11 +19,6 @@ import '../datasources/medication_remote_datasource.dart';
 import '../models/dose_log_model.dart';
 import '../models/medication_model.dart';
 
-/// Offline-first: every write lands in Drift first, then is either enqueued
-/// through [SyncEnqueuer] (creates/dose-logs — the only record kinds
-/// `/api/v1/sync` accepts) or tracked as a pending edit (edits/deactivations,
-/// which are not syncable) and replayed as a direct `PUT` once the
-/// medication has a `serverId` and the device is online.
 class MedicationRepositoryImpl implements MedicationRepository {
   MedicationRepositoryImpl({
     required this.local,
@@ -44,35 +33,12 @@ class MedicationRepositoryImpl implements MedicationRepository {
   final MedicationRemoteDataSource remote;
   final SyncEnqueuer syncEnqueuer;
 
-  /// Read-only use of a `core/` dao: the sync engine parks the server id it
-  /// got back for a record on `sync_queue_entries.serverId` rather than
-  /// writing into feature tables, so a feature that needs its own rows'
-  /// server ids has to harvest them from there. See [_harvestServerIds].
   final SyncQueueDao syncQueueDao;
   final PreferencesDao preferences;
   final Future<bool> Function() isOnline;
 
   static const String _pendingEditsKey = 'm3_pending_medication_edits';
 
-  /// Serializes every read-modify-write against the pending-edits blob.
-  ///
-  /// `edit()` fires `_tryReplaySingle` unawaited, so a second `edit()` call
-  /// (for a different medication) can otherwise land its own
-  /// `_markPendingEdit` read-modify-write while the first edit's replay is
-  /// still awaiting the network and its own eventual `_clearPendingEdit`.
-  /// Without this, the later write's read would miss the earlier write and
-  /// silently drop it on save. Chaining every mutation through this future
-  /// forces them to run strictly one after another, regardless of which
-  /// caller (a direct edit or a fire-and-forget replay) triggered them.
-  ///
-  /// Always kept in a completed-successfully state, even when the operation
-  /// that produced it failed: `_markPendingEdit`/`_clearPendingEdit` chain
-  /// onto this field but reassign it to an error-swallowed copy of the
-  /// result they hand back to their own caller. `Future.then` skips its
-  /// callback entirely once its source future has errored, so without that,
-  /// a single transient `preferences` failure would permanently wedge this
-  /// field in an errored state and silently disable every later mark/clear
-  /// for the lifetime of this repository instance.
   Future<void> _pendingEditsLock = Future<void>.value();
 
   @override
@@ -146,26 +112,12 @@ class MedicationRepositoryImpl implements MedicationRepository {
     String? scheduledTime,
     String? note,
   }) async {
-    // The medication's create may have synced since it was written locally;
-    // if it has, `medicationId` (not `medicationClientRecordId`) is what the
-    // dose-log payload should carry (Decision 3).
+
     await _harvestServerIds(<String>[medicationClientRecordId]);
     final Medication? medication = await local.findMedication(
       medicationClientRecordId,
     );
 
-    // Idempotency (I8): a dose slot is medication + date + time, and logging
-    // the same slot twice must not produce two rows — a double-tap, a
-    // retried write, or a patient correcting Taken to Missed all have to land
-    // on the one row. Reusing the existing row's `clientRecordId` turns
-    // `upsertDoseLog`'s `insertOnConflictUpdate` (keyed on that id) into the
-    // update it already knows how to do.
-    //
-    // Known limitation: `SyncEnqueuer.enqueue` is `insertOrIgnore` on
-    // (entityType, clientRecordId) and a feature may add to the sync queue
-    // but not rewrite it, so a *correction* re-enqueued under the same id is
-    // a no-op — the server keeps the status from the first push. The local
-    // record, which is what the UI reads, is always the corrected one.
     final DoseLog? existing = await local.findDoseLogForSlot(
       medicationClientRecordId: medicationClientRecordId,
       scheduledDate: scheduledDate,
@@ -282,21 +234,13 @@ class MedicationRepositoryImpl implements MedicationRepository {
     if (!await isOnline()) return;
     final Set<String> ids = await _pendingEditIds();
     if (ids.isEmpty) return;
-    // One batch query for the whole pending set, so `_tryReplaySingle` below
-    // never has to harvest per-record.
+
     await _harvestServerIds(ids);
     for (final String id in ids) {
       await _tryReplaySingle(id);
     }
   }
 
-  /// Copies server ids the sync engine resolved onto this feature's own rows.
-  ///
-  /// `SyncService` records the id the server assigned on the *queue* row
-  /// (`sync_queue_entries.serverId`), deliberately not reaching into feature
-  /// tables. Without this harvest a medication's `serverId` stays null
-  /// forever, which silently disables both the pending-edit replay (there is
-  /// no id to `PUT` to) and the `medicationId` branch of a dose-log payload.
   Future<void> _harvestServerIds(Iterable<String> clientRecordIds) async {
     final Map<String, String> resolved = await syncQueueDao.serverIds(
       clientRecordIds,
@@ -314,9 +258,7 @@ class MedicationRepositoryImpl implements MedicationRepository {
       return;
     }
     if (medication.serverId == null) {
-      // `edit()` fires this directly, without going through
-      // `replayPendingEdits`'s batch harvest — so try once here before
-      // giving up on this pass.
+
       await _harvestServerIds(<String>[clientRecordId]);
       medication = await local.findMedication(clientRecordId);
       if (medication == null) {
@@ -325,8 +267,7 @@ class MedicationRepositoryImpl implements MedicationRepository {
       }
     }
     final String? serverId = medication.serverId;
-    // Still waiting on the original create to sync — nothing to PUT yet.
-    // The record stays in the pending set and is retried on the next call.
+
     if (serverId == null) return;
 
     try {
@@ -341,33 +282,17 @@ class MedicationRepositoryImpl implements MedicationRepository {
       await _clearPendingEdit(clientRecordId);
     } on DioException catch (e) {
       if (_isRetryableFailure(e)) {
-        // Transport failure or a 5xx — leave it pending; the next reconnect
-        // or screen visit retries it.
+
         return;
       }
-      // A permanent rejection (working notes: "Retry only 500. 400/404/405/
-      // 409/413 are permanent" — e.g. 409 because the record changed
-      // server-side, or 404 because the medication was deleted there).
-      // Retrying this forever would just re-fail forever. The local edit
-      // already succeeded and is visible to the user; only the sync of it is
-      // abandoned. There is no UI in this plan for surfacing a failed-sync
-      // state — dropping the pending marker is the whole fix.
+
       await _clearPendingEdit(clientRecordId);
     }
   }
 
-  /// Mirrors the split `core/network/dio_client.dart`'s
-  /// `failureFromDioException` draws between transient and permanent
-  /// failures (working notes: "Retry only 500. 400/404/405/409/413 are
-  /// permanent."), without depending on that file's `Failure` hierarchy —
-  /// it's shaped for user-facing error messages, not this internal
-  /// retry-or-drop decision.
   bool _isRetryableFailure(DioException e) {
     final int? status = e.response?.statusCode;
-    // No response at all (timeout, connection error) is a transport
-    // failure — always retryable. A 5xx status is a transient server
-    // condition — also retryable. Every other status (400/404/405/409/413
-    // and any other 4xx) is a permanent rejection.
+
     return status == null || status >= 500;
   }
 
@@ -382,10 +307,7 @@ class MedicationRepositoryImpl implements MedicationRepository {
       final Set<String> ids = await _pendingEditIds()..add(clientRecordId);
       await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
     });
-    // The chain itself must never see this operation's error — `catchError`
-    // here swallows it only for `_pendingEditsLock`'s own purposes, so the
-    // next queued mark/clear still runs. `result`, what THIS call returns to
-    // its own caller, is untouched and still carries the real error.
+
     _pendingEditsLock = result.catchError((_) {});
     return result;
   }

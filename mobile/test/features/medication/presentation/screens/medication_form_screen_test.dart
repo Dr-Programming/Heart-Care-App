@@ -44,14 +44,6 @@ class _FakeFormController extends MedicationFormController {
   }
 }
 
-/// The form pushed onto a real (miniature) `GoRouter` stack.
-///
-/// `MedicationFormScreen` closes itself with `context.pop()` on deactivate
-/// (the only remaining direct pop it does — Save now pushes
-/// `ReviewMedicationScreen` instead of closing this screen itself), which
-/// needs a GoRouter above it and something underneath to pop back to. Two
-/// nested routes give it both, and let a test assert that the screen
-/// actually closed rather than only that the controller was called.
 Widget _routedForm({String? editingId}) {
   return MaterialApp.router(
     routerConfig: GoRouter(
@@ -74,7 +66,6 @@ Widget _routedForm({String? editingId}) {
   );
 }
 
-/// Records what the deactivate action asked the list controller to do.
 class _SpyListController extends MedicationListController {
   String? deactivatedId;
 
@@ -104,9 +95,6 @@ void main() {
       ],
     );
 
-    // The caregiver phone field + note pushes Save below the fold on the
-    // default 800x600 test surface — the same reason the deactivate-button
-    // tests below already `ensureVisible` before tapping.
     await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
     await tester.tap(find.text('meds.form.reviewButton'.tr()));
     await tester.pump();
@@ -114,10 +102,6 @@ void main() {
     expect(find.text('meds.errors.nameRequired'.tr()), findsOneWidget);
   });
 
-  // The bottom button does not
-  // save — it navigates to ReviewMedicationScreen, which owns the real
-  // "Save medication" action — so it must say "Review & confirm", with a
-  // trailing arrow, rather than "Save".
   testWidgets(
     'the bottom button reads "Review & confirm" with a trailing arrow icon, '
     'not "Save"',
@@ -142,23 +126,12 @@ void main() {
     'does not overflow on a short viewport (e.g. a small device, or the '
     'keyboard open while editing)',
     (tester) async {
-      // A plain, non-scrollable `AppScaffold` here — an un-scrolled Column
-      // holding two text fields, a Wrap of frequency chips, TimeListField's
-      // own label + chip row, and the save button — would overflow
-      // vertically once the viewport is shorter than its natural content
-      // height, exactly what a small device or an open soft keyboard does.
-      // `AppScaffold.banded`'s own `scrollable: true` default avoids that.
-      // 400x400 logical px (well under any real
-      // phone's available content height once the AppBar and status bar are
-      // subtracted) reproduces that squeeze.
+
       tester.view.physicalSize = const Size(400, 400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      // TID + three schedule times maximizes the form's natural content
-      // height (more chips in TimeListField) so this is the worst case the
-      // form realistically renders, not just the empty default state.
       await pumpApp(
         tester,
         const MedicationFormScreen(),
@@ -178,22 +151,10 @@ void main() {
     },
   );
 
-  /// Fills the add form with a valid medication.
-  ///
-  /// Tapping the "once daily" chip is what populates `scheduleTimes` (via
-  /// `setFrequency`'s suggested defaults), so the form passes validation.
   Future<void> fillValidForm(WidgetTester tester) async {
     await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
     await tester.enterText(find.byType(TextField).at(1), '20');
-    // "Atorvastatin" is in the medication library, so the Name field's own
-    // inline suggestion list would render below it while the Dose field is
-    // still blank — but it's gone as of the line above (that suggestion
-    // list hides itself once `state.doseMg` is non-blank, see
-    // `medication_form_screen.dart`). This `pump()` lets that disappearance
-    // actually settle into the tree before `ensureVisible` measures where
-    // "Once daily" now sits — without it, `ensureVisible` can scroll to the
-    // chip's *pre*-disappearance position, which the still-pending rebuild
-    // then shifts out from under the following `tap()`.
+
     await tester.pump();
     await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
     await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
@@ -204,10 +165,7 @@ void main() {
     'a valid form pushes ReviewMedicationScreen when Save is tapped, '
     'without saving immediately',
     (tester) async {
-      // Previously, tapping Save called `controller.save()`
-      // directly. Now it only validates and navigates — the actual save (and
-      // its I7 error handling) belongs to `ReviewMedicationScreen`, already
-      // covered by review_medication_screen_test.dart.
+
       final FakeMedicationRepository repository = FakeMedicationRepository();
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
@@ -224,18 +182,13 @@ void main() {
       );
 
       await fillValidForm(tester);
-      // The caregiver phone field + note pushes Save below
-      // the fold on the default test surface.
+
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
 
       expect(find.byType(ReviewMedicationScreen), findsOneWidget);
-      // `skipOffstage: false`: `MedicationFormScreen` is still mounted
-      // underneath `ReviewMedicationScreen` (it wasn't popped, only covered)
-      // — but the default finder skips exactly that offstage/covered route,
-      // so the default `find.byType` would report 0 matches here even though
-      // the widget genuinely never left the tree.
+
       expect(
         find.byType(MedicationFormScreen, skipOffstage: false),
         findsOneWidget,
@@ -255,8 +208,6 @@ void main() {
     (tester) async {
       await pumpApp(tester, const MedicationFormScreen());
 
-      // The caregiver phone field + note pushes Save below
-      // the fold on the default test surface.
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
@@ -301,10 +252,7 @@ void main() {
             () => _FakeFormController(const MedicationFormState()),
           ),
           medicationListControllerProvider.overrideWith(() => listController),
-          // Edit mode now also loads caregiver-notify settings and
-          // instructions for 'm1' alongside the medication itself, so both
-          // need a real (in-memory) store rather than hitting the real
-          // on-device `appDatabaseProvider`.
+
           caregiverNotifyStoreProvider.overrideWithValue(
             CaregiverNotifyStore(db.preferencesDao),
           ),
@@ -314,13 +262,10 @@ void main() {
         ],
       );
 
-      // The caregiver toggle above it pushes it further down the scrollable
-      // form than the default 800x600 test surface shows without scrolling.
       await tester.ensureVisible(find.text('meds.deactivate'.tr()));
       await tester.tap(find.text('meds.deactivate'.tr()));
       await tester.pumpAndSettle();
 
-      // Spec §3: the sheet has to say plainly that history is kept.
       expect(find.text('meds.deactivateTitle'.tr()), findsOneWidget);
       expect(find.text('meds.deactivateBody'.tr()), findsOneWidget);
       expect(listController.deactivatedId, isNull, reason: 'not yet confirmed');
@@ -439,14 +384,10 @@ void main() {
 
       expect((await store.get('m1')).enabled, isFalse);
 
-      // The taller banded header pushes the toggle below the fold on the
-      // default test surface — same reason other taps in this file
-      // already `ensureVisible` first.
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
-      // The phone field only renders once the toggle is on — name (0) and
-      // dose (1) are the other two `TextField`s on this form.
+
       await tester.ensureVisible(find.byType(TextField).at(2));
       await tester.enterText(find.byType(TextField).at(2), '+251900000000');
       await tester.pumpAndSettle();
@@ -460,15 +401,7 @@ void main() {
   testWidgets(
     'add mode leaves the caregiver toggle and phone field fully enabled',
     (tester) async {
-      // These stay enabled in add mode rather than being disabled until save
-      // — disabling them until `_persistCaregiverSettings` has a
-      // `clientRecordId` to key `CaregiverNotifyStore` by would read as
-      // being blocked from entering the information at all.
-      // `MedicationFormController.save()` instead persists it once the
-      // medication's real id exists (see that method's doc comment and
-      // medications_screen_test.dart's full-add-flow coverage of the actual
-      // persisted result); this screen-level test only needs to prove the
-      // fields are genuinely interactive here, not that the write lands.
+
       await pumpApp(
         tester,
         const MedicationFormScreen(),
@@ -483,9 +416,6 @@ void main() {
       expect(toggle.onChanged, isNotNull);
       expect(toggle.value, isFalse);
 
-      // The taller banded header (plus the gap now added below it, matching
-      // the design) pushes the toggle below the fold on the default test
-      // surface.
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
@@ -536,17 +466,11 @@ void main() {
       final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
       expect(toggle.onChanged, isNotNull);
 
-      // Same as before this fix: the phone field stays hidden until the
-      // toggle is switched on, rather than always showing (add mode only).
       expect(
         find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
         findsNothing,
       );
 
-      // The taller banded header (back arrow + title + subtitle, matching
-      // the design's real header on this screen) pushes the toggle below the
-      // fold on the default 800x600 test surface — same reason other taps
-      // in this file already `ensureVisible` first.
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
@@ -567,18 +491,6 @@ void main() {
     },
   );
 
-  // Before this test existed, this file had a
-  // test proving a successful save closes the form with no error shown,
-  // using a real GoRouter-managed page underneath (deleted, no equivalent
-  // added, when Save started pushing `ReviewMedicationScreen` instead of
-  // saving directly). This is that test's equivalent for the two-screen
-  // flow: `_routedForm(editingId:)` represents the real edit entry point
-  // (`MedicationsScreen` -> the `medicationEdit` GoRoute -> this form), Save
-  // on the form pushes `ReviewMedicationScreen` on top of the GoRouter
-  // Navigator, and Save on Review triggers the real controller's save() and
-  // its pop-up-to-two-levels listener — proving that logic genuinely pops
-  // back through a go_router-managed `Page`, not just a plain
-  // `MaterialPageRoute` stack (the add flow already covers that case above).
   testWidgets(
     'edit flow: saving from the review screen closes both screens with no '
     'error and lands back on the screen behind the form',
@@ -607,8 +519,6 @@ void main() {
         ],
       );
 
-      // `fakeMedication`'s defaults are already valid, so no field needs
-      // editing — this only has to prove the navigation/save plumbing.
       await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
       await tester.tap(find.text('meds.form.reviewButton'.tr()));
       await tester.pumpAndSettle();
@@ -626,15 +536,6 @@ void main() {
     },
   );
 
-  // quick-pick dose chips built
-  // from `kMedicationLibrary`, reactive to the Name field.
-  //
-  // `find.byType(ActionChip)` alone isn't specific enough: `TimeListField`
-  // (also rendered on this form) has its own permanent "Add" `ActionChip`
-  // for adding a schedule time, so a blanket ActionChip search always finds
-  // at least that one. This predicate scopes down to chips whose label looks
-  // like a dose ("25 mg", "50 mg", ...), which nothing else on this form
-  // renders.
   Finder doseChips() => find.byWidgetPredicate(
     (Widget w) =>
         w is ActionChip &&
@@ -649,13 +550,11 @@ void main() {
       (tester) async {
         await pumpApp(tester, const MedicationFormScreen());
 
-        // No name typed yet — nothing to suggest chips for.
         expect(doseChips(), findsNothing);
 
         await tester.enterText(find.byType(TextField).at(0), 'Metoprolol');
         await tester.pump();
 
-        // kMedicationLibrary's three Metoprolol doses, ascending, deduped.
         expect(find.widgetWithText(ActionChip, '25 mg'), findsOneWidget);
         expect(find.widgetWithText(ActionChip, '50 mg'), findsOneWidget);
         expect(find.widgetWithText(ActionChip, '100 mg'), findsOneWidget);
@@ -664,15 +563,6 @@ void main() {
         await tester.tap(find.widgetWithText(ActionChip, '50 mg'));
         await tester.pump();
 
-        // Two checks, deliberately not just one: form state proves the chip
-        // reuses `controller.setDoseMg` rather than a second source of
-        // truth (the dose field's own error-clearing logic runs too), and
-        // the rendered field text proves the controller-binding fix
-        // actually shows it — the dose field is now bound to a real
-        // `TextEditingController` precisely so this second assertion holds;
-        // before that fix, state updated correctly but the field kept
-        // showing nothing, which this exact test previously had no way to
-        // catch.
         final MedicationFormState state = ProviderScope.containerOf(
           tester.element(find.byType(MedicationFormScreen)),
         ).read(medicationFormControllerProvider);
@@ -719,8 +609,6 @@ void main() {
     );
   });
 
-  // "Enter manually" had no suggestions at
-  // all, unlike MedicationSearchScreen's own search bar.
   group('name field suggestions (manual entry)', () {
     testWidgets('typing one letter shows no suggestions', (tester) async {
       await pumpApp(tester, const MedicationFormScreen());
@@ -737,12 +625,6 @@ void main() {
       (tester) async {
         await pumpApp(tester, const MedicationFormScreen());
 
-        // Substring, not prefix: "etoprolol" only appears mid-word in
-        // "Metoprolol", proving this reuses `searchMedicationLibrary`'s own
-        // case-insensitive substring match rather than a stricter one.
-        // ("prolol" was tried first here and rejected — it also matches
-        // "Bisoprolol", which pushes Metoprolol's own third dose past the
-        // 4-item cap below; "etoprolol" matches only Metoprolol.)
         await tester.enterText(find.byType(TextField).at(0), 'etoprolol');
         await tester.pump();
 
@@ -777,10 +659,7 @@ void main() {
           tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
           '50',
         );
-        // Gone, not just unchanged: a dose now exists, and this list hides
-        // itself once it does (see medication_form_screen.dart's own
-        // comment on why — no `focusNode` on `AppTextField` to hide it on
-        // blur instead).
+
         expect(find.text('Metoprolol 25 mg'), findsNothing);
         expect(find.text('Metoprolol 100 mg'), findsNothing);
       },
@@ -826,7 +705,6 @@ void main() {
     });
   });
 
-  // the Instructions field.
   group('instructions field', () {
     testWidgets(
       'edit mode loads a previously saved instruction alongside the '
@@ -901,8 +779,6 @@ void main() {
 
         expect(await store.get('m1'), MedicationInstructions.none);
 
-        // Below the fold on the default 800x600 test surface, same as the
-        // caregiver phone field further up the form.
         await tester.ensureVisible(find.text('meds.form.instructions.withFood'.tr()));
         await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
         await tester.pumpAndSettle();
@@ -916,7 +792,6 @@ void main() {
           isTrue,
         );
 
-        // Tap-again-to-deselect.
         await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
         await tester.pumpAndSettle();
         expect(await store.get('m1'), MedicationInstructions.none);
@@ -934,13 +809,7 @@ void main() {
     testWidgets(
       'add mode leaves the instructions chips fully interactive',
       (tester) async {
-        // Same reasoning as the caregiver toggle/phone field's own
-        // "add mode leaves ... fully enabled" test above — see its doc
-        // comment. `MedicationInstructionsStore`'s write happens once
-        // `MedicationFormController.save()` has a real id, proven end-to-end
-        // in medications_screen_test.dart's full-add-flow coverage; this
-        // screen-level test only needs the chip to genuinely respond to a
-        // tap here.
+
         await pumpApp(
           tester,
           const MedicationFormScreen(),
@@ -957,8 +826,6 @@ void main() {
         expect(afterMeal.onSelected, isNotNull);
         expect(afterMeal.selected, isFalse);
 
-        // The taller banded header pushes the Instructions chips below the
-        // fold on the default test surface.
         await tester.ensureVisible(find.text('meds.form.instructions.afterMeal'.tr()));
         await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
         await tester.pump();
@@ -975,10 +842,6 @@ void main() {
     );
   });
 
-  // "As needed" is Custom frequency with an
-  // empty schedule — no new enum value, no new persisted field. See
-  // `MedicationFormController.validate()`'s doc comment for the binding
-  // design constraint.
   group('"As needed" frequency', () {
     testWidgets(
       'tapping "As needed" clears the schedule times and hides the time '
@@ -1001,7 +864,6 @@ void main() {
         expect(state.frequency, MedicationFrequency.custom);
         expect(state.scheduleTimes, isEmpty);
 
-        // Exactly one of Custom/As needed is highlighted, never both.
         expect(
           tester
               .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
@@ -1113,11 +975,7 @@ void main() {
             medicationNotificationsProvider.overrideWithValue(
               MedicationNotifications(RecordingScheduler(), db.preferencesDao),
             ),
-            // Save now always threads caregiver settings/instructions
-            // through to the real save() — see
-            // medications_screen_test.dart's matching override for why this
-            // is required even though this test doesn't care about their
-            // values.
+
             caregiverNotifyStoreProvider.overrideWithValue(
               CaregiverNotifyStore(db.preferencesDao),
             ),
@@ -1154,17 +1012,10 @@ void main() {
     );
   });
 
-  // Kept last in the file on purpose: `pumpApp(language:)` switches
-  // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
-  // the tests above read.
   testWidgets(
     'renders the whole form in real Amharic on a phone-sized screen (I9)',
     (tester) async {
-      // Bilingual UI is a hard project constraint (CLAUDE.md) and Amharic copy
-      // runs longer than English, so the form — the slice's most label-dense
-      // screen, with two field labels, four frequency chips and TimeListField
-      // all competing for width — is where longer strings would show first.
-      // 360x740 is a common low-end Android size.
+
       tester.view.physicalSize = const Size(360, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -1186,8 +1037,6 @@ void main() {
         language: AppLanguage.am,
       );
 
-      // Real Amharic from assets/translations/am.json — not the English
-      // fallback, and not the raw key.
       final String nameLabel = 'meds.form.name'.tr();
       final String tid = 'meds.frequency.tid'.tr();
       expect(nameLabel, isNot('Name'));

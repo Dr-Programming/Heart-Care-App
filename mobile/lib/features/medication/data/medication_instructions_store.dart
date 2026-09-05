@@ -2,13 +2,6 @@ import 'dart:convert';
 
 import '../../../core/db/daos/preferences_dao.dart';
 
-/// The "Instructions" field (After meal / With food / Before meal), added in
-/// a later refinement. Local-only — nothing in the backend
-/// or sync payload supports storing dosing instructions yet. Never persisted
-/// to the `Medications` Drift table (that schema is core-owned and
-/// off-limits) — stored as a `Preferences` entry per medication instead, the
-/// same pattern already used for this feature's other local-only state (see
-/// `CaregiverNotifyStore`).
 enum MedicationInstructions {
   none,
   afterMeal,

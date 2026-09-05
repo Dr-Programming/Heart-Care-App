@@ -33,14 +33,6 @@ class MedicationFormState {
   final bool isSaving;
   final bool saved;
 
-  /// Set when the medication itself saved successfully but scheduling its
-  /// reminder notifications afterward threw (e.g. a missing/denied
-  /// `SCHEDULE_EXACT_ALARM` permission on the device). The write already
-  /// happened by this point — `save()` deliberately does not fail the whole
-  /// operation for a reminder-scheduling problem, since that previously left
-  /// a genuinely-saved medication reporting as failed, inviting a retry that
-  /// would silently create a duplicate. The UI surfaces this as a soft
-  /// warning instead of a save error.
   final bool reminderSchedulingFailed;
 
   bool get isValid => nameError == null && doseError == null && scheduleError == null;
@@ -72,7 +64,6 @@ class MedicationFormState {
   }
 }
 
-/// Add is the default; [loadForEdit] switches it to editing that medication.
 class MedicationFormController extends Notifier<MedicationFormState> {
   String? _editingClientRecordId;
 
@@ -95,31 +86,19 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   void setDoseMg(String value) =>
       state = state.copyWith(doseMg: value, doseError: validateDoseMg(value));
 
-  /// Sensibly spaced suggestions, keyed by how many slots the frequency wants.
-  ///
-  /// Distinct values are not cosmetic. `scheduledDosesFor` and
-  /// `computeAdherence` both match a dose log to a slot by `scheduledTime`
-  /// alone, so two slots at the same time collapse into one: a single log
-  /// satisfies both, and the day's denominator silently halves. `TimeListField`
-  /// also deletes by value, so removing one of two identical chips removes
-  /// both. The exact hours are not spec-mandated — only that they differ.
   static const Map<int, List<String>> _suggestedTimes = <int, List<String>>{
     1: <String>['08:00'],
     2: <String>['08:00', '20:00'],
     3: <String>['08:00', '14:00', '20:00'],
   };
 
-  /// Soft suggestion only (never enforced) — mirrors the backend's
-  /// deliberate non-validation of schedule-time count against frequency.
   void setFrequency(MedicationFrequency value) {
     final int suggested = value.suggestedTimeCount;
     final List<String> times = <String>[...state.scheduleTimes];
 
     for (final String candidate in _suggestedTimes[suggested] ?? const <String>[]) {
       if (times.length >= suggested) break;
-      // Never re-add a time the user already has: the defaults for N slots
-      // hold N distinct values, so skipping the ones already present still
-      // leaves enough to reach `suggested`.
+
       if (times.contains(candidate)) continue;
       times.add(candidate);
     }
@@ -130,22 +109,6 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   void setScheduleTimes(List<String> times) =>
       state = state.copyWith(scheduleTimes: times, scheduleError: validateScheduleTimes(times));
 
-  /// Re-validates every field against the current state, updating `state`'s
-  /// three error fields either way, and returns whether all of them passed.
-  ///
-  /// Split out of [save] so `MedicationFormScreen`'s Save button can run the
-  /// same up-to-date check before pushing `ReviewMedicationScreen` without
-  /// duplicating the validator calls: a field the user never
-  /// touched never ran its `onChanged` validator, so it must still be
-  /// re-checked at submit time — exactly what `save()` always did before this
-  /// method existed, and still does, via this shared call.
-  ///
-  /// "As needed" is `frequency == custom` with an
-  /// empty `scheduleTimes` — a deliberate, real state, not an unfinished
-  /// form — so that one combination skips `validateScheduleTimes` entirely
-  /// rather than failing it. `validateScheduleTimes` itself stays untouched:
-  /// it has no notion of frequency and does not need one, since every other
-  /// frequency must still require at least one time exactly as before.
   bool validate() {
     final String? nameError = validateMedicationName(state.name);
     final String? doseError = validateDoseMg(state.doseMg);
@@ -157,18 +120,6 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     return nameError == null && doseError == null && scheduleError == null;
   }
 
-  /// [caregiverSettings]/[instructions] are optional because they are owned
-  /// by `CaregiverNotifyStore`/`MedicationInstructionsStore`, not this
-  /// controller's own state (see those stores' doc comments) — the caller
-  /// (`ReviewMedicationScreen`) passes the values it was handed down from
-  /// `MedicationFormScreen`'s local `State`. Persisting them here, after the
-  /// medication write above succeeds, is what makes them work in ADD mode:
-  /// there is no `clientRecordId` to key either
-  /// store by until this exact point, when `repository.add` returns one for
-  /// the first time. A failure persisting either is treated the same way as
-  /// a reminder-scheduling failure above — non-fatal, since the medication
-  /// itself is already saved by this point and must not be reported as
-  /// failed over a problem with a local-only, best-effort side field.
   Future<bool> save({
     CaregiverNotifySettings? caregiverSettings,
     MedicationInstructions? instructions,
@@ -201,17 +152,11 @@ class MedicationFormController extends Notifier<MedicationFormState> {
         );
       }
     } catch (_) {
-      // The write itself failed — nothing was saved, so this is the one
-      // case save() still reports as a failure.
+
       state = state.copyWith(isSaving: false);
       rethrow;
     }
 
-    // From here on the medication is already persisted. A reminder-
-    // scheduling failure (e.g. a missing SCHEDULE_EXACT_ALARM permission)
-    // must not make save() report failure — that previously left a
-    // genuinely-saved medication looking like nothing happened, inviting a
-    // retry that would silently duplicate it.
     bool reminderSchedulingFailed = false;
     try {
       await ref.read(medicationNotificationsProvider).scheduleFor(medication);
@@ -225,7 +170,7 @@ class MedicationFormController extends Notifier<MedicationFormState> {
             .read(caregiverNotifyStoreProvider)
             .set(medication.clientRecordId, caregiverSettings);
       } catch (_) {
-        // Best-effort, local-only side field — see this method's doc comment.
+
       }
     }
     if (instructions != null) {
@@ -234,7 +179,7 @@ class MedicationFormController extends Notifier<MedicationFormState> {
             .read(medicationInstructionsStoreProvider)
             .set(medication.clientRecordId, instructions);
       } catch (_) {
-        // Best-effort, local-only side field — see this method's doc comment.
+
       }
     }
 
@@ -248,19 +193,6 @@ class MedicationFormController extends Notifier<MedicationFormState> {
   }
 }
 
-/// Auto-disposed, and that is load-bearing rather than a micro-optimisation.
-///
-/// A form's state is scoped to one visit to the form. Kept alive across
-/// visits, editing medication A and then opening "Add" would prefill A's name
-/// and dose *and* still hold `_editingClientRecordId`, so Save would silently
-/// call `edit(A)` instead of `add()`. `saved` would also stay true forever
-/// after the first successful save, which breaks `MedicationFormScreen`'s
-/// close-on-save `ref.listen` (it is gated on `!previous.saved`) on every
-/// visit after the first.
-///
-/// `MedicationFormScreen` holds the only listener for as long as it is
-/// mounted — see its `initState` — so a fresh instance is built each time the
-/// screen is entered.
 final NotifierProvider<MedicationFormController, MedicationFormState>
 medicationFormControllerProvider =
     NotifierProvider.autoDispose<MedicationFormController, MedicationFormState>(

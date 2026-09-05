@@ -5,11 +5,6 @@ import 'package:libu_care/features/medication/domain/entities/scheduled_dose.dar
 import 'package:libu_care/features/medication/domain/repositories/medication_repository.dart';
 import 'package:libu_care/features/medication/notifications/notification_scheduler.dart';
 
-/// A `MedicationRepository` that answers from in-memory lists.
-///
-/// A shared fake rather than one-off `implements MedicationRepository`
-/// stubs per test file, so a new test does not have to restate
-/// all eleven members to stub one of them.
 class FakeMedicationRepository implements MedicationRepository {
   FakeMedicationRepository({
     List<Medication> medications = const <Medication>[],
@@ -20,19 +15,13 @@ class FakeMedicationRepository implements MedicationRepository {
        history = <DoseLog>[...history],
        todays = <ScheduledDose>[...todays];
 
-  /// When set, `add` and `edit` throw it instead of writing — for asserting
-  /// that a caller surfaces a failed save rather than swallowing it (I7).
   final Object? writeError;
 
   final List<Medication> medications;
   final List<DoseLog> history;
 
-  /// What `todaysDoses` answers with — supply it to drive a screen that
-  /// renders today's rows.
   final List<ScheduledDose> todays;
 
-  /// Every `doseHistory` call's filter, in order — lets a test assert that a
-  /// filter control actually reached the repository.
   final List<String?> historyFilters = <String?>[];
 
   Medication? deactivated;
@@ -144,14 +133,9 @@ class FakeMedicationRepository implements MedicationRepository {
   Future<void> replayPendingEdits() async {}
 }
 
-/// A [NotificationScheduler] that keeps a real pending list, so
-/// `MedicationNotifications`'s cancel-by-payload-prefix path is exercised
-/// rather than stubbed out.
 class RecordingScheduler implements NotificationScheduler {
   int initCalls = 0;
 
-  /// Every payload ever scheduled, including ones later cancelled — the
-  /// scheduling history, not the current state.
   final List<String> scheduledPayloads = <String>[];
 
   final Map<int, String> _pending = <int, String>{};
@@ -187,8 +171,6 @@ class RecordingScheduler implements NotificationScheduler {
   }
 }
 
-/// A medication with sensible defaults, for tests that only care about one or
-/// two of its fields.
 Medication fakeMedication({
   String clientRecordId = 'm1',
   String name = 'Aspirin',

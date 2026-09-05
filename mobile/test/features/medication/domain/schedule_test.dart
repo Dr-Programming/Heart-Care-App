@@ -54,43 +54,24 @@ void main() {
       'a reactivated medication incorrectly treats the inactive gap as active '
       '(known limitation: multi-transition handling requires schema change)',
       () {
-        // This test documents a real gap in isActiveOn that cannot be fixed
-        // without an activation-history column in the schema (owned by the
-        // foundation, out of scope for this slice). The scenario:
-        // 1. Medication created on 2026-08-01
-        // 2. Deactivated (active: false, updatedAt: 2026-08-05) on day 5
-        // 3. Reactivated (active: true, updatedAt: 2026-08-15) on day 15
-        // isActiveOn should return:
-        //   - true for 2026-08-01 (creation day)
-        //   - true for 2026-08-04 (before deactivation)
-        //   - false for 2026-08-06 (after deactivation, before reactivation)
-        //   - true for 2026-08-16 (after reactivation)
-        // However, due to the schema limitation, isActiveOn only checks
-        // active/updatedAt when active=false. After reactivation (active=true),
-        // it consults only createdAt and never sees the deactivation at all,
-        // so days 2026-08-06 through 2026-08-10 are incorrectly returned as
-        // true. This causes computeAdherence to overcount "due" for those days.
+
         final Medication medReactivated = _med(
           id: 'm1',
           times: <String>['08:00'],
           createdAt: DateTime(2026, 8, 1),
           active: true,
-          updatedAt: DateTime(2026, 8, 15), // reactivation date
+          updatedAt: DateTime(2026, 8, 15),
         );
 
-        // The bug: day 6 should be false (was deactivated on day 5),
-        // but isActiveOn returns true because active=true and createdAt
-        // is before day 6. updatedAt (day 15) is not consulted.
         expect(
           isActiveOn(medReactivated, DateTime(2026, 8, 6)),
-          isTrue, // BUG: should be false, but implementation only checks createdAt
+          isTrue,
         );
         expect(
           isActiveOn(medReactivated, DateTime(2026, 8, 10)),
-          isTrue, // BUG: should be false (in the inactive gap)
+          isTrue,
         );
 
-        // After reactivation, correctly reports true.
         expect(isActiveOn(medReactivated, DateTime(2026, 8, 16)), isTrue);
       },
     );
@@ -130,11 +111,6 @@ void main() {
       expect(custom, hasLength(4));
     });
 
-    // "As needed" is Custom frequency with
-    // an empty `scheduleTimes` — a real, reachable state (not a bug), so
-    // this is a regression check that it produces zero scheduled doses
-    // cleanly rather than crashing or defaulting back to some other slot
-    // count.
     test('a medication with an empty schedule (As needed) yields zero scheduled doses', () {
       final DateTime date = DateTime(2026, 8, 25);
       final DateTime now = DateTime(2026, 8, 25, 23);

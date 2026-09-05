@@ -8,17 +8,6 @@ import '../../domain/entities/medication.dart';
 
 part 'medication_model.freezed.dart';
 
-/// The `POST/GET/PUT /medications` response shape (`backend/docs/API.md` §3),
-/// plus conversions to and from the domain [Medication] and the local Drift
-/// row. `id` is the server id — null for a not-yet-synced medication.
-///
-/// `fromJson`/`toJson` are hand-written rather than `json_serializable`-
-/// generated: freezed 4.0.0 (forced by `riverpod_generator`'s `analyzer`
-/// constraint elsewhere in the app) currently fails `json_serializable`
-/// 6.14.1's annotation resolution on its generated `copyWith` getter — a
-/// known upstream incompatibility between the two latest releases, not a fixable
-/// version pin in this repo. Freezed's own codegen (equality/copyWith) is
-/// unaffected and still used.
 @freezed
 abstract class MedicationModel with _$MedicationModel {
   const MedicationModel._();

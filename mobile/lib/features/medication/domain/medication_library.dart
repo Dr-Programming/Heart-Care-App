@@ -1,9 +1,4 @@
-/// One entry in the bundled common-medications list used to power
-/// [MedicationSearchScreen]'s suggestions (Decision A of
-/// docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md). Not a real
-/// drug database — no such catalog exists in the backend or database. Picking
-/// a suggestion only pre-fills the add/edit form; saving still goes through
-/// the unchanged repository/sync path.
+
 class MedicationLibraryEntry {
   const MedicationLibraryEntry({
     required this.name,
@@ -16,8 +11,6 @@ class MedicationLibraryEntry {
   final double doseMg;
   final String drugClass;
 
-  /// Soft hint only — the single most-likely dose for this drug, shown
-  /// first and highlighted (the design's pale-blue top-suggestion row).
   final bool mostCommon;
 }
 
@@ -56,10 +49,6 @@ const List<MedicationLibraryEntry> kMedicationLibrary = <MedicationLibraryEntry>
   MedicationLibraryEntry(name: 'Isosorbide mononitrate', doseMg: 30, drugClass: 'Nitrate', mostCommon: true),
 ];
 
-/// Case-insensitive substring match on [MedicationLibraryEntry.name].
-/// Most-common entries first, then alphabetical by name, then by dose.
-/// An empty/blank query returns nothing — the search screen only shows
-/// suggestions once the user has typed something.
 List<MedicationLibraryEntry> searchMedicationLibrary(String query) {
   final String trimmed = query.trim().toLowerCase();
   if (trimmed.isEmpty) return const <MedicationLibraryEntry>[];

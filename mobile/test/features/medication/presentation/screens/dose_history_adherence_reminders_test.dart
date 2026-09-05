@@ -26,7 +26,6 @@ class _FakeDoseHistoryController extends DoseHistoryController {
   _FakeDoseHistoryController(this._state);
   final DoseHistoryState _state;
 
-  /// The filter the screen's chip row asked for, if any.
   DoseHistoryFilter? requestedFilter;
 
   @override
@@ -152,8 +151,6 @@ void main() {
       ],
     );
 
-    // Offline-first: a pending record is normal, and only the record that is
-    // still owed says anything at all.
     expect(find.text('meds.history.syncPending'.tr()), findsOneWidget);
   });
 
@@ -178,7 +175,6 @@ void main() {
       ],
     );
 
-    // `setFilter` had no UI caller at all before this fix.
     expect(find.text('meds.history.filterAll'.tr()), findsOneWidget);
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Atorvastatin'));
@@ -227,7 +223,6 @@ void main() {
       ],
     );
 
-    // Decision 5: the denominator is always shown, never a bare percentage.
     expect(
       find.text(
         'meds.adherence.countWithPercent'.tr(
@@ -276,7 +271,7 @@ void main() {
     expect(find.text('meds.adherence.perMedication'.tr()), findsOneWidget);
     expect(find.text('Aspirin'), findsOneWidget);
     expect(find.text('Atorvastatin'), findsOneWidget);
-    // 5/5 for one, 0/5 for the other — a pooled 50% would hide which.
+
     expect(find.textContaining('100%'), findsWidgets);
     expect(find.textContaining('0%'), findsWidgets);
   });
@@ -339,7 +334,7 @@ void main() {
         notifications: MedicationNotifications(scheduler, db.preferencesDao),
         repository: repository,
       );
-      // The app-start bootstrap has already armed this medication.
+
       await bootstrap.rescheduleAll();
       expect(scheduler.pendingPayloads, isNotEmpty);
 
@@ -411,7 +406,6 @@ void main() {
     await tester.tap(find.byType(SwitchListTile));
     await tester.pumpAndSettle();
 
-    // One scheduled time, main + follow-up.
     expect(scheduler.pendingPayloads, hasLength(2));
   });
 }

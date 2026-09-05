@@ -5,11 +5,6 @@ import 'package:libu_care/features/medication/presentation/widgets/simple_time_p
 
 import '../../../../helpers/pump_app.dart';
 
-/// A mutable holder, not a plain `TimeOfDay?` returned from a helper: the
-/// picker's `Future` only resolves once the sheet is dismissed, which
-/// happens *after* the caller has driven further taps (PM, a typed value,
-/// Confirm/Cancel) — a value returned from the open step alone would be
-/// captured before any of that runs and would always read back `null`.
 class _Captured {
   TimeOfDay? value;
 }
@@ -41,7 +36,7 @@ void main() {
   testWidgets('opens showing the given initial time in 12-hour form', (tester) async {
     await openPicker(tester, initialTime: const TimeOfDay(hour: 14, minute: 30));
 
-    expect(find.text('02'), findsOneWidget); // 14:30 -> 2:30 PM
+    expect(find.text('02'), findsOneWidget);
     expect(find.text('30'), findsOneWidget);
     expect(find.text('meds.form.pm'.tr()), findsOneWidget);
   });
@@ -53,9 +48,6 @@ void main() {
     (tester) async {
       final _Captured captured = await openPicker(tester);
 
-      // Starts at "12" (midnight in 12-hour form, from the default
-      // TimeOfDay(0, 0)) — tapping it must select all of "12", not just
-      // place a cursor next to it, so the very next keystroke replaces it.
       final Finder hourField = find.byWidgetPredicate(
         (Widget w) => w is TextField && w.controller?.text == '12',
       );
@@ -70,7 +62,6 @@ void main() {
         reason: 'the whole "12" must be selected on focus, not just a cursor placed in it',
       );
 
-      // Confirm the flow still completes normally end to end.
       await tester.tap(find.text('common.confirm'.tr()));
       await tester.pumpAndSettle();
       expect(captured.value, isNotNull);

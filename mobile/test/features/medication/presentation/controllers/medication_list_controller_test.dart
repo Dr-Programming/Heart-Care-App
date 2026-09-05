@@ -127,13 +127,6 @@ void main() {
     expect(repo.deactivateCalls, 1);
   });
 
-  // ── FR-DEC-002 / FR-NOT-003, Done Criterion §9 (finding I2) ──────────────
-  //
-  // The decision itself is `core/clinical`'s `hasConsecutiveMissedDoses`, and
-  // its own rules are covered by `test/core/clinical/alert_evaluator_test.dart`.
-  // What these check is the wiring: that this controller hands it that
-  // medication's real logs, newest first, and surfaces the verdict.
-
   Future<MedicationListState> stateWithHistory(List<DoseLog> history) async {
     final FakeMedicationRepository repo = FakeMedicationRepository(
       medications: <Medication>[
@@ -165,7 +158,7 @@ void main() {
 
   test('two consecutive misses raise an adherence alert (I2)', () async {
     final MedicationListState state = await stateWithHistory(<DoseLog>[
-      // Newest first, as `doseHistory` returns them.
+
       log('m1', DoseStatus.missed, '2026-08-25'),
       log('m1', DoseStatus.missed, '2026-08-24'),
       log('m1', DoseStatus.taken, '2026-08-23'),

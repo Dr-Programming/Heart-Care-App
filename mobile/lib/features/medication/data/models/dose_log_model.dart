@@ -6,13 +6,6 @@ import '../../domain/entities/dose_log.dart';
 
 part 'dose_log_model.freezed.dart';
 
-/// The `POST/GET .../doses` response shape. Never carries the client-side
-/// medication link on the wire (Decision 3) — every conversion that needs it
-/// takes it as a parameter from the caller, which already knows which
-/// medication it was logging against.
-///
-/// `fromJson`/`toJson` are hand-written rather than `json_serializable`-
-/// generated — see [MedicationModel]'s doc comment for why.
 @freezed
 abstract class DoseLogModel with _$DoseLogModel {
   const DoseLogModel._();

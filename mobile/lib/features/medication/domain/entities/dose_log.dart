@@ -1,5 +1,4 @@
-/// One logged dose. Append-only — once recorded, a `DoseLog` is never
-/// edited or deleted (Decision 1).
+
 class DoseLog {
   const DoseLog({
     required this.clientRecordId,
@@ -16,22 +15,18 @@ class DoseLog {
   final String clientRecordId;
   final String? serverId;
 
-  /// Always set — the offline-safe link to its medication (Decision 3).
   final String medicationClientRecordId;
   final String? medicationServerId;
 
   final DoseStatus status;
 
-  /// "yyyy-MM-dd", the day the dose was due.
   final String scheduledDate;
 
-  /// "HH:mm", null for an unscheduled/ad-hoc log.
   final String? scheduledTime;
   final DateTime loggedAt;
   final String? note;
 }
 
-/// Wire-identical to the backend's `DoseStatus` enum.
 enum DoseStatus {
   taken('TAKEN'),
   missed('MISSED'),

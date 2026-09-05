@@ -12,10 +12,6 @@ import '../../data/medication_instructions_store.dart';
 import '../../domain/entities/medication.dart';
 import '../controllers/medication_form_controller.dart';
 
-/// The design's "Review medication" screen (frame 368:2651) — a new screen per
-/// Decision E of docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md.
-/// Purely a read-only summary of the form's current state plus the actual
-/// save trigger; reached via a plain [Navigator] push, not a named route.
 class ReviewMedicationScreen extends ConsumerWidget {
   const ReviewMedicationScreen({
     required this.notifyCaregiverEnabled,
@@ -24,28 +20,10 @@ class ReviewMedicationScreen extends ConsumerWidget {
     super.key,
   });
 
-  /// The caregiver-notify toggle's current value, read from
-  /// `_MedicationFormScreenState._caregiverEnabled` at push time — that flag
-  /// lives as local `State` on the form screen (see its own doc comment),
-  /// not on `MedicationFormState`, so it has to be handed down explicitly
-  /// rather than read off the watched form state below.
   final bool notifyCaregiverEnabled;
 
-  /// The caregiver phone number typed so far, read from
-  /// `_MedicationFormScreenState._caregiverPhoneController.text` at push
-  /// time — same reasoning as [notifyCaregiverEnabled]. Needed here so
-  /// [_save] can pass a complete `CaregiverNotifySettings`
-  /// into `MedicationFormController.save()`, which is what finally persists
-  /// it once the medication's real id exists, in both add and edit mode.
   final String caregiverPhone;
 
-  /// The selected Instructions chip, read
-  /// from `_MedicationFormScreenState._instructions` at push time — same
-  /// reasoning as [notifyCaregiverEnabled] above: local `State` on the form
-  /// screen, not part of `MedicationFormState`. Nullable (not just
-  /// `MedicationInstructions.none`-defaulted) so existing call sites/tests
-  /// that predate this field keep compiling unchanged; treated the same as
-  /// `none` wherever it is displayed.
   final MedicationInstructions? instructions;
 
   @override
@@ -54,11 +32,6 @@ class ReviewMedicationScreen extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    // Mirrors `MedicationFormScreen`'s own `isAsNeeded` derivation exactly —
-    // "as needed" is Custom frequency with an empty schedule, not a stored
-    // flag, so the review screen
-    // special-cases the same state combination rather than trusting
-    // `state.frequency.name` to already say the right thing.
     final bool isAsNeeded =
         state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
 
@@ -69,32 +42,10 @@ class ReviewMedicationScreen extends ConsumerWidget {
       MedicationFormState next,
     ) {
       if (next.saved && (previous == null || !previous.saved) && context.mounted) {
-        // `popUntil((route) => route.isFirst)` (this screen's original
-        // navigation, before it was wired into the real add/edit flow) would
-        // pop all the way to the app's root route — wrong once real
-        // navigation landed `MedicationsScreen` (push MedicationSearchScreen
-        // or the `medicationEdit` GoRoute) -> `MedicationFormScreen` (push)
-        // -> this screen, all on the same per-tab Navigator
-        // (`StatefulShellRoute.indexedStack` gives the medications tab its
-        // own Navigator, and `medicationEdit`/`medicationNew` are GoRoutes
-        // *inside* that tab, not on the root navigator). Two pops — this
-        // screen, then the form underneath it — lands exactly back on
-        // `MedicationsScreen`, matching the real push depth in both the add
-        // flow (search -> form -> review) and the edit flow (GoRouter's
-        // medicationEdit -> review).
-        // Guarded with `canPop()` rather than two unconditional pops: this
-        // screen is also pumped directly as the *only* route in
-        // review_medication_screen_test.dart's pre-existing tests (no form,
-        // no medications list underneath it), where an unconditional second
-        // pop would try to pop a Navigator past its last route. `canPop()`
-        // makes each pop a no-op once there is nowhere left to go, so this is
-        // "pop up to two levels" rather than "pop exactly two, always".
+
         final NavigatorState navigator = Navigator.of(context);
         if (next.reminderSchedulingFailed) {
-          // The medication saved fine; only reminder scheduling failed
-          // afterward. Give the warning a moment on screen before popping —
-          // a SnackBar shown right before `pop()` would be torn down with
-          // this route before anyone could read it.
+
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
@@ -116,19 +67,9 @@ class ReviewMedicationScreen extends ConsumerWidget {
     });
 
     return AppScaffold.banded(
-      // Same technique as `MedicationSearchScreen` — see its doc comment.
-      // design frame 368:2651 draws this screen's back arrow/title/subtitle
-      // inside the cream band too, not a separate AppBar.
+
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: the `Spacer()` this
-      // band used to push title+subtitle to the bottom left a large empty
-      // cream gap above the back icon with nothing in it — fixed below with
-      // a fixed small gap instead, matching this height to the band's own
-      // natural content size. The `FittedBox` below still exists for its
-      // own, separate reason: "Review medication" — this band's longest
-      // title of the four — wraps to a second line at a 320dp-wide
-      // viewport otherwise, which is what this screen's own "does not
-      // overflow ... at a narrow width" test caught.
+
       bandHeight: 130,
       scrollable: true,
       bandChild: Column(
@@ -141,8 +82,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // fontSize 28, not bare `headlineLarge` (24) — see
-          // `MedicationsScreen`'s matching comment.
+
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -152,17 +92,14 @@ class ReviewMedicationScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its
-          // default) — design frame 368:2651 has this subtitle at #282a2a
-          // (ink), not grey.
+
           Text(
             'meds.review.subtitle'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
-      // the design leaves a real gap (~24px) between the band and whatever comes
-      // next — see `MedicationsScreen`'s matching comment.
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -185,11 +122,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
                       ? 'meds.review.noFixedSchedule'.tr()
                       : state.scheduleTimes.join(', '),
                 ),
-                // A "Reminder: On/Off" row, per design frame 368:2651 —
-                // derived from `isAsNeeded` rather than a
-                // separate stored flag, since "As needed" already *is* "no
-                // reminders" (see `MedicationFormController.validate()`'s
-                // doc comment on that state combination).
+
                 _StatusRow(
                   label: 'meds.review.reminder'.tr(),
                   on: !isAsNeeded,
@@ -208,13 +141,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          // SectionCard has no `backgroundColor` parameter (confirmed at
-          // core/widgets/cards.dart:12-19 — its params are only `child,
-          // title, action, padding, onTap`), so the pale-blue tint here is
-          // applied the same way `MedicationSearchScreen`'s `_SuggestionCard`
-          // does it: zero the card's own padding and give it an opaque
-          // tinted `Container` (carrying that padding itself) as its child,
-          // filling the card end to end within its clipped, rounded bounds.
+
           SectionCard(
             padding: EdgeInsets.zero,
             child: Container(
@@ -224,9 +151,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  // the design shows a notification-bell icon (data-name
-                  // "iconixto/linear/notification") to the left of this
-                  // banner's text, in the same accent blue.
+
                   const Icon(Iconsax.notification, color: AppColors.accent, size: 20),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
@@ -234,16 +159,7 @@ class ReviewMedicationScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        // An empty joined `times` would otherwise read as
-                        // "Reminders set for  daily" — a blank value rather
-                        // than a sentence — for exactly the "as needed"
-                        // case, so this reuses the form's own caption copy
-                        // instead of that template with nothing to fill in.
-                        // `bodySmall` alone renders AppColors.textSecondary
-                        // (its default) — both lines in this banner render
-                        // at #1d4ed8 (AppColors.accent) in the design, the
-                        // same blue as the notification bell icon beside
-                        // them, not grey.
+
                         Text(
                           isAsNeeded
                               ? 'meds.form.asNeededCaption'.tr()
@@ -287,10 +203,6 @@ class ReviewMedicationScreen extends ConsumerWidget {
     );
   }
 
-  /// Saves, and tells the user when saving did not work — the identical
-  /// structure and translation key as `MedicationFormScreen._save`: a
-  /// `Failure`'s own message verbatim, or `errors.generic` for anything
-  /// else, in a `SnackBar`.
   Future<void> _save(BuildContext context, MedicationFormController controller) async {
     try {
       await controller.save(
@@ -328,25 +240,7 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          // Both cells are `Flexible`-guarded — not just the value — because
-          // this row also renders the caregiver-notify label,
-          // whose full copy ("Notify caregiver if missed") is long enough on
-          // its own to overflow a bare, unwrapped `Text` the same way a long
-          // *value* can (an unwrapped Row child gets an effectively
-          // unbounded max width during layout, so it never wraps — it just
-          // renders at its full single-line width regardless of the
-          // container, which is exactly the failure mode `DoseRow` and
-          // `MedicationCard`'s own `Flexible`/`Expanded` guards exist to
-          // avoid). A plain `Flexible` (not `Expanded`) on the label keeps
-          // its current compact, content-sized layout for the existing short
-          // labels, while still letting it wrap instead of overflowing when
-          // a label — in English or Amharic — turns out to be long.
-          // Colours per design frame 368:2651: every row label is `#6b7280`
-          // (AppColors.textSecondary) at 12px regular, every value is
-          // `#282a2a` (AppColors.ink) at 12px bold. `bodyMedium`'s own
-          // default is textSecondary, not ink — so the value needs its own
-          // explicit ink override too, not just the label; leaving it bare
-          // would render every value in the same grey as its label.
+
           Flexible(
             child: Text(
               label,
@@ -371,13 +265,6 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-/// A label + coloured status pill row — "Reminder"/"Notify caregiver", both
-/// On/Off in frame 368:2651. Distinct from [_SummaryRow] (used for the
-/// screen's plain-text rows) because the design renders these two specifically as
-/// a small coloured badge, not plain text: the "On" pill uses
-/// `AppColors.success`/`successBg` (the same pairing
-/// `StatusChip` already uses for a positive clinical status elsewhere in
-/// this app) and the "Off" pill uses `AppColors.accent`/`accentBg`.
 class _StatusRow extends StatelessWidget {
   const _StatusRow({required this.label, required this.on});
 

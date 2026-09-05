@@ -16,13 +16,6 @@ import 'package:libu_care/features/medication/presentation/widgets/time_list_fie
 
 import '../../../../helpers/pump_app.dart';
 
-/// Serves the real short English labels ("Taken"/"Missed"/"Skipped") for the
-/// `meds.status.*` keys directly, bypassing `assets/translations/*.json`.
-/// Used where a test wants deterministic short copy independent of future
-/// wording edits to the real translation files (e.g. to isolate a
-/// proportional-width assertion from unrelated copy changes) — not a
-/// workaround for a missing translation namespace; `meds.status.*` has been
-/// populated with real short copy in the translation assets.
 class _ShortLabelAssetLoader extends AssetLoader {
   const _ShortLabelAssetLoader();
 
@@ -39,15 +32,6 @@ class _ShortLabelAssetLoader extends AssetLoader {
       });
 }
 
-/// Serves deliberately long placeholder strings for the `meds.status.*`
-/// keys — the same length class as an unpopulated `meds` namespace would
-/// produce, back when it was still `{}` and `.tr()` fell back to
-/// the ~17-19 character raw key text ("meds.status.taken" etc.). The real
-/// translation assets now carry short copy ("Taken"/"Missed"/"Skipped"), so
-/// that long text no longer shows up by accident. This loader reproduces it on
-/// purpose so the overflow-regression tests below keep exercising the
-/// long-label-on-a-narrow-device scenario they were built to catch,
-/// independent of how long the real copy happens to be in any language.
 class _LongLabelAssetLoader extends AssetLoader {
   const _LongLabelAssetLoader();
 
@@ -64,10 +48,6 @@ class _LongLabelAssetLoader extends AssetLoader {
       });
 }
 
-/// Same shape as `pumpApp` (helpers/pump_app.dart), but with [loader] in
-/// place of the real translation asset — duplicated here rather than added
-/// as a parameter to the shared helper, since this is a one-off need for
-/// this file's fixed-copy-length tests.
 Future<void> _pumpWithAssetLoader(WidgetTester tester, Widget child, AssetLoader loader) async {
   final ProviderContainer container = ProviderContainer();
   addTearDown(container.dispose);
@@ -105,15 +85,9 @@ Future<void> _pumpWithAssetLoader(WidgetTester tester, Widget child, AssetLoader
   );
 }
 
-/// Pumps [child] with the real short `meds.status.*` labels loaded (see
-/// [_ShortLabelAssetLoader]).
 Future<void> _pumpWithRealisticLabels(WidgetTester tester, Widget child) =>
     _pumpWithAssetLoader(tester, child, const _ShortLabelAssetLoader());
 
-/// Pumps [child] with deliberately long `meds.status.*` labels loaded (see
-/// [_LongLabelAssetLoader]) — for the overflow-regression tests that need to
-/// exercise the long-label worst case regardless of how short the real
-/// translated copy is.
 Future<void> _pumpWithLongLabels(WidgetTester tester, Widget child) =>
     _pumpWithAssetLoader(tester, child, const _LongLabelAssetLoader());
 
@@ -143,9 +117,7 @@ void main() {
   });
 
   testWidgets('tapping Taken in StatusSelector calls onSelected with DoseStatus.taken', (tester) async {
-    // The translation assets populate `meds.status.taken` in assets/translations/*.json, so
-    // easy_localization's .tr() now resolves to the real copy ("Taken")
-    // instead of falling back to the raw key string — match on that.
+
     DoseStatus? selected;
     await pumpApp(
       tester,
@@ -161,18 +133,7 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (pending)',
     (tester) async {
-      // Worst-case simulation: pumps deliberately long
-      // placeholder status labels via `_pumpWithLongLabels` (see
-      // `_LongLabelAssetLoader`) rather than the app's real, shorter
-      // `meds.status.*` copy — long label text is the actual risk this
-      // guards against, independent of how long the real copy is in any
-      // given language. Constraining the row to 220px (narrower than any
-      // realistic phone's available content width, e.g. ~360dp minus screen
-      // padding) simulates the combination that matters: long label text
-      // + a physically narrow device. A bare trailing
-      // `StatusSelector` with an inner `Row` instead of `Wrap` would throw a
-      // `RenderFlex overflowed` FlutterError during pump under those
-      // conditions.
+
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -204,10 +165,7 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (logged)',
     (tester) async {
-      // Same worst case as above (long placeholder labels via
-      // `_pumpWithLongLabels`), but for the `StatusChip` branch (a dose
-      // already logged) — the trailing widget differs but the same
-      // `Flexible` wrap in DoseRow must protect it too.
+
       final ScheduledDose logged = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -248,12 +206,7 @@ void main() {
   testWidgets(
     'StatusSelector does not overflow an even narrower width',
     (tester) async {
-      // StatusSelector directly, at 200px — narrower still than the DoseRow
-      // scenario above, to isolate the `Wrap` fix (as opposed to the
-      // `Flexible` fix in DoseRow) as sufficient on its own. Uses
-      // `_pumpWithLongLabels` for the same reason as the DoseRow overflow
-      // tests above — long labels are the actual risk, not whatever the
-      // real translated copy's length happens to be today.
+
       await _pumpWithLongLabels(
         tester,
         Material(
@@ -274,27 +227,7 @@ void main() {
   testWidgets(
     'DoseRow gives the trailing status widget the actual leftover width, not a blind 50/50 split',
     (tester) async {
-      // The original fix wrapped the trailing widget in a plain `Flexible`
-      // (default flex: 1) next to the leading `Expanded` (also flex: 1) — an
-      // even 50/50 split of the row regardless of how little the leading
-      // column's actual content needs, which starves the trailing chips even
-      // when the medication name is short (the common case).
-      //
-      // This test proves the fix is now content-driven rather than a fixed
-      // proportion: it pumps the *same* DoseRow content at two different
-      // container widths and checks how the extra space is distributed.
-      // Under a proportional 50/50 flex split, widening the container by
-      // 200px would hand ~100px of that increase to the leading column too.
-      // Under the leading `ConstrainedBox` + sole-flex-child trailing
-      // `Flexible` in the fixed `dose_row.dart`, the leading column's actual
-      // rendered width stays essentially unchanged (it only ever claims what
-      // its text content needs, up to its cap) and virtually all of the
-      // extra space goes to the trailing widget instead.
-      //
-      // Widths are kept under 800 (the default `flutter test` surface) so
-      // neither is clamped by the outer `Material`/`MediaQuery` — clamping
-      // was confirmed empirically while calibrating this test (a requested
-      // SizedBox width of 900 rendered at ~800 instead).
+
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
         scheduledDate: '2026-08-25', scheduledTime: '08:00',
@@ -317,8 +250,6 @@ void main() {
         ),
       );
 
-      // The leading column, scoped to inside DoseRow specifically —
-      // SectionCard has its own outer Column that must not be matched here.
       Finder leadingColumn() => find.descendant(of: find.byType(DoseRow), matching: find.byType(Column));
 
       await pumpAt(500);
@@ -331,15 +262,12 @@ void main() {
       final double leadingWidthAt700 = tester.renderObject<RenderBox>(leadingColumn()).size.width;
       final double trailingWidthAt700 = tester.renderObject<RenderBox>(find.byType(StatusSelector)).size.width;
 
-      // Leading barely moves: it is sized to its own content, not a
-      // proportional share of a wider row.
       expect(
         (leadingWidthAt700 - leadingWidthAt500).abs(),
         lessThan(5),
         reason: 'leading column width should be content-driven (roughly constant), not proportional to row width',
       );
-      // Trailing absorbs virtually the entire 200px increase — the opposite
-      // of what a 50/50 flex split would do (~100px each).
+
       expect(
         trailingWidthAt700 - trailingWidthAt500,
         greaterThan(150),
@@ -351,11 +279,7 @@ void main() {
   testWidgets(
     'StatusSelector does not overflow under a larger accessibility text scale',
     (tester) async {
-      // A larger text-scale factor inflates each chip's own intrinsic width
-      // simultaneously — a different stress than a narrow container, since
-      // it's the scenario where a single chip's width (not just the sum of
-      // three) can approach its allotted share. 1.4x is within the common
-      // "Large" end of Android/iOS accessibility text-size settings.
+
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
         scheduledDate: '2026-08-25', scheduledTime: '08:00',
@@ -389,10 +313,7 @@ void main() {
   testWidgets(
     'a note typed on a logged dose reaches onLog with the same status (I6)',
     (tester) async {
-      // FR-MED-008: `DoseLogs.note` was plumbed through the domain, data and
-      // sync layers with no widget able to fill it. The note is offered on the
-      // already-logged row rather than in the logging tap itself, so Decision
-      // 6's one-tap logging stays one tap.
+
       DoseStatus? loggedStatus;
       String? loggedNote;
       int calls = 0;
@@ -541,16 +462,7 @@ void main() {
     'TimeListField restyled chips do not overflow a narrow width with '
     'several times (styling pass)',
     (tester) async {
-      // This styling adds explicit
-      // padding/borders/labelStyle to TimeListField's InputChip/ActionChip —
-      // a pure colour/spacing/shape change that must not reintroduce the
-      // class of RenderFlex overflow bug the DoseRow/StatusSelector suite
-      // above guards against. The underlying `Wrap` (unchanged by this
-      // task) already flows chips onto new lines rather than overflowing a
-      // single one horizontally, but this pumps the restyled chips —
-      // several time chips plus the "add" chip — at a width narrower than
-      // any realistic phone's content column to prove that still holds
-      // with the new padding/border/label weight.
+
       await pumpApp(
         tester,
         Material(
@@ -573,20 +485,10 @@ void main() {
     },
   );
 
-  // Kept last in the file on purpose: `pumpApp(language:)` switches
-  // easy_localization's singleton locale, which the bare `'key'.tr()` calls in
-  // the tests above read. Running the Amharic cases at the end keeps that
-  // switch from leaking into them.
-
   testWidgets(
     'DoseRow renders real Amharic on a phone-width row without overflowing (I9)',
     (tester) async {
-      // Bilingual UI is a hard project constraint (CLAUDE.md), and Amharic
-      // copy runs longer than its English counterpart — the row's status
-      // labels are the slice's tightest fixed-width spot, and the logged
-      // branch is the widest of the two (status chip + note action). 360dp is
-      // a common low-end Android width, so this is the real device case
-      // rather than a synthetic squeeze.
+
       final ScheduledDose logged = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'Atorvastatin',
@@ -626,8 +528,6 @@ void main() {
         language: AppLanguage.am,
       );
 
-      // Real Amharic from assets/translations/am.json — not the English
-      // fallback, and not the raw key.
       final String skipped = 'meds.status.skipped'.tr();
       final String addNote = 'meds.note.add'.tr();
       expect(skipped, isNot('Skipped'));
@@ -644,9 +544,7 @@ void main() {
   testWidgets(
     'the Amharic note sheet opens and returns what was typed (I9)',
     (tester) async {
-      // The note sheet is the newest piece of UI in the slice (I6), so it is
-      // the one with no Amharic mileage at all — this pumps it in Amharic and
-      // drives it end to end.
+
       String? loggedNote;
       final ScheduledDose logged = ScheduledDose(
         medicationClientRecordId: 'm1',

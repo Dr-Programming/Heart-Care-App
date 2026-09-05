@@ -6,21 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_button.dart';
 
-/// A time-entry sheet built specifically to fix what Flutter's own
-/// `showTimePicker(initialEntryMode: TimePickerEntryMode.inputOnly)` cannot:
-/// tapping a field that already has digits in it (any digits — even the
-/// neutral "12"/"00" this picker starts from) places a cursor among them
-/// rather than selecting them, so typing the intended time means deleting
-/// first. Real, repeated feedback for an app whose users include sick and
-/// elderly patients — for them, "select-all on tap, then just type" is not
-/// a nicety, it is the difference between a field that works and one that
-/// doesn't. `showTimePicker` has no parameter for this; achieving it needs
-/// a custom field, so this is one, not a tweak to the built-in dialog.
-///
-/// A bottom sheet, not a dialog, for the same reason `ConfirmSheet` is one:
-/// controls land near the thumb on a large phone held one-handed, and it
-/// matches this app's one existing modal-input convention rather than
-/// introducing a second, different pattern.
 abstract final class SimpleTimePicker {
   static Future<TimeOfDay?> show(
     BuildContext context, {
@@ -65,9 +50,6 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
     );
     _isPm = initial.isPm;
 
-    // The whole point of this widget: select the field's entire current
-    // value the instant it gains focus, so the very first digit typed
-    // replaces it rather than being inserted next to it.
     _hourFocus.addListener(() => _selectAllOnFocus(_hourFocus, _hourController));
     _minuteFocus.addListener(() => _selectAllOnFocus(_minuteFocus, _minuteController));
   }
@@ -87,13 +69,12 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
   }
 
   void _confirm() {
-    // Clamped, not rejected with an error message: a patient mistyping a
-    // time should still get a sensible result, not a dead end to retry.
+
     final int hour12 = (int.tryParse(_hourController.text) ?? 12).clamp(1, 12);
     final int minute = (int.tryParse(_minuteController.text) ?? 0).clamp(0, 59);
     final int hour24 = switch ((hour12, _isPm)) {
-      (12, false) => 0, // 12 AM -> 00
-      (12, true) => 12, // 12 PM -> 12
+      (12, false) => 0,
+      (12, true) => 12,
       (_, true) => hour12 + 12,
       (_, false) => hour12,
     };
@@ -242,8 +223,6 @@ class _AmPmSegment extends StatelessWidget {
   }
 }
 
-/// [TimeOfDay] is always stored/compared in 24-hour form; this is purely a
-/// display-conversion helper for this picker's two 12-hour fields.
 class TimeOfDayHourMinute12 {
   const TimeOfDayHourMinute12({required this.hour, required this.isPm});
   final int hour;

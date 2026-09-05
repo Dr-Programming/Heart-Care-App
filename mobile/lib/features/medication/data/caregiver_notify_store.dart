@@ -2,13 +2,6 @@ import 'dart:convert';
 
 import '../../../core/db/daos/preferences_dao.dart';
 
-/// The "Notify caregiver if missed" toggle + phone number (Decision B of
-/// docs/design/2026-08-27-mobile-m3-figma-fidelity-design.md). Local-only —
-/// nothing in the backend or sync payload supports actually notifying a
-/// caregiver yet. Never persisted to the `Medications` Drift table (that
-/// schema is core-owned and off-limits) — stored as a `Preferences` entry
-/// per medication instead, the same pattern already used for this
-/// feature's other local-only state.
 class CaregiverNotifySettings {
   const CaregiverNotifySettings({required this.enabled, required this.phone});
 

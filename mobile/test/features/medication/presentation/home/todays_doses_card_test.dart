@@ -23,10 +23,6 @@ class _FakeMedicationListController extends MedicationListController {
   Future<MedicationListState> build() async => _state;
 }
 
-/// The reminder bootstrap this card fires at app start reaches the real
-/// notification plugin and the real on-device database, neither of which
-/// exists under `flutter test`. Every card test that is not *about* the
-/// bootstrap replaces it with a no-op.
 Override get _noBootstrap =>
     medicationRemindersStartupProvider.overrideWith((Ref _) {});
 
@@ -106,12 +102,8 @@ void main() {
         ],
       );
 
-      // `NotificationScheduler.init()` had no production caller at all before
-      // this fix, so timezone setup, plugin init and the Android 13+
-      // POST_NOTIFICATIONS request never ran.
       expect(scheduler.initCalls, 1);
-      // ...and nothing rescheduled on app start, which Android needs after a
-      // reboot or force-stop (Decision 4). One time slot, main + follow-up.
+
       expect(scheduler.pendingPayloads, hasLength(2));
     },
   );

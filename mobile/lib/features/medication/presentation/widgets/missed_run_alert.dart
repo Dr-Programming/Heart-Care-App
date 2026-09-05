@@ -6,15 +6,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/medication.dart';
 
-/// The adherence alert for FR-DEC-002 / FR-NOT-003: two doses of the same
-/// medication missed in a row.
-///
-/// Whether the run exists is decided by `core/clinical`'s
-/// `hasConsecutiveMissedDoses` (see `MedicationListController`); this widget
-/// only renders the verdict. `Severity.monitor` rather than `urgent` — a
-/// missed run is worth noticing and asking about, not an emergency, and the
-/// escalation to urgent is FR-DEC-003's cross-signal with symptoms, which is
-/// M5's to compose.
 class MissedRunAlert extends StatelessWidget {
   const MissedRunAlert({required this.medications, super.key});
 

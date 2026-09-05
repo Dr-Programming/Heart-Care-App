@@ -5,8 +5,6 @@ import '../../../../core/network/api_response.dart';
 import '../models/dose_log_model.dart';
 import '../models/medication_model.dart';
 
-/// Dio only — no Drift import here (architectural rule 3: local and remote
-/// datasources are always separate classes).
 class MedicationRemoteDataSource {
   const MedicationRemoteDataSource(this._dio);
 

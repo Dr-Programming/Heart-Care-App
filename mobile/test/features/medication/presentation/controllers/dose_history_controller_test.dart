@@ -72,8 +72,7 @@ void main() {
     );
 
     expect(repo.historyFilters.last, 'm1');
-    // The state carries the filter back out so the chip row can render which
-    // one is selected.
+
     expect(state.filter.medicationClientRecordId, 'm1');
     expect(state.entries, hasLength(1));
   });
@@ -90,8 +89,7 @@ void main() {
   });
 
   test('the filter offers deactivated medications too (I5)', () async {
-    // History outlives deactivation (Decision 1), so filtering to a stopped
-    // medication has to stay possible.
+
     final DoseHistoryState state = await container().read(
       doseHistoryControllerProvider.future,
     );

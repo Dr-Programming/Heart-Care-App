@@ -19,12 +19,6 @@ import '../controllers/medication_list_controller.dart';
 import '../widgets/time_list_field.dart';
 import 'review_medication_screen.dart';
 
-// `FutureProvider.autoDispose.family<StateT, ArgT>(...)` returns
-// `FutureProviderFamily<StateT, ArgT>` in riverpod 3.4.2, but that type is
-// an internal implementation detail not exported from the public barrel
-// (neither is `AutoDisposeFutureProviderFamily`, which doesn't exist at
-// all in this package version) — so the variable is left untyped and
-// inferred rather than explicitly annotated.
 final _medicationByIdProvider =
     FutureProvider.autoDispose.family<Medication?, String>((Ref ref, String id) async {
   final List<Medication> medications =
@@ -40,10 +34,6 @@ class MedicationFormScreen extends ConsumerStatefulWidget {
 
   final String? editingId;
 
-  /// A library entry picked on `MedicationSearchScreen` — pre-fills name
-  /// and dose in add mode. Ignored when [editingId] is set;
-  /// editing an existing medication always loads that medication's own
-  /// values instead.
   final MedicationLibraryEntry? prefillEntry;
 
   @override
@@ -53,37 +43,13 @@ class MedicationFormScreen extends ConsumerStatefulWidget {
 class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   bool _loaded = false;
 
-  /// Caregiver-notify state. Local `State` rather than part of
-  /// `MedicationFormState`: `CaregiverNotifyStore` is
-  /// storage `MedicationFormController` doesn't own (see its own doc
-  /// comment), so this screen reads/writes it directly instead of routing it
-  /// through the controller.
   bool _caregiverEnabled = false;
 
   final TextEditingController _caregiverPhoneController = TextEditingController();
 
-  /// `AppTextField` without a `controller` wraps a genuinely uncontrolled
-  /// `TextField` — typing into it works (the field
-  /// owns its own anonymous controller internally), but nothing external can
-  /// ever update what it displays. The dose quick-pick chips call
-  /// `controller.setDoseMg(...)`, which updates `MedicationFormState.doseMg`
-  /// correctly, but the dose field itself never learned about that change —
-  /// tapping a chip looked like it did nothing. The prefill-from-search path
-  /// (see `initState`) had the identical latent bug for both fields, just
-  /// less visible: it only showed up as "the name/dose I searched for isn't
-  /// actually in the form," not as an interactive control failing to
-  /// respond. Bound `TextEditingController`s fix both: typing still flows
-  /// forward via `onChanged` exactly as before, and now anything that sets
-  /// `MedicationFormState.name`/`doseMg` from outside the field itself —
-  /// search prefill, `loadForEdit`, a quick-pick chip — updates `.text` here
-  /// too, so the field always shows what the state actually holds.
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _doseController = TextEditingController();
 
-  /// Instructions state, local `State` for the same reason as the caregiver
-  /// fields above: `MedicationInstructionsStore` is
-  /// storage `MedicationFormController` doesn't own, keyed by
-  /// `clientRecordId` the same way `CaregiverNotifyStore` is.
   MedicationInstructions? _instructions;
 
   @override
@@ -91,16 +57,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     super.initState();
     _loaded = widget.editingId == null;
 
-    // Pins the auto-disposed form controller to this screen's lifetime.
-    //
-    // Without it there is a window with no listener at all: in edit mode the
-    // only touch before `_FormBody` mounts is a `ref.read(...).loadForEdit()`
-    // from a post-frame callback, and a `read` schedules disposal as soon as
-    // it returns — so the just-loaded medication could be thrown away before
-    // the form body ever watched it. Holding a subscription for as long as
-    // the screen is mounted closes that window, while still letting the
-    // controller dispose (and so reset) the moment the screen is popped,
-    // which is the whole point of making it auto-dispose.
     ref.listenManual<MedicationFormState>(
       medicationFormControllerProvider,
       (MedicationFormState? _, MedicationFormState _) {},
@@ -108,10 +64,7 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
     final MedicationLibraryEntry? entry = widget.prefillEntry;
     if (widget.editingId == null && entry != null) {
-      // Deferred to a post-frame callback rather than called straight from
-      // `initState`: Riverpod forbids modifying a provider's state during the
-      // widget tree's build phase (`initState` counts), asserting exactly
-      // that if this runs synchronously here.
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final MedicationFormController controller =
@@ -133,17 +86,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     super.dispose();
   }
 
-  /// Writes the caregiver toggle + phone to storage immediately — but only
-  /// in edit mode. In add mode there is no `clientRecordId` yet to key it
-  /// by, so this is a deliberate no-op here: the values the user enters
-  /// still live in this screen's own `State` (`_caregiverEnabled`,
-  /// `_caregiverPhoneController`) and are threaded through
-  /// `ReviewMedicationScreen` to `MedicationFormController.save()`, which
-  /// writes them for real once the medication's real id exists (see that
-  /// method's doc comment). The fields stay enabled in add mode rather than
-  /// being disabled until save — disabling them would read as data loss
-  /// ("why can't I set this before saving?"), so instead they capture the
-  /// value locally with a deferred write.
   void _persistCaregiverSettings() {
     final String? id = widget.editingId;
     if (id == null) return;
@@ -165,10 +107,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
   void _onCaregiverPhoneChanged(String _) => _persistCaregiverSettings();
 
-  /// Writes the selected instructions to storage — a no-op in add mode, for
-  /// the identical reason as `_persistCaregiverSettings` — see its doc
-  /// comment, including why add mode is a no-op *here* specifically without
-  /// losing the value.
   void _persistInstructions() {
     final String? id = widget.editingId;
     if (id == null) return;
@@ -179,8 +117,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     );
   }
 
-  /// Tap-again-to-deselect: tapping the already-selected chip clears back to
-  /// `none` rather than leaving it stuck selected forever.
   void _setInstructions(MedicationInstructions value) {
     setState(() => _instructions = _instructions == value ? MedicationInstructions.none : value);
     _persistInstructions();
@@ -202,14 +138,10 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
               _nameController.text = found.name;
               _doseController.text = _formatDose(found.doseMg);
             }
-            // Loaded alongside the medication itself, same as `loadForEdit`
-            // above — the caregiver settings and the medication both belong
-            // to `widget.editingId` and both need to be in place before
-            // `_FormBody` first mounts.
+
             final CaregiverNotifySettings settings =
                 await ref.read(caregiverNotifyStoreProvider).get(widget.editingId!);
-            // Loaded alongside the medication and caregiver settings, for
-            // the same reason as both of those.
+
             final MedicationInstructions instructions =
                 await ref.read(medicationInstructionsStoreProvider).get(widget.editingId!);
             if (mounted) {
@@ -239,8 +171,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   }
 }
 
-/// Matches `_SuggestionCard`'s own dose formatting on `MedicationSearchScreen`
-/// — a whole-number dose (e.g. `50.0`) prefills as `50`, not `50.0`.
 String _formatDose(double doseMg) =>
     doseMg == doseMg.roundToDouble() ? doseMg.toStringAsFixed(0) : doseMg.toString();
 
@@ -257,8 +187,6 @@ class _FormBody extends ConsumerWidget {
     required this.onInstructionsChanged,
   });
 
-  /// Null in add mode. Drives the deactivate action, which only makes sense
-  /// for a medication that already exists (spec §3).
   final String? editingId;
 
   final TextEditingController nameController;
@@ -278,36 +206,13 @@ class _FormBody extends ConsumerWidget {
     final MedicationFormController controller =
         ref.read(medicationFormControllerProvider.notifier);
 
-    // "As needed" is Custom frequency with an empty schedule — not a new
-    // enum value, not a new persisted field (see
-    // `MedicationInstructions`' own file for the parallel local-only field,
-    // and `MedicationFormController.validate()` for why this combination is
-    // deliberately valid). Derived, not stored, so it needs no loading step.
     final bool isAsNeeded =
         state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
 
-    // No `ref.listen(...saved...)` here: this screen's Save button doesn't
-    // call `controller.save()` directly — it pushes `ReviewMedicationScreen`,
-    // which owns the actual save() call and its own pop-on-saved listener.
-    // Keeping a second listener here would fire it too, on the very same
-    // `saved` transition, popping this screen out from underneath Review's
-    // own (correct) pop.
-
     return AppScaffold.banded(
-      // Same technique as `MedicationSearchScreen`/`ReviewMedicationScreen`
-      // — see the former's doc comment. design frame 368:2706 draws this
-      // screen's back arrow/title/subtitle inside the cream band too, not a
-      // separate AppBar. Title text is left as the static `meds.form.title`
-      // rather than switched to the design's per-medication dynamic title
-      // ("Metoprolol 50 mg") — that needs a sensible fallback for add mode
-      // before any name is typed, and is a separate enhancement from the
-      // header layout itself.
+
       showBack: false,
-      // See `MedicationsScreen`'s matching comment: the `Spacer()` this
-      // band used to push title+subtitle to the bottom left a large empty
-      // cream gap above the back icon with nothing in it — fixed below with
-      // a fixed small gap instead, matching this height to the band's own
-      // natural content size.
+
       bandHeight: 130,
       scrollable: true,
       bandChild: Column(
@@ -320,14 +225,7 @@ class _FormBody extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // FittedBox, not a bare Text: guards this fixed-height band
-          // against a title long enough to wrap to a second line (the
-          // exact failure `ReviewMedicationScreen`'s own title hit at a
-          // 320dp-wide viewport — see its matching comment) at any
-          // translation length, not just today's English/Amharic copy.
-          //
-          // fontSize 28, not bare `headlineLarge` (24) — see
-          // `MedicationsScreen`'s matching comment.
+
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -337,17 +235,14 @@ class _FormBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // `bodyMedium` alone renders AppColors.textSecondary (its
-          // default) — design frame 368:2706 has this subtitle at #282a2a
-          // (ink), not grey.
+
           Text(
             'meds.form.subtitle'.tr(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.ink),
           ),
         ],
       ),
-      // the design leaves a real gap (~24px) between the band and whatever comes
-      // next — see `MedicationsScreen`'s matching comment.
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -359,33 +254,13 @@ class _FormBody extends ConsumerWidget {
             errorText: state.nameError?.tr(),
             onChanged: controller.setName,
           ),
-          // "Enter manually" (this form, reached with no `prefillEntry`)
-          // otherwise has no suggestions at all — only
-          // `MedicationSearchScreen`'s own search bar used
-          // `searchMedicationLibrary`'s case-insensitive substring match.
-          // Reusing that exact function here (rather than a new prefix-only
-          // match) is what makes typing "prolol" surface "Metoprolol" too,
-          // not just names starting with the typed letters. Editing an
-          // existing medication (`editingId != null`) never shows this —
-          // the name there is already correct, and offering to silently
-          // overwrite it with a library pick is more likely to cause an
-          // accidental edit than help.
-          //
-          // Also gated on `state.doseMg` being blank: `AppTextField` has no
-          // `focusNode` parameter (it lives under `lib/core/**`, out of
-          // bounds here) to hide this once the Name field loses focus, so
-          // instead it hides once a dose exists — typed by hand or filled by
-          // tapping a suggestion — since by then the user has already moved
-          // past naming the medication. This also matches real usage: once
-          // a dose is set, further name suggestions are no longer useful.
+
           if (editingId == null && state.doseMg.trim().isEmpty)
             ValueListenableBuilder<TextEditingValue>(
               valueListenable: nameController,
               builder: (BuildContext context, TextEditingValue value, Widget? _) {
                 final String query = value.text.trim();
-                // Two letters, not one: a single letter matches nearly every
-                // entry in the library (e.g. "a" matches nine of the current
-                // thirty), which is noise, not a suggestion.
+
                 if (query.length < 2) return const SizedBox.shrink();
                 final List<MedicationLibraryEntry> suggestions = searchMedicationLibrary(
                   query,
@@ -416,11 +291,7 @@ class _FormBody extends ConsumerWidget {
               },
             ),
           const SizedBox(height: AppSpacing.lg),
-          // the design's own "DOSAGE"/"FREQUENCY"/"REMINDER TIMES"/"INSTRUCTIONS"
-          // section captions (frame 368:2706) are all the same
-          // small/bold/uppercase/grey style — matching the
-          // "SUGGESTIONS" label already established on MedicationSearchScreen
-          // rather than inventing a new one.
+
           Text(
             'meds.form.dosageLabel'.tr(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
@@ -453,12 +324,7 @@ class _FormBody extends ConsumerWidget {
               for (final MedicationFrequency f in MedicationFrequency.values)
                 _FrequencyChip(
                   frequency: f,
-                  // "Custom" and "As needed" (below) are both represented by
-                  // `frequency == custom` — the only thing that tells them
-                  // apart is whether `scheduleTimes` is empty. Guarding
-                  // Custom's own selected state on `isNotEmpty` here is what
-                  // keeps exactly one of the two ever highlighted, never
-                  // both, never neither.
+
                   selected: f == MedicationFrequency.custom
                       ? (state.frequency == MedicationFrequency.custom &&
                             state.scheduleTimes.isNotEmpty)
@@ -469,9 +335,7 @@ class _FormBody extends ConsumerWidget {
                 selected: isAsNeeded,
                 onSelected: () {
                   controller.setFrequency(MedicationFrequency.custom);
-                  // `setFrequency` alone may backfill a suggested default
-                  // time — explicitly clearing afterward is what actually
-                  // produces the empty-schedule "as needed" state.
+
                   controller.setScheduleTimes(const <String>[]);
                 },
               ),
@@ -492,8 +356,7 @@ class _FormBody extends ConsumerWidget {
               Text(state.scheduleError!.tr(), style: Theme.of(context).textTheme.bodySmall),
             ],
           ],
-          // design frame 368:2706 orders INSTRUCTIONS before NOTIFY CAREGIVER
-          // IF MISSED.
+
           const SizedBox(height: AppSpacing.lg),
           Text(
             'meds.form.instructions.sectionLabel'.tr(),
@@ -550,11 +413,6 @@ class _FormBody extends ConsumerWidget {
     );
   }
 
-  /// Re-validates (via `controller.validate()`, the same check `save()`
-  /// itself runs — see that method's doc comment) and, only if everything
-  /// passes, pushes `ReviewMedicationScreen` rather than saving immediately.
-  /// The actual persistence — and its I7 error handling — now lives on that
-  /// screen, reached from here purely as a navigation decision.
   void _reviewIfValid(BuildContext context, MedicationFormController controller) {
     if (!controller.validate()) return;
     Navigator.of(context).push<void>(
@@ -568,9 +426,6 @@ class _FormBody extends ConsumerWidget {
     );
   }
 
-  /// Deactivating is a soft stop, never a delete (Decision 1) — the confirm
-  /// sheet says so in as many words, because "delete" is what the button
-  /// looks like it does.
   Future<void> _confirmDeactivate(
     BuildContext context,
     WidgetRef ref,
@@ -585,9 +440,6 @@ class _FormBody extends ConsumerWidget {
     );
     if (!confirmed) return;
 
-    // `MedicationListController.deactivate` also cancels this medication's
-    // pending reminders, which is why the call goes through the controller
-    // rather than straight to the repository.
     await ref
         .read(medicationListControllerProvider.notifier)
         .deactivate(clientRecordId);
@@ -595,26 +447,6 @@ class _FormBody extends ConsumerWidget {
   }
 }
 
-/// Quick-pick dose chips — the design shows a row of known doses (e.g. "50 mg",
-/// "25 mg", "100 mg") above the
-/// free-text dose field so a recognised drug can be filled in one tap
-/// instead of typed out.
-///
-/// Pure UI: it adds no field of its own and no new persisted data. Tapping a
-/// chip calls the exact same `controller.setDoseMg` the free-text field
-/// already uses, so the field itself visibly updates — there is only ever
-/// one source of truth for the dose value, this widget just offers a
-/// shortcut into it.
-///
-/// [medicationName] is read from `MedicationFormState.name` on every build,
-/// so this is reactive purely by virtue of `_FormBody` already watching that
-/// state (the Name field's `onChanged` runs `controller.setName`, which
-/// updates that state) — no separate listener of its own. Matching reuses
-/// `searchMedicationLibrary`'s own case-insensitive substring convention
-/// rather than inventing a stricter one, and — like that function — treats a
-/// blank name as "no matches" rather than special-casing it here, so the
-/// free-text field's standalone behaviour with nothing typed is genuinely
-/// unchanged, not just visually unchanged.
 class _DoseQuickPicks extends StatelessWidget {
   const _DoseQuickPicks({required this.medicationName, required this.onSelected});
 
@@ -656,12 +488,6 @@ class _DoseQuickPicks extends StatelessWidget {
   }
 }
 
-/// One row in the Name field's inline suggestion list — same information
-/// (name, dose, drug class) and card styling as `MedicationSearchScreen`'s
-/// own `_SuggestionCard`, kept as a separate, simpler copy rather than a
-/// shared widget: that one also renders the "most common" pale-blue tint and
-/// a trailing chevron for its own full-screen suggestions list, neither of
-/// which fits this compact, inline-under-a-text-field context.
 class _NameSuggestionTile extends StatelessWidget {
   const _NameSuggestionTile({required this.entry, required this.onTap});
 
@@ -703,19 +529,6 @@ class _NameSuggestionTile extends StatelessWidget {
   }
 }
 
-/// The form's bottom "Review & confirm" button. This button never saves —
-/// it only validates and pushes `ReviewMedicationScreen`, which owns the
-/// real "Save medication" action — so it is labelled and iconed to say
-/// that, rather than "Save".
-///
-/// Not built on `AppButton`: that widget only renders an icon *leading* the
-/// label (see its `_label` method), but the design's arrow here trails the
-/// label, and `AppButton` itself lives under `lib/core/**`, out of bounds
-/// for this feature. This mirrors `AppButton`'s `AppButtonVariant.primary` case exactly
-/// instead — a bare `FilledButton` (picking up the same app-wide
-/// `FilledButtonThemeData`, so the same 44dp+ tap target and shape) at full
-/// width, swapping in a fixed-size spinner while saving so the button never
-/// changes width — just with the icon placed after the text.
 class _ReviewButton extends StatelessWidget {
   const _ReviewButton({required this.isLoading, required this.onPressed});
 
@@ -749,16 +562,6 @@ class _ReviewButton extends StatelessWidget {
   }
 }
 
-/// One frequency `ChoiceChip`, styled to match design frame `368:2706` (see
-/// [TimeListField] for the matching time-chip styling).
-///
-/// Reuses the tab bar's colour-fill-plus-white-label structural pattern
-/// (`MedicationsScreen`'s `_MedicationsTabBar`: coloured background, white
-/// selected label, ink unselected label) but with `AppColors.ink` as the
-/// selected fill — per the design spec for this chip, not the tab bar's
-/// `AppColors.primary` fill — rather than inventing a new selected-state
-/// colour outright. Only colour/spacing/shape change here — the `Wrap`
-/// this is built inside (and so its overflow safety) is untouched.
 class _FrequencyChip extends StatelessWidget {
   const _FrequencyChip({
     required this.frequency,
@@ -790,14 +593,6 @@ class _FrequencyChip extends StatelessWidget {
   }
 }
 
-/// The "As needed" frequency chip. Not built on [_FrequencyChip] because it
-/// has no corresponding [MedicationFrequency] value to render a label for
-/// (see `MedicationFormController.validate()`'s doc comment for the binding
-/// design constraint behind this): "as needed" is
-/// `MedicationFrequency.custom` with an empty `scheduleTimes`, derived by the
-/// caller rather than stored here. Styled identically to [_FrequencyChip]
-/// regardless, so it reads as one more member of the same chip row rather
-/// than a visually distinct control.
 class _AsNeededChip extends StatelessWidget {
   const _AsNeededChip({required this.selected, required this.onSelected});
 
@@ -824,11 +619,6 @@ class _AsNeededChip extends StatelessWidget {
   }
 }
 
-/// One Instructions `ChoiceChip` (After meal / With food / Before meal).
-/// Same visual convention as [_FrequencyChip]/[_AsNeededChip] — reused
-/// deliberately rather than inventing a new chip style. Always interactive,
-/// in both add and edit mode — see `_persistInstructions`'s doc comment for
-/// why add mode doesn't disable this.
 class _InstructionsChip extends StatelessWidget {
   const _InstructionsChip({
     required this.option,

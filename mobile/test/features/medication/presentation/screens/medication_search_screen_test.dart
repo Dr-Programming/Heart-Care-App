@@ -5,17 +5,11 @@ import 'package:libu_care/features/medication/presentation/screens/medication_se
 
 import '../../../../helpers/pump_app.dart';
 
-/// Mutable holder for what a pushed [MedicationSearchScreen] popped with —
-/// simpler than reaching back into a `State` subclass from the tests below.
 class _PopResult {
   bool popped = false;
   MedicationSearchOutcome? value;
 }
 
-/// A single-button screen that pushes [MedicationSearchScreen] and records
-/// what it pops with into [box] — the same push a real caller
-/// (`MedicationsScreen`) performs, so these tests exercise the screen's
-/// actual self-popping contract rather than a stubbed callback.
 Widget _harness(_PopResult box) {
   return Builder(
     builder: (BuildContext context) => Scaffold(
@@ -52,10 +46,6 @@ void main() {
     expect(find.textContaining('Metoprolol'), findsWidgets);
   });
 
-  // The "can't find your
-  // medication?" guidance must show regardless of whether `_results` is
-  // empty — it was previously gated behind `if (_results.isNotEmpty)`,
-  // hiding it exactly when it is most needed.
   testWidgets(
     'shows the cantFind guidance on the initial empty-query state',
     (tester) async {
@@ -63,8 +53,7 @@ void main() {
 
       expect(find.text('meds.search.libraryHint'.tr()), findsOneWidget);
       expect(find.text('meds.search.cantFind'.tr()), findsOneWidget);
-      // The SUGGESTIONS label and suggestion cards stay conditional on
-      // having results.
+
       expect(find.text('meds.search.suggestions'.tr()), findsNothing);
     },
   );
@@ -95,18 +84,9 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      // searchMedicationLibrary matches on name only (a case-insensitive
-      // substring of MedicationLibraryEntry.name) — it has no dose-aware
-      // matching, so a query embedding a dose like 'Metoprolol 50' would
-      // never match any entry. 'Metoprolol' alone matches all three
-      // strengths, with the most-common (50mg) entry sorted first.
       await tester.enterText(find.byType(TextField).first, 'Metoprolol');
       await tester.pumpAndSettle();
-      // Tap the exact suggestion label rather than
-      // find.textContaining('Metoprolol').first: the search field's own
-      // EditableText also contains the typed text 'Metoprolol' and sits
-      // earlier in the tree than the suggestion list, so a substring match
-      // would hit the input field itself, not a suggestion card.
+
       await tester.tap(find.text('Metoprolol 50 mg'));
       await tester.pumpAndSettle();
 
@@ -131,10 +111,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(box.popped, isTrue);
-      // A non-null MedicationSearchOutcome whose entry happens to be null —
-      // "proceed, but with nothing picked" — is not the same value a system
-      // back press produces (see the next test), which is exactly the
-      // ambiguity MedicationSearchOutcome exists to remove.
+
       expect(box.value, isNotNull);
       expect(box.value!.entry, isNull);
     },
@@ -150,15 +127,6 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      // Not `tester.pageBack()`: that helper specifically looks for an
-      // AppBar's back-chevron widget, which this screen no longer has —
-      // its back arrow now lives inside the cream band (see the screen's
-      // own `AppScaffold.banded(showBack: false, ...)` and doc comment).
-      // Both that in-band icon and a genuine OS back gesture call the exact
-      // same `Navigator.of(context).pop()` with no argument in this app (no
-      // custom `PopScope`/`WillPopScope` intercepts either), so popping the
-      // Navigator directly is a faithful simulation of "system back" here,
-      // not a weaker substitute for it.
       Navigator.of(tester.element(find.byType(MedicationSearchScreen))).pop();
       await tester.pumpAndSettle();
 

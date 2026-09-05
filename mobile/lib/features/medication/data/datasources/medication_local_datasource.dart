@@ -62,15 +62,6 @@ class MedicationLocalDataSource {
         model.toCompanion(medicationClientRecordId: medicationClientRecordId),
       );
 
-  /// The log already recorded for one medication + date + time slot, if any.
-  ///
-  /// This is the lookup that makes `logDose` idempotent (I8): a dose slot is
-  /// identified by that triple, so a double-tap or a retry has to find and
-  /// reuse the existing row's `clientRecordId` rather than mint a new one.
-  ///
-  /// A null [scheduledTime] matches only rows whose `scheduledTime` is also
-  /// null — an as-needed dose logged without a slot is its own thing, not a
-  /// wildcard that would swallow every timed log for the day.
   Future<DoseLog?> findDoseLogForSlot({
     required String medicationClientRecordId,
     required String scheduledDate,
@@ -123,11 +114,7 @@ class MedicationLocalDataSource {
       }
       return predicate;
     });
-    // Newest day first, and within a day the latest slot first. Without the
-    // secondary key, same-day rows come back in whatever order SQLite
-    // happens to produce, so the history list reshuffles between visits
-    // (I5). `loggedAt` breaks the remaining tie for as-needed doses, which
-    // carry no `scheduledTime` at all.
+
     query.orderBy(<OrderingTerm Function(drift_db.$DoseLogsTable)>[
       (drift_db.$DoseLogsTable t) => OrderingTerm.desc(t.scheduledDate),
       (drift_db.$DoseLogsTable t) => OrderingTerm.desc(t.scheduledTime),

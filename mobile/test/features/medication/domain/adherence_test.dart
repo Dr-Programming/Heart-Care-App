@@ -41,7 +41,7 @@ void main() {
         _log('m1', '2026-08-19', DoseStatus.taken),
         _log('m1', '2026-08-20', DoseStatus.taken),
         _log('m1', '2026-08-21', DoseStatus.taken),
-        // 2026-08-22 due, never logged -> counts toward due, not taken
+
       ],
       windowStart: DateTime(2026, 8, 19),
       now: DateTime(2026, 8, 22, 12),
@@ -78,7 +78,7 @@ void main() {
       medications: <Medication>[med],
       allLogs: const <DoseLog>[],
       windowStart: DateTime(2026, 8, 25),
-      now: DateTime(2026, 8, 25, 6), // before today's 08:00 slot
+      now: DateTime(2026, 8, 25, 6),
       windowDays: 7,
     );
 
@@ -104,7 +104,7 @@ void main() {
     final Adherence a = computeAdherence(
       medications: <Medication>[med],
       allLogs: const <DoseLog>[],
-      windowStart: DateTime(2026, 8, 19), // 19,20,21,22,23,24,25 = 7 days
+      windowStart: DateTime(2026, 8, 19),
       now: DateTime(2026, 8, 25, 23),
       windowDays: 7,
     );

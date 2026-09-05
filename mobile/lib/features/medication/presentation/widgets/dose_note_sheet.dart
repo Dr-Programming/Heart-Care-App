@@ -5,18 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 
-/// Collects the free-text note that rides along with a dose log
-/// (FR-MED-008 — `DoseLogs.note`).
-///
-/// A bottom sheet, not a dialog, for the same reason `ConfirmSheet` is one:
-/// the action lands under the thumb on a large phone held one-handed. It is
-/// deliberately *not* part of the logging tap itself — Decision 6 says logging
-/// a dose is one tap, so the note is a second, optional step offered on the
-/// already-logged row rather than a prompt standing between the patient and
-/// recording the dose.
-///
-/// Returns the text the user saved (trimmed, and possibly empty — which means
-/// "clear the note"), or null when the sheet was dismissed without saving.
 abstract final class DoseNoteSheet {
   static Future<String?> show(BuildContext context, {String? initialNote}) {
     return showModalBottomSheet<String>(
@@ -32,15 +20,6 @@ abstract final class DoseNoteSheet {
   }
 }
 
-/// Owns the `TextEditingController` itself rather than letting
-/// [DoseNoteSheet.show] create and dispose one around the `await`.
-///
-/// That shape looked simpler but was wrong: `showModalBottomSheet`'s future
-/// completes when the route is popped, while the sheet keeps rebuilding — and
-/// so keeps reading the controller — throughout its exit animation. Disposing
-/// on the far side of the await therefore threw "A TextEditingController was
-/// used after being disposed" on the next frame. Tying the controller to this
-/// widget's own lifetime disposes it only once the sheet is really gone.
 class _NoteSheetBody extends StatefulWidget {
   const _NoteSheetBody({required this.initialNote});
 
@@ -66,8 +45,7 @@ class _NoteSheetBodyState extends State<_NoteSheetBody> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      // Lifts the sheet clear of the soft keyboard, which otherwise covers the
-      // very field this sheet exists to expose.
+
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SafeArea(
         minimum: const EdgeInsets.fromLTRB(

@@ -101,9 +101,6 @@ class _NoopScheduler implements NotificationScheduler {
   Future<void> cancel(int id) async {}
 }
 
-/// Simulates a missing `SCHEDULE_EXACT_ALARM` permission: the OS-level
-/// scheduling call throws, exactly as `flutter_local_notifications` does on
-/// a real device when the permission isn't granted.
 class _ThrowingScheduler implements NotificationScheduler {
   @override
   Future<void> init() async {}
@@ -203,8 +200,6 @@ void main() {
     final AppDatabase db = testDatabase();
     addTearDown(db.close);
 
-    // Every reachable transition, including from the untouched default empty
-    // state — which is what used to pad with '08:00' repeated.
     for (final List<String> start in <List<String>>[
       const <String>[],
       const <String>['08:00'],
@@ -267,13 +262,11 @@ void main() {
         medications: <Medication>[medication],
         allLogs: const <DoseLog>[],
         windowStart: created,
-        // End of the same day, so both slots have come due.
+
         now: DateTime(2026, 8, 25, 23, 59),
         windowDays: 1,
       );
 
-      // With the old duplicate-'08:00' padding both slots matched the same
-      // time, so a single day reported one due dose instead of two.
       expect(adherence.due, 2);
     },
   );
@@ -288,9 +281,6 @@ void main() {
       final ProviderContainer container = _container(repo, db);
       addTearDown(container.dispose);
 
-      // Visit 1 — open the form on an existing medication and save it.
-      // `container.listen` stands in for the screen being mounted: it is what
-      // keeps the auto-disposed controller alive for the duration of a visit.
       final ProviderSubscription<MedicationFormState> firstVisit = container
           .listen(
             medicationFormControllerProvider,
@@ -303,15 +293,10 @@ void main() {
       expect(await first.save(), isTrue);
       expect(repo.edited?.clientRecordId, 'm1');
 
-      // Navigating away pops the screen, which drops the last listener.
       firstVisit.close();
-      // Riverpod tears an auto-disposed provider down on the next turn of the
-      // event loop, not synchronously.
+
       await Future<void>.delayed(Duration.zero);
 
-      // Visit 2 — the "Add" route. Before this fix the controller was a plain
-      // (kept-alive) NotifierProvider, so this state was still medication A's
-      // and `_editingClientRecordId` still pointed at it.
       final ProviderSubscription<MedicationFormState> secondVisit = container
           .listen(
             medicationFormControllerProvider,
@@ -325,11 +310,9 @@ void main() {
       expect(fresh.name, isEmpty);
       expect(fresh.doseMg, isEmpty);
       expect(fresh.scheduleTimes, isEmpty);
-      // `saved` sticking at true is what silently broke the screen's
-      // close-on-save listener on every visit after the first.
+
       expect(fresh.saved, isFalse);
 
-      // ...and Save now adds rather than editing medication A again.
       repo.edited = null;
       final MedicationFormController second = container.read(
         medicationFormControllerProvider.notifier,
@@ -344,10 +327,6 @@ void main() {
     },
   );
 
-  // "As needed" is Custom frequency
-  // with an empty schedule, not a new persisted field — so `validate()` is
-  // where the exception lives, not `validateScheduleTimes` itself (still
-  // covered, unmodified, by validators_test.dart).
   group('validate() and the "As needed" (Custom + empty schedule) exception', () {
     test('Custom frequency with empty schedule times validates successfully', () {
       final _FakeRepository repo = _FakeRepository();
@@ -381,8 +360,7 @@ void main() {
 
         controller.setName('Atorvastatin');
         controller.setDoseMg('20');
-        // onceDaily is the controller's default frequency; explicitly clear
-        // the schedule anyway so this does not depend on that default.
+
         controller.setScheduleTimes(const <String>[]);
 
         final bool ok = controller.validate();
