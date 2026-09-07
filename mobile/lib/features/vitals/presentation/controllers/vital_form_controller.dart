@@ -23,6 +23,7 @@ class VitalFormState {
     this.status = VitalFormStatus.idle,
     this.resultSeverity,
     this.resultFlagged,
+    this.needsHeightPrompt = false,
     this.hints = const <String, String>{},
   });
 
@@ -41,6 +42,7 @@ class VitalFormState {
   final VitalFormStatus status;
   final Severity? resultSeverity;
   final bool? resultFlagged;
+  final bool needsHeightPrompt;
   final Map<String, String> hints;
 
   bool get isSaving => status == VitalFormStatus.saving;
@@ -56,6 +58,7 @@ class VitalFormState {
     VitalFormStatus? status,
     Severity? resultSeverity,
     bool? resultFlagged,
+    bool? needsHeightPrompt,
     Map<String, String>? hints,
   }) {
     return VitalFormState(
@@ -70,6 +73,7 @@ class VitalFormState {
       status: status ?? this.status,
       resultSeverity: resultSeverity ?? this.resultSeverity,
       resultFlagged: resultFlagged ?? this.resultFlagged,
+      needsHeightPrompt: needsHeightPrompt ?? this.needsHeightPrompt,
       hints: hints ?? this.hints,
     );
   }
@@ -191,6 +195,7 @@ class VitalFormController extends Notifier<VitalFormState> {
       status: VitalFormStatus.saved,
       resultSeverity: severity,
       resultFlagged: flagged,
+      needsHeightPrompt: state.type == VitalType.weight && bmi == null,
       fieldErrors: const <String, FieldError>{},
       clearCrossFieldError: true,
     );

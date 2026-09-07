@@ -151,6 +151,7 @@
     "logTitle": "Log a reading",
     "noteLabel": "Note (optional)",
     "logAnother": "Log another",
+    "needsHeightPrompt": "Add your height in your profile to see your BMI with future weight readings.",
     "tabTitle": "Vitals",
     "emptyTitle": "No readings yet",
     "emptyBody": "Log your first blood pressure, glucose, heart rate, weight or cholesterol reading.",

@@ -134,4 +134,37 @@ void main() {
     );
     expect(field.decoration?.hintText, '5.8');
   });
+
+  testWidgets(
+    'saving a weight with no stored height prompts the patient to add one',
+    (WidgetTester tester) async {
+      repo.heightCm = null;
+      await pumpApp(tester, const VitalFormScreen(), overrides: overrides);
+      await tester.tap(find.text('vitals.type.weight'.tr()));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), '70');
+      await tester.tap(find.text('common.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(repo.logged, isNotNull);
+      expect(repo.logged!.bmi, isNull);
+      expect(find.text('vitals.needsHeightPrompt'.tr()), findsOneWidget);
+    },
+  );
+
+  testWidgets('saving a weight with a stored height does not prompt', (
+    WidgetTester tester,
+  ) async {
+    repo.heightCm = 175;
+    await pumpApp(tester, const VitalFormScreen(), overrides: overrides);
+    await tester.tap(find.text('vitals.type.weight'.tr()));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '70');
+    await tester.tap(find.text('common.save'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(repo.logged, isNotNull);
+    expect(repo.logged!.bmi, isNotNull);
+    expect(find.text('vitals.needsHeightPrompt'.tr()), findsNothing);
+  });
 }

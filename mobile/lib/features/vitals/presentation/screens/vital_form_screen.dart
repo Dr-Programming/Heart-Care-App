@@ -24,6 +24,7 @@ class VitalFormScreen extends ConsumerWidget {
         title: 'vitals.logTitle'.tr(),
         body: _SavedResult(
           severity: state.resultSeverity!,
+          needsHeightPrompt: state.needsHeightPrompt,
           onDone: () => Navigator.of(context).pop(),
           onLogAnother: () => controller.selectType(state.type),
         ),
@@ -86,9 +87,11 @@ class _SavedResult extends StatelessWidget {
     required this.severity,
     required this.onDone,
     required this.onLogAnother,
+    this.needsHeightPrompt = false,
   });
 
   final Severity severity;
+  final bool needsHeightPrompt;
   final VoidCallback onDone;
   final VoidCallback onLogAnother;
 
@@ -103,6 +106,14 @@ class _SavedResult extends StatelessWidget {
             StatusChip(severity: severity),
             const SizedBox(height: 16),
             Text(actionKeyFor(severity).tr(), textAlign: TextAlign.center),
+            if (needsHeightPrompt) ...<Widget>[
+              const SizedBox(height: 12),
+              Text(
+                'vitals.needsHeightPrompt'.tr(),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 24),
             AppButton(
               label: 'vitals.logAnother'.tr(),
