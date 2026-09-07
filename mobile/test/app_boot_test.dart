@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
@@ -9,10 +10,13 @@ import 'package:libu_care/core/db/app_database.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
+import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/core/shell/app_shell.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
 
 import 'helpers/fake_dio.dart';
+import 'helpers/fake_jwt.dart';
+import 'helpers/fake_secure_storage.dart';
 import 'helpers/pump_app.dart';
 import 'helpers/test_database.dart';
 
@@ -35,9 +39,32 @@ void main() {
   setUp(() {
     db = testDatabase();
     http = FakeDio();
+    setUpFakeSecureStorage();
   });
 
   tearDown(() => db.close());
+
+  /// Seeds a resolved, signed-in session directly through the real
+  /// datasources — a chosen language, a cached user and a valid token — so a
+  /// boot test can reach the shell without mocking `AuthGate` itself. This
+  /// file deliberately exercises the real app, not a stub.
+  Future<void> seedSignedInSession() async {
+    await db.preferencesDao.set(PreferenceKeys.language, AppLanguage.en.code);
+    await db.preferencesDao.set(PreferenceKeys.languageChosen, 'true');
+    await db.cachedUserDao.save(
+      CachedUsersCompanion.insert(
+        id: 'u1',
+        name: 'Abebe Girma',
+        phone: '+251911234567',
+        preferredLanguage: 'en',
+        role: 'PATIENT',
+      ),
+    );
+    const TokenStore tokenStore = TokenStore(FlutterSecureStorage());
+    await tokenStore.write(
+      fakeJwt(expiresAt: DateTime.now().add(const Duration(days: 7))),
+    );
+  }
 
   List<Override> bootOverrides() => <Override>[
     ...featureOverrides(),
@@ -96,14 +123,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the default gate lands the user in the shell', (
+  testWidgets(
+    'a fresh install with no language chosen lands on the language picker',
+    (WidgetTester tester) async {
+      final GoRouter router = await bootApp(tester);
+
+      // M1's real AuthGate is wired in now, and a first-ever launch has
+      // neither a chosen language nor a session — FR-LOC-003 sends it to the
+      // picker before anything else, not Home.
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        AppRoutes.languagePath,
+      );
+    },
+  );
+
+  testWidgets('a signed-in session lands the user in the shell', (
     WidgetTester tester,
   ) async {
+    await seedSignedInSession();
     final GoRouter router = await bootApp(tester);
 
-    // OpenAuthGate reports a resolved, signed-in session, so the redirect
-    // sends `/` to Home. This is what lets the other four slices build
-    // against a running app before M1 lands.
     expect(
       router.routerDelegate.currentConfiguration.uri.path,
       AppRoutes.homePath,
@@ -114,6 +154,7 @@ void main() {
   testWidgets('every bottom-nav destination is reachable', (
     WidgetTester tester,
   ) async {
+    await seedSignedInSession();
     await bootApp(tester);
 
     final Finder navBar = find.byType(NavigationBar);
