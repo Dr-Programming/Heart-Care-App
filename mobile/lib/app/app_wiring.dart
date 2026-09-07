@@ -1,10 +1,18 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` lives in flutter_riverpod's `misc.dart`, not its main barrel.
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
 import '../core/router/app_router.dart';
+import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
+import '../features/vitals/domain/entities/vital_type.dart';
+import '../features/vitals/presentation/home/latest_vitals_card.dart';
+import '../features/vitals/presentation/screens/vital_form_screen.dart';
+import '../features/vitals/presentation/screens/vitals_history_screen.dart';
+import '../features/vitals/presentation/screens/vitals_screen.dart';
+import '../features/vitals/presentation/screens/vitals_trend_screen.dart';
 
 // ---------------------------------------------------------------------------
 // THE ONE FILE WHERE FEATURES MEET.
@@ -40,8 +48,8 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
 
 /// Everything the five slices plug into the router.
 FeatureRoutes buildFeatureRoutes() {
-  return const FeatureRoutes(
-    topLevel: <RouteBase>[
+  return FeatureRoutes(
+    topLevel: const <RouteBase>[
       // ── M1 auth ────────────────────────────────────────────────────────
       // splash, language picker, login, register, forgot-PIN
       //
@@ -50,16 +58,40 @@ FeatureRoutes buildFeatureRoutes() {
     ],
 
     // ── M3 medications ───────────────────────────────────────────────────
-    medications: TabRoutes(),
+    medications: const TabRoutes(),
 
     // ── M4 vitals ────────────────────────────────────────────────────────
-    vitals: TabRoutes(),
+    vitals: TabRoutes(
+      root: (BuildContext context) => const VitalsScreen(),
+      children: <RouteBase>[
+        GoRoute(
+          path: 'log',
+          name: AppRoutes.vitalsLog,
+          builder: (BuildContext context, GoRouterState state) =>
+              const VitalFormScreen(),
+        ),
+        GoRoute(
+          path: 'history',
+          name: AppRoutes.vitalsHistory,
+          builder: (BuildContext context, GoRouterState state) =>
+              const VitalsHistoryScreen(),
+        ),
+        GoRoute(
+          path: 'trend/:type',
+          name: AppRoutes.vitalsTrend,
+          builder: (BuildContext context, GoRouterState state) =>
+              VitalsTrendScreen(
+                type: VitalType.fromWire(state.pathParameters['type']!),
+              ),
+        ),
+      ],
+    ),
 
     // ── M5 symptoms & activity ───────────────────────────────────────────
-    checkIn: TabRoutes(),
+    checkIn: const TabRoutes(),
 
     // ── M5 education & diet ──────────────────────────────────────────────
-    learn: TabRoutes(),
+    learn: const TabRoutes(),
   );
 }
 
@@ -68,7 +100,7 @@ FeatureRoutes buildFeatureRoutes() {
 const List<HomeCard> _homeCards = <HomeCard>[
   // ── M3 medications ──── today's doses, order 100
   // ── M5 check-in ─────── today's check-in prompt, order 110
-  // ── M4 vitals ───────── latest readings, order 200
+  latestVitalsCard, // order 200
   // ── M5 activity ─────── today's activity, order 210
   // ── M2 profile ──────── goal progress, order 300
 ];
