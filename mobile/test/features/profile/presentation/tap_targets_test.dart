@@ -61,6 +61,18 @@ void main() {
     await pumpApp(tester, const SettingsScreen(), overrides: overrides);
 
     for (final label in ['Language', 'Pending sync', 'Sign out']) {
+      // Settings has grown taller since this test was written (M2 added
+      // notifications, symptom time, send-now and app version rows above
+      // Sign out), so a row further down the list may not be mounted yet
+      // inside the test's fixed viewport — scroll to it first. A no-op for
+      // rows already on screen.
+      await tester.scrollUntilVisible(
+        find.text(label),
+        500,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.pumpAndSettle();
+
       final size = tester.getSize(find.text(label));
       // The row itself, not just the label text, is what needs to be
       // 44dp — but a label taller than its row would be a bug too, and a
