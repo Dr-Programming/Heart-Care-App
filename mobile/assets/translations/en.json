@@ -129,9 +129,119 @@
 
   "vitals": {},
 
-  "symptoms": {},
+  "symptoms": {
+    "common": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "home": {
+      "title": "Today's check-in",
+      "status": "Status",
+      "notDoneYet": "Not done yet",
+      "done": "Done"
+    },
+    "hub": {
+      "title": "Check-in",
+      "promptTitle": "Today's check-in",
+      "promptBody": "Takes a few seconds. Tell us how you're feeling today.",
+      "startCheckIn": "Start check-in",
+      "doneTitle": "Today's check-in",
+      "more": "More",
+      "symptomHistory": "Symptom history"
+    },
+    "checkIn": {
+      "title": "Symptom check-in",
+      "chestPain": "Chest pain?",
+      "chestPainSeverity": "How severe?",
+      "worseThanYesterday": "Worse than yesterday?",
+      "breathlessness": "Shortness of breath",
+      "breathlessnessOption": {
+        "none": "None",
+        "mild": "Mild",
+        "severe": "Severe"
+      },
+      "heartRate": "Resting heart rate (bpm)",
+      "heartRateError": "Enter a heart rate between 20 and 300",
+      "systolic": "Systolic",
+      "diastolic": "Diastolic",
+      "bloodPressureError": "Check your blood pressure — systolic must be higher than diastolic, both between 40 and 300",
+      "swelling": "Swelling in your legs or feet?",
+      "energyLevel": "Energy level",
+      "note": "Note (optional)"
+    },
+    "history": {
+      "title": "Symptom history",
+      "emptyTitle": "No check-ins yet",
+      "emptyBody": "Complete your first daily check-in to see it here.",
+      "detailTitle": "Check-in detail",
+      "syncPending": "Waiting to send",
+      "syncSynced": "Sent",
+      "syncIssue": "Could not save"
+    }
+  },
 
-  "activity": {},
+  "activity": {
+    "type": {
+      "walking": "Walking",
+      "jogging": "Jogging",
+      "cycling": "Cycling",
+      "household": "Household work",
+      "farming": "Farming",
+      "stretching": "Stretching",
+      "other": "Other"
+    },
+    "intensity": {
+      "light": "Light",
+      "moderate": "Moderate",
+      "vigorous": "Vigorous"
+    },
+    "termination": {
+      "title": "Stop and rest if you notice:",
+      "chestPain": "Chest pain or pressure",
+      "dizziness": "Dizziness or feeling faint",
+      "bloodPressure": "Blood pressure outside your safe range",
+      "glucose": "Blood glucose below 6 or above 15 mmol/L"
+    },
+    "log": {
+      "title": "Log activity",
+      "type": "Type of activity",
+      "duration": "Duration (minutes)",
+      "durationError": "Enter a duration between 1 and 1440 minutes",
+      "intensity": "Intensity",
+      "steps": "Steps (optional)",
+      "distance": "Distance in metres (optional)",
+      "note": "Note (optional)"
+    },
+    "history": {
+      "title": "Activity history",
+      "thisWeek": "This week",
+      "weekSummary": "{sessions} sessions · {minutes} min",
+      "minutesUnit": "min",
+      "emptyTitle": "No activity logged yet",
+      "emptyBody": "Log a walk, a chore, or any movement to see it here."
+    },
+    "home": {
+      "title": "Today's activity",
+      "today": "Today",
+      "sessions": "{count} sessions"
+    }
+  },
 
-  "education": {}
+  "education": {
+    "learn": {
+      "title": "Learn"
+    },
+    "topic": {
+      "notFound": "Topic not found"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "cta": "Take the quiz",
+      "empty": "The quiz isn't available right now.",
+      "finish": "Finish",
+      "finishedTitle": "Nicely done!",
+      "retake": "Retake the quiz"
+    },
+    "linkCopied": "Link copied"
+  }
 }

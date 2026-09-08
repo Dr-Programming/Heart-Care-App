@@ -129,9 +129,119 @@
 
   "vitals": {},
 
-  "symptoms": {},
+  "symptoms": {
+    "common": {
+      "yes": "አዎ",
+      "no": "አይ"
+    },
+    "home": {
+      "title": "የዛሬ ምዝገባ",
+      "status": "ሁኔታ",
+      "notDoneYet": "እስካሁን አልተጠናቀቀም",
+      "done": "ተጠናቋል"
+    },
+    "hub": {
+      "title": "ዕለታዊ ምዝገባ",
+      "promptTitle": "የዛሬ ምዝገባ",
+      "promptBody": "ጥቂት ሰከንዶች ይወስዳል። ዛሬ እንዴት እንደተሰማዎት ይንገሩን።",
+      "startCheckIn": "ምዝገባ ጀምር",
+      "doneTitle": "የዛሬ ምዝገባ",
+      "more": "ተጨማሪ",
+      "symptomHistory": "የምልክቶች ታሪክ"
+    },
+    "checkIn": {
+      "title": "የምልክቶች ምዝገባ",
+      "chestPain": "የደረት ህመም?",
+      "chestPainSeverity": "ምን ያህል ከባድ ነው?",
+      "worseThanYesterday": "ከትናንት የከፋ ነው?",
+      "breathlessness": "የትንፋሽ ማጠር",
+      "breathlessnessOption": {
+        "none": "የለም",
+        "mild": "ቀላል",
+        "severe": "ከባድ"
+      },
+      "heartRate": "የማረፊያ የልብ ምት (bpm)",
+      "heartRateError": "ከ20 እስከ 300 ያለ የልብ ምት ያስገቡ",
+      "systolic": "ሲስቶሊክ",
+      "diastolic": "ዲያስቶሊክ",
+      "bloodPressureError": "የደም ግፊትዎን ያረጋግጡ — ሲስቶሊክ ከዲያስቶሊክ የበለጠ መሆን አለበት፣ ሁለቱም ከ40 እስከ 300 መካከል",
+      "swelling": "በእግርዎ ወይም በእግር ጣቶችዎ ላይ እብጠት?",
+      "energyLevel": "የጉልበት መጠን",
+      "note": "ማስታወሻ (አማራጭ)"
+    },
+    "history": {
+      "title": "የምልክቶች ታሪክ",
+      "emptyTitle": "እስካሁን ምዝገባ የለም",
+      "emptyBody": "የመጀመሪያ ዕለታዊ ምዝገባዎን ያጠናቅቁ እዚህ ለማየት።",
+      "detailTitle": "የምዝገባ ዝርዝር",
+      "syncPending": "ለመላክ በመጠባበቅ ላይ",
+      "syncSynced": "ተልኳል",
+      "syncIssue": "ማስቀመጥ አልተቻለም"
+    }
+  },
 
-  "activity": {},
+  "activity": {
+    "type": {
+      "walking": "መራመድ",
+      "jogging": "ቀስ ብሎ መሮጥ",
+      "cycling": "ብስክሌት መንዳት",
+      "household": "የቤት ስራ",
+      "farming": "እርሻ ስራ",
+      "stretching": "ተለጣጭ እንቅስቃሴ",
+      "other": "ሌላ"
+    },
+    "intensity": {
+      "light": "ቀላል",
+      "moderate": "መካከለኛ",
+      "vigorous": "ከባድ"
+    },
+    "termination": {
+      "title": "ካስተዋሉ ያቁሙና ያርፉ:",
+      "chestPain": "የደረት ህመም ወይም ጫና",
+      "dizziness": "ማዞር ወይም መዛል",
+      "bloodPressure": "የደም ግፊት ከደህንነት ወሰንዎ ውጭ",
+      "glucose": "የደም ስኳር ከ6 በታች ወይም ከ15 mmol/L በላይ"
+    },
+    "log": {
+      "title": "እንቅስቃሴ መዝግብ",
+      "type": "የእንቅስቃሴ አይነት",
+      "duration": "ቆይታ (በደቂቃ)",
+      "durationError": "ከ1 እስከ 1440 ደቂቃ ያለ ቆይታ ያስገቡ",
+      "intensity": "ጥንካሬ",
+      "steps": "እርምጃዎች (አማራጭ)",
+      "distance": "ርቀት በሜትር (አማራጭ)",
+      "note": "ማስታወሻ (አማራጭ)"
+    },
+    "history": {
+      "title": "የእንቅስቃሴ ታሪክ",
+      "thisWeek": "በዚህ ሳምንት",
+      "weekSummary": "{sessions} ክፍለ ጊዜዎች · {minutes} ደቂቃ",
+      "minutesUnit": "ደቂቃ",
+      "emptyTitle": "እስካሁን የተመዘገበ እንቅስቃሴ የለም",
+      "emptyBody": "የእግር ጉዞ፣ ስራ፣ ወይም ማንኛውንም እንቅስቃሴ ይመዝግቡ እዚህ ለማየት።"
+    },
+    "home": {
+      "title": "የዛሬ እንቅስቃሴ",
+      "today": "ዛሬ",
+      "sessions": "{count} ክፍለ ጊዜዎች"
+    }
+  },
 
-  "education": {}
+  "education": {
+    "learn": {
+      "title": "ትምህርት"
+    },
+    "topic": {
+      "notFound": "ርዕስ አልተገኘም"
+    },
+    "quiz": {
+      "title": "ጥያቄ",
+      "cta": "ጥያቄውን ይውሰዱ",
+      "empty": "ጥያቄው አሁን አይገኝም።",
+      "finish": "ጨርስ",
+      "finishedTitle": "በጣም ጥሩ!",
+      "retake": "ጥያቄውን እንደገና ውሰድ"
+    },
+    "linkCopied": "አገናኝ ተቀድቷል"
+  }
 }

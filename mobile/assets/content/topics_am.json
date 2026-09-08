@@ -1,0 +1,371 @@
+[
+  {
+    "id": "chd-basics",
+    "title": "የልብ ደም ቧንቧ በሽታን ማወቅ",
+    "summary": "የልብ ደም ቧንቧ በሽታ ምን እንደሆነ እና ምን ተጋላጭነትዎን እንደሚጨምር።",
+    "sections": [
+      {
+        "title": "የልብ ደም ቧንቧ በሽታ ምንድን ነው?",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የልብ ደም ቧንቧ በሽታ (CHD) ልብዎን ኦክስጅን የበዛበት ደም በሚያደርሱ ቧንቧዎች ውስጥ ንጣፍ (plaque) ሲከማች የሚከሰት በሽታ ነው። ይህ ቧንቧዎቹን ቀስ በቀስ ያጠባል ወይም ይዘጋል፣ በዚህም ልብዎ ለስራው የሚያስፈልገውን በቂ ደም እና ኦክስጅን አያገኝም።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Ethiopia National NCD Protocols (2021)",
+            "url": "https://resolvetosavelives.org/wp-content/uploads/2025/05/Ethiopia-National-NCD-Protocols_2021-.pdf"
+          }
+        ]
+      },
+      {
+        "title": "ምን ተጋላጭነትዎን ይጨምራል",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "ከፍተኛ የደም ግፊት",
+              "ከፍተኛ LDL (\"መጥፎ\") ኮሌስትሮል",
+              "የስኳር በሽታ",
+              "የአካል እንቅስቃሴ ማነስ እና ውፍረት",
+              "ማጨስ",
+              "ጤናማ ያልሆነ አመጋገብ",
+              "እድሜ መግፋት",
+              "የቤተሰብ የልብ በሽታ ታሪክ",
+              "ለረጅም ጊዜ የሚቆይ ጭንቀት"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Coronary Heart Disease",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "symptoms",
+    "title": "የልብ ደም ቧንቧ በሽታ ምልክቶችን ማወቅ",
+    "summary": "የልብ ደም ቧንቧ በሽታ ብዙ ጊዜ በአንጂና (angina) መልክ ይታያል — የራሱ ስርዓት ያለው የደረት ምቾት ማጣት።",
+    "sections": [
+      {
+        "title": "የልብ ደም ቧንቧ በሽታ በሁለት መንገዶች ይታያል",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የልብ ደም ቧንቧ በሽታ አብዛኛውን ጊዜ በሁለት መንገዶች ይታያል፦ በእንቅስቃሴ ምክንያት የሚከሰት እና ሊገመት የሚችል የደረት ምቾት ማጣት የሆነው ቋሚ አንጂና (stable angina)፣ ወይም ድንገተኛ እና አደገኛ ለውጥ የሆነው አጣዳፊ የልብ ደም ቧንቧ ችግር (ACS) ሲሆን ያልተረጋጋ አንጂና እና የልብ ድካምን ያካትታል። ACS የድንገተኛ ህክምና ጉዳይ ነው።"
+          }
+        ]
+      },
+      {
+        "title": "ዋነኛው ምልክት፦ አንጂና",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የልብ ደም ቧንቧ በሽታ በጣም የተለመደው ምልክት አንጂና ነው — የደረት ህመም ወይም ምቾት ማጣት። እምብዛም እንደ ስለት ወይም እንደ መወጋት ተደርጎ አይገለጽም። ብዙ ጊዜ ሰዎች እንዲህ ሲሉ ይገልጹታል፦"
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "ጫና፣ መጨመቅ ወይም መጠበብ",
+              "የመሙላት ወይም የክብደት ስሜት",
+              "የማቃጠል ስሜት"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": "አብዛኛውን ጊዜ ከደረት አጥንት ጀርባ ይሰማል፣ እንዲሁም ወደ ትከሻዎች፣ እጆች (ብዙ ጊዜ ግራ እጅ)፣ አንገት፣ መንጋጋ ወይም ጀርባ ሊዛመት ይችላል።"
+          }
+        ]
+      },
+      {
+        "title": "ቋሚ አንጂና መቼ እንደሚከሰት",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ቋሚ አንጂና የተወሰነ ስርዓት ይከተላል፦ እንደ መሰላል መውጣት ባሉ የአካል እንቅስቃሴዎች፣ በስሜታዊ ጭንቀት፣ ወይም ከባድ ምግብ ከበሉ በኋላ ይከሰታል። አብዛኛውን ጊዜ ከ5 ደቂቃ ያልበለጠ ይቆይና በእረፍት ወይም በናይትሮግሊሰሪን ይረግባል።"
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "የደረትዎ ምቾት ማጣት ይህን ስርዓት ካላደረገ፣ ወደ «የልብ ድካም ማስጠንቀቂያ ምልክቶች» ይመልከቱ — ከእንግዲህ ቋሚ አንጂና ላይሆን ይችላል።"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "heart-attack",
+    "title": "የልብ ድካም ማስጠንቀቂያ ምልክቶች",
+    "summary": "አንጂና ባህሪውን ሲቀይር የድንገተኛ ህክምና ጉዳይ ይሆናል — ምልክቶቹን ይወቁ።",
+    "sections": [
+      {
+        "title": "ያልተረጋጋ አንጂና የድንገተኛ ህክምና ጉዳይ ነው",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ያልተረጋጋ አንጂና አደገኛ ምልክት ነው። እረፍት ላይ ሳሉ ሊጀምር፣ ለመጀመሪያ ጊዜ ሊታይ፣ ወይም ከወትሮው አንጂናዎ የበለጠ ከባድ ወይም ረዘም ላለ ጊዜ ሊቆይ ይችላል። ከቋሚ አንጂና በተለየ በእረፍት ወይም በመድሃኒት አይረግብም።"
+          },
+          {
+            "type": "callout",
+            "tone": "warning",
+            "text": "የደረት ምቾት ማጣት አዲስ ከሆነ፣ በእረፍት ላይ ሳሉ ከተከሰተ፣ ወይም በእረፍት ወይም በተለመደው መድሃኒትዎ የማይረግብ ከሆነ፣ እንደ ድንገተኛ አደጋ ይቁጠሩትና ወዲያውኑ የህክምና እርዳታ ያግኙ።"
+          }
+        ]
+      },
+      {
+        "title": "ሌሎች የልብ ድካም ማስጠንቀቂያ ምልክቶች",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "በአንድ ወይም በሁለቱም እጆች፣ ጀርባ፣ አንገት፣ መንጋጋ ወይም ሆድ ውስጥ ህመም ወይም ምቾት ማጣት",
+              "የትንፋሽ ማጠር",
+              "ቀዝቃዛ ላብ",
+              "ማቅለሽለሽ ወይም ማስታወክ",
+              "ማዞር"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "diet",
+    "title": "ለልብ፣ ለደም ግፊት እና ለኮሌስትሮል የሚሆን አመጋገብ",
+    "summary": "በኢትዮጵያ ምግቦች ላይ የተመሰረተ ለልብ ጤናማ የአመጋገብ ስርዓት።",
+    "sections": [
+      {
+        "title": "ለልብ ጤናማ የአመጋገብ ስርዓት",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ለልብ ጤናማ የአመጋገብ ስርዓት ጥብቅ ወይም የተገደበ አመጋገብ አይደለም — በጊዜ ሂደት ደጋግመው የሚመርጧቸው ምግቦች ስብስብ ነው፦ አትክልቶች፣ ፍራፍሬዎች፣ ሙሉ እህሎች፣ ጤናማ ፕሮቲኖች እና ቅባቶች፣ እና በጨው ፋንታ ቅመማ ቅመም።"
+          }
+        ]
+      },
+      {
+        "title": "አትክልቶችን፣ ፍራፍሬዎችን እና ሙሉ እህሎችን በብዛት ይመገቡ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "እንደ ጎመን፣ ጥቅል ጎመን፣ ካሮት እና ቲማቲም ያሉ የተለያዩ አትክልቶችን፣ እንዲሁም እንደ ሙዝ፣ ማንጎ፣ ፓፓያ እና ብርቱካን ያሉ ፍራፍሬዎችን ይምረጡ። ሙሉ እህሎችም አስፈላጊ ናቸው፦ የጤፍ እንጀራ ከበቆሎ እንጀራ ወይም ከስንዴ ዳቦ ያነሰ ግላይሲሚክ ኢንዴክስ (glycemic index) አለው፣ ይህም ማለት የደም ስኳርዎን ቀስ ብሎ ከፍ ያደርገዋል ማለት ነው። ይህ በተለይ ከልብ በሽታ ጋር በተጨማሪ የስኳር በሽታ ላለባቸው እውነተኛ ጥቅም ነው። እንደ ገብስ እና ማሽላ ያሉ ሌሎች ሙሉ እህሎችም ጥሩ ምርጫዎች ናቸው።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Glycemic Index and Load of Selected Ethiopian Foods",
+            "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6948299/"
+          }
+        ]
+      },
+      {
+        "title": "የተለያዩ ጤናማ ፕሮቲን የበዙ ምግቦችን ያካትቱ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ጥራጥሬዎች ለልብ ጤናማ ለሆነ የኢትዮጵያ አመጋገብ ተስማሚ ናቸው። ሽሮ (ሽምብራ)፣ ምስር እና ክክ ሁሉም በእጽዋት ፕሮቲን እና ፋይበር የበለጸጉ ናቸው፣ እንዲሁም የኢትዮጵያ የራሷ የአመጋገብ መመሪያዎች ጥራጥሬዎችን እንደ ዋና ፕሮቲን ምንጭ ይመክራሉ። ዓሳ ባለበት ይጨምሩ፣ እንዲሁም ትንሽ መጠን ያለው ስስ ስጋ።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Ethiopia's Food-Based Dietary Guidelines",
+            "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9879874/"
+          }
+        ]
+      },
+      {
+        "title": "ወተት፣ እርጎ እና አይብ ይምረጡ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ወተት፣ እርጎ እና አይብ ጠቃሚ የካልሲየም እና ፕሮቲን ምንጮች ናቸው። ጣዕም ያልተጨመረባቸውን፣ ተጨማሪ ስኳር የሌላቸውን፣ እና የልብ በሽታ ወይም ከፍተኛ ኮሌስትሮል የሚያስተዳድሩ ከሆነ ቅባት የቀነሰ ዓይነቶችን ይምረጡ።"
+          }
+        ]
+      },
+      {
+        "title": "ጤናማ ቅባቶችን ያካትቱ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ባህላዊ የኢትዮጵያ ምግብ ማብሰያ ዘዴ አስቀድሞ አንዳንድ ለልብ ጤናማ የሆኑ ቅባቶችን እና ቅመማ ቅመሞችን ይጠቀማል። እንደሚችሉ፣ ለማብሰል ከቅቤ ይልቅ የአትክልት ዘይት ይምረጡ፣ እንዲሁም ዓሳ ባለበት ለኦሜጋ-3 ጥቅም ይጨምሩ።"
+          }
+        ]
+      },
+      {
+        "title": "በጨው ፋንታ በቅመማ ቅመም ጣዕም ይስጡ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ይህ የኢትዮጵያ ምግብ አስቀድሞ ጥንካሬ ያለው ነው፦ በርበሬ እና ሚጥሚጣ ያለ ጨው እውነተኛ ጣዕም ይሰጣሉ። በጠረጴዛ ላይ ተጨማሪ ጨው ከመጨመር ይልቅ በዚህ ላይ ይተማመኑ።"
+          }
+        ]
+      },
+      {
+        "title": "የደም ግፊት",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የደም ግፊት ልብዎ ደም ሲረጭ በደም ቧንቧዎችዎ ግድግዳ ላይ የሚያሳድረው ጫና ነው። ለረጅም ጊዜ ከፍተኛ የደም ግፊት ሊኖርዎት መቻል ለልብ በሽታ ከሚያጋልጡ ዋና ዋና ምክንያቶች አንዱ ነው።"
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "ንቁ ይሁኑ",
+              "የጨው መጠንዎን ዝቅ ያድርጉ — በቀን ከ5 ግራም በላይ ጨው መመገብ ተጋላጭነትዎን ይጨምራል",
+              "አትክልቶችን፣ ፍራፍሬዎችን፣ ሙሉ እህሎችን፣ ጥራጥሬዎችን እና ዓሳን ይመገቡ፣ ጣዕም ያልተጨመረበት ወተት ተዋጽኦ ይምረጡ"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Blood Pressure and Your Heart",
+            "url": "https://www.heartfoundation.org.au/your-heart/blood-pressure-and-your-heart"
+          }
+        ]
+      },
+      {
+        "title": "ኮሌስትሮል",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ለልብ ጤናማ የአመጋገብ ስርዓት ኮሌስትሮልዎን ለማመጣጠን ይረዳል። በፋይበር እና በእጽዋት ንጥረ ነገሮች የበለጸጉ ምግቦች፣ ያልረጋ ቅባቶች፣ እና (ከዓሳ የሚገኝ) ኦሜጋ-3 ኮሌስትሮልን ከሚጨምሩ እንደ የተጠበሰ ምግብ፣ ብስኩት፣ ፓስትሪ እና የተቀነባበሩ ስጋዎች ያሉ የረጋ እና ትራንስ-ፋት ምግቦችን ይተካሉ።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — High Blood Cholesterol",
+            "url": "https://www.heartfoundation.org.au/your-heart/high-blood-cholesterol"
+          }
+        ]
+      }
+    ],
+    "_todo": "Ethiopian-specific content for the food-pattern sections, translated from topics_en.json (added 2026-09-03). Blood Pressure and Cholesterol sections deliberately kept as general/universal guidance — the 5g/day salt figure is WHO's global recommendation, not Australia-specific, so no localization was needed there. Needs native-speaker review before release, same as the rest of this file."
+  },
+  {
+    "id": "exercise",
+    "title": "ለጤናማ ልብ የአካል እንቅስቃሴ",
+    "summary": "መደበኛ እንቅስቃሴ የልብ ድካም ተጋላጭነትን ይቀንሳል እንዲሁም የደም ግፊትን፣ ኮሌስትሮልን እና ክብደትን ለመቆጣጠር ይረዳል።",
+    "sections": [
+      {
+        "title": "ለምን የበለጠ መንቀሳቀስ ያስፈልጋል",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "መደበኛ የአካል እንቅስቃሴ የልብ ድካም እና የልብ በሽታ ተጋላጭነትን ይቀንሳል። የደም ግፊትን፣ ኮሌስትሮልን እና ክብደትን ለመቆጣጠር ይረዳል፣ አጥንቶችዎን እና ጡንቻዎችዎን ያጠናክራል፣ እንዲሁም የጉልበት መጠንዎን እና ስሜትዎን ያሻሽላል።"
+          }
+        ]
+      },
+      {
+        "title": "ንቁ ለመሆን ጠቃሚ ምክሮች",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "ማንኛውም እንቅስቃሴ ከምንም እንቅስቃሴ የተሻለ ነው — የበለጠ በመንቀሳቀስ ይጀምሩ",
+              "እውነተኛ ግቦችን ያውጡና በአብዛኛዎቹ ቀናት ወደ 30-60 ደቂቃ መካከለኛ እንቅስቃሴ ይድረሱ",
+              "የሚያስደስትዎትን እንቅስቃሴ ይምረጡ",
+              "ከሌሎች ጋር ይሁኑ — ከሌሎች ሰዎች ወይም የቤት እንስሳ ጋር ይንቀሳቀሱ",
+              "ያነሰ ይቀመጡ"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Physical Activity and Exercise",
+            "url": "https://www.heartfoundation.org.au/healthy-living/physical-activity/physical-activity-and-exercise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "medication-adherence",
+    "title": "መድሃኒትዎን እንደታዘዘው መውሰድ",
+    "summary": "እነዚህ መድሃኒቶች ለምን ጥቅም ላይ እንደሚውሉ እና መውሰዳቸው ለምን አስፈላጊ እንደሆነ።",
+    "sections": [
+      {
+        "title": "ለምን እነዚህን መድሃኒቶች ይወስዳሉ",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ህክምና በተለምዶ ሁለት አይነት መድሃኒቶችን ያጣምራል።"
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "ምልክቶችን የሚያቃልሉ እና የዕለት ተዕለት ኑሮን የሚያሻሽሉ መድሃኒቶች — ቤታ-ብሎከሮች፣ ካልሲየም ቻናል ብሎከሮች፣ ናይትሬቶች፣ ራኖላዚን እና ኢቫብራዲን ልብዎ የሚሰራውን ስራ ይቀንሳሉ ወይም የደም ፍሰትን ያሻሽላሉ፣ ይህም አንጂናን ስለሚያቃልል የበለጠ ንቁ እንዲሆኑ ያስችልዎታል።",
+              "ልብዎን በረጅም ጊዜ የሚከላከሉ መድሃኒቶች — አንቲፕሌትሌት መድሃኒቶች፣ ስታቲኖች፣ ኤሲኢ አጋቾች/ኤአርቢዎች፣ እና እንደ SGLT2 አጋቾች ወይም GLP-1 አጎኒስቶች ያሉ አዳዲስ መድሃኒቶች የልብ ድካምን፣ ስትሮክን እና ሞትን ለመከላከል በበሽታው መንስኤ ላይ ይሰራሉ።"
+            ]
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "የጤና ባለሙያዎችዎ በጤናዎ መሰረት የተለዩ መድሃኒቶችዎን ይመርጣሉ። ይህ ገጽ የእነዚህ የመድሃኒት አይነቶች ለምን ጥቅም ላይ እንደሚውሉ ያብራራል፣ የትኞቹ በግልዎ እንደሚያስፈልግዎት አይደለም።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Coronary Heart Disease",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease"
+          }
+        ]
+      }
+    ],
+    "_todo": "Slide 7 only covers why these drug classes are prescribed, not adherence behavior (reminders, missed doses, side effects, what to do if you forget a dose). Thin by design per source material — mirrors topics_en.json."
+  },
+  {
+    "id": "psychosocial",
+    "title": "ደህንነትዎን መንከባከብ",
+    "summary": "ከምርመራ በኋላ መጨነቅ ወይም ተስፋ መቁረጥ ስሜት የተለመደ ነው — ድጋፍ ከእንክብካቤዎ የተለየ ሳይሆን አካል ነው።",
+    "sections": [
+      {
+        "title": "ከልብ በሽታ ጋር መኖር ከሰውነትዎ በላይ ይነካል",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የልብ በሽታ እንዳለብዎት ከታወቀ በኋላ መጨነቅ፣ ተስፋ መቁረጥ ወይም ጭንቀት ስሜት መሰማት የተለመደ ነው። ይህ የመላመድ ሂደት አካል እንጂ የሆነ ስህተት እየሰሩ መሆኑን የሚያሳይ ምልክት አይደለም። በካርዲያክ ማገገሚያ (cardiac rehabilitation) ላይ የተደረገ ጥናት እንደሚያሳየው የስነ-ልቦና እና ማህበራዊ ድጋፍ — ትምህርት፣ ምክር እና ደጋፊ አካባቢ — ከመዳን ሂደት ተጨማሪ ሳይሆን ዋና እና የሚጠበቅ አካል ነው።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "AHA Scientific Statement — Therapeutic Patient Education for Cardiovascular Self-Management",
+            "url": "https://www.ahajournals.org/doi/10.1161/hcq.0000000000000025"
+          }
+        ]
+      },
+      {
+        "title": "ጭንቀት እና ልብዎ የተያያዙ ናቸው",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የቀጠለ ጭንቀት የልብ በሽታን በዕለት ተዕለት ህይወት ለመቆጣጠር አስቸጋሪ ሊያደርገው ይችላል። በካርዲያክ ማገገሚያ ፕሮግራሞች ውስጥ የሚያገለግል የተደራጀ የጭንቀት አያያዝ የኑሮ ጥራትን እንደሚያሻሽል እና በልብ ደም ቧንቧ በሽታ ላለባቸው ሰዎች የስነ-ልቦና ምልክቶችን እንደሚቀንስ ታይቷል።"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Psychosocial Management in Cardiac Rehabilitation",
+            "url": "https://www.sciencedirect.com/science/article/abs/pii/S0033062021001389"
+          }
+        ]
+      },
+      {
+        "title": "ይህን ብቻዎን መቋቋም አያስፈልግዎትም",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "የቤተሰብ እና የማህበረሰብ ድጋፍ በጥናቶች ውስጥ ደጋግሞ የልብ በሽታን በዕለት ተዕለት በጥሩ ሁኔታ ለመቆጣጠር ከሚያግዙ በጣም አስፈላጊ ነገሮች አንዱ ሆኖ ይታያል። ስሜትዎን ለቤተሰብዎ፣ ለጓደኞችዎ ወይም ለጤና ባለሙያዎችዎ ማካፈል ሁኔታዎን ከመቆጣጠር የተለየ ጉዳይ ሳይሆን ትክክለኛ አካሉ ነው።"
+          }
+        ]
+      },
+      {
+        "title": "መቼ ለሰው ማውራት እንዳለብዎት",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "ተስፋ መቁረጥ፣ መጨነቅ ወይም ጭንቀት የዕለት ተዕለት ኑሮዎን፣ እንቅልፍዎን ወይም የእንክብካቤ እቅድዎን የመከተል አቅምዎን የሚነካ ከሆነ ለጤና ባለሙያዎችዎ ማንሳት ተገቢ ነው።"
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "እርዳታ መጠየቅ የድካም ምልክት አይደለም — ከልብ በሽታ ጋር ከመኖር ጋር የተለመደ አካል ነው፣ እንዲሁም ድጋፍ ይገኛል።"
+          }
+        ]
+      }
+    ],
+    "_todo": "Translated from topics_en.json (added 2026-09-03), sourced from an AHA scientific statement and cardiac rehabilitation psychosocial-management literature. Needs native-speaker review before release, same as the rest of this file."
+  }
+]

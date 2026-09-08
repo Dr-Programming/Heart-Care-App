@@ -1,0 +1,371 @@
+[
+  {
+    "id": "chd-basics",
+    "title": "Understanding Coronary Heart Disease",
+    "summary": "What CHD is and what raises your risk.",
+    "sections": [
+      {
+        "title": "What Is Coronary Heart Disease?",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Coronary heart disease (CHD), also called coronary artery disease (CAD), happens when plaque builds up inside the arteries that carry oxygen-rich blood to your heart. Over time this narrows or blocks the arteries, so your heart doesn't get enough blood and oxygen for the work it's doing."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Ethiopia National NCD Protocols (2021)",
+            "url": "https://resolvetosavelives.org/wp-content/uploads/2025/05/Ethiopia-National-NCD-Protocols_2021-.pdf"
+          }
+        ]
+      },
+      {
+        "title": "What Raises Your Risk",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "High blood pressure",
+              "High LDL (\"bad\") cholesterol",
+              "Diabetes",
+              "Physical inactivity and obesity",
+              "Smoking",
+              "An unhealthy diet",
+              "Getting older",
+              "A family history of heart disease",
+              "Long-term stress"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Coronary Heart Disease",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "symptoms",
+    "title": "Recognizing the Symptoms of CHD",
+    "summary": "CHD most often shows up as angina — chest discomfort with its own pattern.",
+    "sections": [
+      {
+        "title": "Two Ways CHD Can Show Up",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "CHD usually shows itself in one of two ways: chronic stable angina, a predictable chest discomfort brought on by exertion, or acute coronary syndrome (ACS) — a sudden, dangerous change that includes unstable angina and heart attacks. ACS is a medical emergency."
+          }
+        ]
+      },
+      {
+        "title": "The Classic Symptom: Angina",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "The most common symptom of CHD is angina — chest pain or discomfort. It's rarely described as sharp or stabbing. People more often describe it as:"
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "Pressure, squeezing or tightness",
+              "A feeling of fullness or heaviness",
+              "A burning sensation"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "text": "It's usually felt behind the breastbone, and can spread to the shoulders, arms (often the left arm), neck, jaw or back."
+          }
+        ]
+      },
+      {
+        "title": "When Stable Angina Happens",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Stable angina follows a pattern: it comes on during physical exertion (like climbing stairs), emotional stress, or after a heavy meal. It usually lasts 5 minutes or less and eases with rest or nitroglycerin."
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "If your chest discomfort ever stops following this pattern, see \"Heart Attack Warning Signs\" — it may no longer be stable angina."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "heart-attack",
+    "title": "Heart Attack Warning Signs",
+    "summary": "When angina changes character, it's a medical emergency — know the signs.",
+    "sections": [
+      {
+        "title": "Unstable Angina Is a Medical Emergency",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Unstable angina is a dangerous sign. It can start at rest, appear for the first time, or feel more severe or last longer than your usual angina. Unlike stable angina, it does not go away with rest or medication."
+          },
+          {
+            "type": "callout",
+            "tone": "warning",
+            "text": "If chest discomfort is new, happens at rest, or doesn't ease with rest or your usual medication, treat it as an emergency and get medical help right away."
+          }
+        ]
+      },
+      {
+        "title": "Other Warning Signs of a Heart Attack",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Pain or discomfort in one or both arms, the back, neck, jaw or stomach",
+              "Shortness of breath",
+              "Cold sweat",
+              "Nausea or vomiting",
+              "Lightheadedness"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "diet",
+    "title": "Eating for Your Heart, Blood Pressure & Cholesterol",
+    "summary": "A heart-healthy eating pattern, built around Ethiopian foods.",
+    "sections": [
+      {
+        "title": "A Heart-Healthy Eating Pattern",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "A heart-healthy eating pattern isn't a strict or restrictive diet — it's the foods you choose regularly over time: vegetables, fruit, whole grains, healthy proteins and fats, and spices instead of salt."
+          }
+        ]
+      },
+      {
+        "title": "Eat Plenty of Vegetables, Fruit and Whole Grains",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Choose a variety of vegetables — like gomen (collard greens), cabbage, carrots and tomatoes — and fruit like banana, mango, papaya and orange. Whole grains matter too: teff injera has a notably lower glycemic index than corn injera or wheat bread, meaning it raises your blood sugar more slowly. That's a real advantage if you're living with heart disease, especially alongside diabetes. Other whole grains like barley and sorghum are good choices as well."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Glycemic Index and Load of Selected Ethiopian Foods",
+            "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6948299/"
+          }
+        ]
+      },
+      {
+        "title": "Include a Variety of Healthy Protein-Rich Foods",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Legumes are a natural fit for a heart-healthy Ethiopian diet. Shiro (chickpea), misir (lentils) and kik (split peas) are all rich in plant-based protein and fibre, and Ethiopia's own dietary guidelines recommend legumes as a core protein source. Include fish where it's available, and smaller amounts of lean meat."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Ethiopia's Food-Based Dietary Guidelines",
+            "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9879874/"
+          }
+        ]
+      },
+      {
+        "title": "Choose Milk, Yogurt and Cheese",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Milk, yogurt and cheese are an important source of calcium and protein. Choose unflavoured varieties with no added sugar, and reduced-fat options if you're managing heart disease or high cholesterol."
+          }
+        ]
+      },
+      {
+        "title": "Include Healthy Fats",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Traditional Ethiopian cooking already uses some heart-healthy fats and spices. Where you can, choose vegetable oils over butter for cooking, and include some fish for omega-3s when it's available."
+          }
+        ]
+      },
+      {
+        "title": "Flavor with Spices Instead of Salt",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "This is a strength of Ethiopian cuisine already: berbere and mitmita add real flavor without relying on salt. Lean into that, instead of adding extra salt at the table."
+          }
+        ]
+      },
+      {
+        "title": "Blood Pressure",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Blood pressure is the force of blood pushing against your artery walls as your heart pumps. Having high blood pressure over a long time is one of the main risk factors for heart disease."
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "Get active",
+              "Keep salt intake low — eating more than 5g of salt a day raises your risk",
+              "Eat vegetables, fruit, whole grains, legumes and fish, and choose unflavoured dairy"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Blood Pressure and Your Heart",
+            "url": "https://www.heartfoundation.org.au/your-heart/blood-pressure-and-your-heart"
+          }
+        ]
+      },
+      {
+        "title": "Cholesterol",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "A heart-healthy eating pattern helps balance your cholesterol. Foods rich in fibre and plant nutrients, unsaturated fats, and omega-3s (from fish) crowd out the saturated and trans-fat foods — fried food, biscuits, pastries and processed meats — that raise cholesterol."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — High Blood Cholesterol",
+            "url": "https://www.heartfoundation.org.au/your-heart/high-blood-cholesterol"
+          }
+        ]
+      }
+    ],
+    "_todo": "Ethiopian-specific content added 2026-09-03, sourced from Ethiopia's Food-Based Dietary Guidelines and a peer-reviewed glycemic-index study on Ethiopian foods (see reference links) — replaces the earlier Australian-pattern draft. Real content now, not a placeholder, but still needs a team/native-speaker sanity check before release, same as every other topic in this file. The Blood Pressure and Cholesterol sections below are unchanged from the original Heart Foundation Australia draft (the 5g/day salt stat is a general-population figure) — flag separately if those also need Ethiopian-specific revision."
+  },
+  {
+    "id": "exercise",
+    "title": "Physical Activity for a Healthy Heart",
+    "summary": "Regular activity lowers your risk of heart attack and helps manage blood pressure, cholesterol and weight.",
+    "sections": [
+      {
+        "title": "Why Move More",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Regular physical activity lowers your risk of a heart attack and heart disease. It helps control blood pressure, cholesterol and weight, strengthens your bones and muscles, and improves your energy and mood."
+          }
+        ]
+      },
+      {
+        "title": "Tips to Get Active",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Any activity is better than none — start by moving more",
+              "Set realistic goals and work up to 30-60 minutes of moderate activity most days",
+              "Choose activities you enjoy",
+              "Get social — exercise with others, or with a pet",
+              "Sit less"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Physical Activity and Exercise",
+            "url": "https://www.heartfoundation.org.au/healthy-living/physical-activity/physical-activity-and-exercise"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "medication-adherence",
+    "title": "Taking Your Medicines as Prescribed",
+    "summary": "Why these medicines are used, and why taking them matters.",
+    "sections": [
+      {
+        "title": "Why You Take These Medicines",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Treatment usually combines two kinds of medicines."
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "Medicines that ease symptoms and improve daily life — beta-blockers, calcium channel blockers, nitrates, ranolazine and ivabradine reduce how hard your heart has to work, or improve blood flow, which eases angina so you can be more active.",
+              "Medicines that protect your heart long-term — antiplatelet drugs, statins, ACE inhibitors/ARBs, and newer drugs like SGLT2 inhibitors or GLP-1 agonists work on the underlying disease to help prevent heart attacks, strokes and death."
+            ]
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "Your care team chooses your specific medicines based on your health. This page explains why these types of medicine are used, not which ones you personally need."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation Australia — Coronary Heart Disease",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease"
+          }
+        ]
+      }
+    ],
+    "_todo": "Slide 7 only covers why these drug classes are prescribed, not adherence behavior (reminders, missed doses, side effects, what to do if you forget a dose). Thin by design per source material — flagged, not a parsing gap."
+  },
+  {
+    "id": "psychosocial",
+    "title": "Looking After Your Wellbeing",
+    "summary": "Feeling worried or low after a diagnosis is normal — support is part of your care, not separate from it.",
+    "sections": [
+      {
+        "title": "Living With Heart Disease Affects More Than Your Body",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "It's common to feel worried, low, or stressed after being diagnosed with heart disease. This is a normal part of adjusting — not a sign that you're doing something wrong. Research on cardiac rehabilitation shows that psychosocial support — education, counselling and a supportive environment — is a core, expected part of recovery, not an extra."
+          },
+          {
+            "type": "referenceLink",
+            "label": "AHA Scientific Statement — Therapeutic Patient Education for Cardiovascular Self-Management",
+            "url": "https://www.ahajournals.org/doi/10.1161/hcq.0000000000000025"
+          }
+        ]
+      },
+      {
+        "title": "Stress and Your Heart Are Connected",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Ongoing stress can make heart disease harder to manage day to day. Structured stress management, like the kind used in cardiac rehabilitation programs, has been shown to improve quality of life and reduce psychological symptoms in people with coronary heart disease."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Psychosocial Management in Cardiac Rehabilitation",
+            "url": "https://www.sciencedirect.com/science/article/abs/pii/S0033062021001389"
+          }
+        ]
+      },
+      {
+        "title": "You Don't Have to Manage This Alone",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Family and community support consistently show up in research as one of the most important factors in managing heart disease well, day to day. Sharing how you're feeling with family, friends, or your care team is a legitimate part of managing your condition — not a separate issue from it."
+          }
+        ]
+      },
+      {
+        "title": "When to Talk to Someone",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "If low mood, worry, or stress are affecting your daily life, your sleep, or your ability to keep up with your care plan, it's worth raising with your care team."
+          },
+          {
+            "type": "callout",
+            "tone": "info",
+            "text": "Reaching out isn't a sign of weakness — it's a normal, common part of living with heart disease, and support is available."
+          }
+        ]
+      }
+    ],
+    "_todo": "Real content sourced 2026-09-03 from an AHA scientific statement and cardiac rehabilitation psychosocial-management literature (see reference links) — no longer a placeholder. Needs a team/native-speaker sanity check before release, same as every topic in this file."
+  }
+]

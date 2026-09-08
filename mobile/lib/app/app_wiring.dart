@@ -1,10 +1,22 @@
+import 'package:flutter/widgets.dart' show BuildContext, Widget;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // `Override` lives in flutter_riverpod's `misc.dart`, not its main barrel.
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
 import '../core/router/app_router.dart';
+import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
+import '../features/activity/presentation/home/activity_card.dart';
+import '../features/activity/presentation/screens/activity_history_screen.dart';
+import '../features/activity/presentation/screens/activity_log_screen.dart';
+import '../features/education/presentation/screens/learn_screen.dart';
+import '../features/education/presentation/screens/quiz_screen.dart';
+import '../features/education/presentation/screens/topic_screen.dart';
+import '../features/symptoms/presentation/home/check_in_card.dart';
+import '../features/symptoms/presentation/screens/check_in_hub_screen.dart';
+import '../features/symptoms/presentation/screens/symptom_check_in_screen.dart';
+import '../features/symptoms/presentation/screens/symptom_history_screen.dart';
 
 // ---------------------------------------------------------------------------
 // THE ONE FILE WHERE FEATURES MEET.
@@ -39,9 +51,13 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
 });
 
 /// Everything the five slices plug into the router.
+///
+/// Not `const`: a `GoRoute`'s `builder` closure and `GoRoute` itself are not
+/// const-constructible, so the first slice to add a real route drops the
+/// `const` here — expected, not a boundary violation.
 FeatureRoutes buildFeatureRoutes() {
-  return const FeatureRoutes(
-    topLevel: <RouteBase>[
+  return FeatureRoutes(
+    topLevel: const <RouteBase>[
       // ── M1 auth ────────────────────────────────────────────────────────
       // splash, language picker, login, register, forgot-PIN
       //
@@ -50,28 +66,84 @@ FeatureRoutes buildFeatureRoutes() {
     ],
 
     // ── M3 medications ───────────────────────────────────────────────────
-    medications: TabRoutes(),
+    medications: const TabRoutes(),
 
     // ── M4 vitals ────────────────────────────────────────────────────────
-    vitals: TabRoutes(),
+    vitals: const TabRoutes(),
 
     // ── M5 symptoms & activity ───────────────────────────────────────────
-    checkIn: TabRoutes(),
+    // Paths below are relative to `AppRoutes.checkInPath` and must stay in
+    // sync with the full paths declared in `AppRoutes`.
+    checkIn: TabRoutes(
+      root: (BuildContext context) => const CheckInHubScreen(),
+      children: <RouteBase>[
+        GoRoute(
+          path: 'symptoms',
+          name: AppRoutes.symptomCheckIn,
+          builder: (BuildContext context, GoRouterState state) =>
+              const SymptomCheckInScreen(),
+        ),
+        GoRoute(
+          path: 'symptoms/history',
+          name: AppRoutes.symptomHistory,
+          builder: (BuildContext context, GoRouterState state) =>
+              const SymptomHistoryScreen(),
+        ),
+        GoRoute(
+          path: 'activity',
+          name: AppRoutes.activityLog,
+          builder: (BuildContext context, GoRouterState state) =>
+              const ActivityLogScreen(),
+        ),
+        GoRoute(
+          path: 'activity/history',
+          name: AppRoutes.activityHistory,
+          builder: (BuildContext context, GoRouterState state) =>
+              const ActivityHistoryScreen(),
+        ),
+      ],
+    ),
 
     // ── M5 education & diet ──────────────────────────────────────────────
-    learn: TabRoutes(),
+    // 'quiz' must be declared before ':topic' — go_router matches in
+    // declaration order, and ':topic' would otherwise swallow /learn/quiz
+    // as a topic id of "quiz".
+    learn: TabRoutes(
+      root: (BuildContext context) => const LearnScreen(),
+      children: <RouteBase>[
+        GoRoute(
+          path: 'quiz',
+          name: AppRoutes.quiz,
+          builder: (BuildContext context, GoRouterState state) =>
+              const QuizScreen(),
+        ),
+        GoRoute(
+          path: ':topic',
+          name: AppRoutes.learnTopic,
+          builder: (BuildContext context, GoRouterState state) =>
+              TopicScreen(topicId: state.pathParameters['topic']!),
+        ),
+      ],
+    ),
   );
 }
 
 /// Cards on the Home dashboard, in whatever order; Home sorts them by
 /// [HomeCard.order].
+///
+/// `HomeCard.builder` needs a constant expression to keep this list `const`
+/// — a top-level function tear-off qualifies, a closure literal does not.
 const List<HomeCard> _homeCards = <HomeCard>[
   // ── M3 medications ──── today's doses, order 100
-  // ── M5 check-in ─────── today's check-in prompt, order 110
+  HomeCard(id: 'check-in-today', order: 110, builder: _buildCheckInHomeCard),
   // ── M4 vitals ───────── latest readings, order 200
-  // ── M5 activity ─────── today's activity, order 210
+  HomeCard(id: 'activity-today', order: 210, builder: _buildActivityHomeCard),
   // ── M2 profile ──────── goal progress, order 300
 ];
+
+Widget _buildCheckInHomeCard(BuildContext context) => const CheckInHomeCard();
+
+Widget _buildActivityHomeCard(BuildContext context) => const ActivityHomeCard();
 
 /// Provider overrides that bind a `core/` contract to a feature's
 /// implementation. Passed to `ProviderScope` in `main.dart`.
