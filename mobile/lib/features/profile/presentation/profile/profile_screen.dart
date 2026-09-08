@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../providers/profile_providers.dart';
+import '../sign_out_actions.dart';
 import '../widgets/comorbidity_options.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -142,6 +143,17 @@ class ProfileScreen extends ConsumerWidget {
                   OutlinedButton(
                     onPressed: () => context.pushNamed('settings'),
                     child: Text('profile.actions.settings'.tr()),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // M2 spec §3 lists sign out on both Profile and Settings —
+                  // shared with settings_screen.dart via sign_out_actions.dart
+                  // so the two entry points can never fall out of step.
+                  TextButton(
+                    onPressed: () => confirmSignOut(context, ref),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.critical,
+                    ),
+                    child: Text('home.signOut'.tr()),
                   ),
                 ],
               ),

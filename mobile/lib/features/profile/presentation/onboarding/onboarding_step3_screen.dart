@@ -29,6 +29,24 @@ class _OnboardingStep3ScreenState
   final _dietNoteController = TextEditingController();
   bool _saving = false;
 
+  // Reminders (Preferences, not part of the profile — see
+  // OnboardingState.notificationsEnabled doc comment). Defaults match the
+  // wizard's opt-out framing: notifications on, a 7:30 PM check-in prompt.
+  bool _notificationsEnabled = true;
+  TimeOfDay _symptomPromptTime = const TimeOfDay(hour: 19, minute: 30);
+
+  String get _symptomPromptTimeString =>
+      '${_symptomPromptTime.hour.toString().padLeft(2, '0')}:'
+      '${_symptomPromptTime.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickSymptomPromptTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _symptomPromptTime,
+    );
+    if (picked != null) setState(() => _symptomPromptTime = picked);
+  }
+
   @override
   void dispose() {
     _systolicController.dispose();
@@ -57,6 +75,10 @@ class _OnboardingStep3ScreenState
     );
 
     ref.read(onboardingControllerProvider.notifier).updateGoals(goals);
+    ref.read(onboardingControllerProvider.notifier).updateReminders(
+          notificationsEnabled: _notificationsEnabled,
+          symptomPromptTime: _symptomPromptTimeString,
+        );
 
     // TODO(M2/M1): once the real AuthGate lands (see AuthGate.needsOnboarding
     // in core/router/auth_gate.dart), clear the onboarding flag here on both
@@ -64,6 +86,10 @@ class _OnboardingStep3ScreenState
     // through to Home instead of bouncing them back to /onboarding.
     final state = ref.read(onboardingControllerProvider);
     await ref.read(saveProfileProvider)(state.toPatientProfile());
+    await ref.read(reminderPrefsProvider).write(
+          notificationsEnabled: state.notificationsEnabled,
+          symptomPromptTime: state.symptomPromptTime,
+        );
 
     if (mounted) context.go('/home');
   }
@@ -72,8 +98,18 @@ class _OnboardingStep3ScreenState
     // Per the M2 spec: skipping still writes whatever was captured across
     // steps 1-2, it just never collects goals. Nothing here is optional to
     // skip past — the wizard is skippable, but a skip is not a discard.
+    // Reminders keep whatever the toggle/time were left at, defaults included.
+    ref.read(onboardingControllerProvider.notifier).updateReminders(
+          notificationsEnabled: _notificationsEnabled,
+          symptomPromptTime: _symptomPromptTimeString,
+        );
+
     final state = ref.read(onboardingControllerProvider);
     await ref.read(saveProfileProvider)(state.toPatientProfile());
+    await ref.read(reminderPrefsProvider).write(
+          notificationsEnabled: state.notificationsEnabled,
+          symptomPromptTime: state.symptomPromptTime,
+        );
 
     if (mounted) context.go('/home');
   }
@@ -240,6 +276,33 @@ class _OnboardingStep3ScreenState
                           hintText: 'profile.fields.dietNoteHint'.tr(),
                         ),
                       ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        'profile.onboarding.step3.remindersTitle'.tr(),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'profile.fields.notificationsEnabled'.tr(),
+                        ),
+                        value: _notificationsEnabled,
+                        onChanged: (value) =>
+                            setState(() => _notificationsEnabled = value),
+                      ),
+                      if (_notificationsEnabled)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            'profile.fields.symptomPromptTime'.tr(),
+                          ),
+                          trailing: Text(
+                            _symptomPromptTime.format(context),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          onTap: _pickSymptomPromptTime,
+                        ),
                     ],
                   ),
                 ),
