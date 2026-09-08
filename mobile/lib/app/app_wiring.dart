@@ -12,6 +12,7 @@ import '../features/auth/auth_providers.dart';
 import '../features/auth/presentation/screens/forgot_pin_screen.dart';
 import '../features/auth/presentation/screens/language_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/home/sign_out_card.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/vitals/domain/entities/vital_type.dart';
@@ -139,6 +140,9 @@ const List<HomeCard> _homeCards = <HomeCard>[
   latestVitalsCard, // order 200
   // ── M5 activity ─────── today's activity, order 210
   // ── M2 profile ──────── goal progress, order 300
+  // ── M1 auth ─────────── sign out, order 900. Temporary: the real button is
+  //                        on M2's settings screen. Revisit when M2 merges.
+  signOutCard,
 ];
 
 /// Provider overrides that bind a `core/` contract to a feature's

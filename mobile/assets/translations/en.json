@@ -107,6 +107,10 @@
       "body": "For your security, a PIN cannot be reset inside the app yet.\n\nPlease contact your clinic to have your account restored. They can verify your identity and help you get back in.\n\nIf you entered the wrong PIN five times, your account is locked for 15 minutes. Nothing is lost — just wait and try again.",
       "back": "Back to sign in"
     },
+    "signOut": {
+      "title": "Sign out?",
+      "body": "Your records stay on this phone. You will need your phone number and PIN to sign back in."
+    },
     "errors": {
       "phoneRequired": "Enter your phone number",
       "phoneFormat": "Enter a phone number as +251 followed by 9 digits",
