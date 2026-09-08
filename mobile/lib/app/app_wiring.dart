@@ -5,8 +5,15 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
 import '../core/router/app_router.dart';
+import '../core/router/auth_gate.dart';
 import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
+import '../features/auth/auth_providers.dart';
+import '../features/auth/presentation/screens/forgot_pin_screen.dart';
+import '../features/auth/presentation/screens/language_screen.dart';
+import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/register_screen.dart';
+import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/vitals/domain/entities/vital_type.dart';
 import '../features/vitals/presentation/home/latest_vitals_card.dart';
 import '../features/vitals/presentation/screens/vital_form_screen.dart';
@@ -49,9 +56,38 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
 /// Everything the five slices plug into the router.
 FeatureRoutes buildFeatureRoutes() {
   return FeatureRoutes(
-    topLevel: const <RouteBase>[
+    topLevel: <RouteBase>[
       // ── M1 auth ────────────────────────────────────────────────────────
-      // splash, language picker, login, register, forgot-PIN
+      GoRoute(
+        path: AppRoutes.splashPath,
+        name: AppRoutes.splash,
+        builder: (BuildContext context, GoRouterState state) =>
+            const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.languagePath,
+        name: AppRoutes.language,
+        builder: (BuildContext context, GoRouterState state) =>
+            const LanguageScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.loginPath,
+        name: AppRoutes.login,
+        builder: (BuildContext context, GoRouterState state) =>
+            const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.registerPath,
+        name: AppRoutes.register,
+        builder: (BuildContext context, GoRouterState state) =>
+            const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPinPath,
+        name: AppRoutes.forgotPin,
+        builder: (BuildContext context, GoRouterState state) =>
+            const ForgotPinScreen(),
+      ),
       //
       // ── M2 profile ─────────────────────────────────────────────────────
       // onboarding wizard, profile, profile edit, settings
@@ -110,10 +146,7 @@ const List<HomeCard> _homeCards = <HomeCard>[
 List<Override> featureOverrides() {
   return <Override>[
     // ── M1 auth ──────────────────────────────────────────────────────────
-    // authGateProvider.overrideWith((ref) => ref.watch(realAuthGateProvider)),
-    //
-    // Until this is filled in, `OpenAuthGate` lets every route through so the
-    // rest of the team can build and run against a working shell.
+    authGateProvider.overrideWith((Ref ref) => ref.watch(realAuthGateProvider)),
 
     homeCardsProvider.overrideWithValue(_homeCards),
   ];
