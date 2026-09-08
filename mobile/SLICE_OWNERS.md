@@ -11,14 +11,24 @@ assigns, and open a PR for the change like any other.
 
 ## Assignments
 
+*Last updated 2026-09-08, at the `mobile-v0.1.0` tag.*
+
 | Slice | Owner | Branch | Spec | Status |
 |---|---|---|---|---|
-| **M0** Foundation & app shell | *maintainer* | `mobile` | [programme](../docs/design/2026-08-22-mobile-frontend-program.md) | ✅ **Done** — 112 tests green |
-| **M1** Auth & session | | `feature/mobile/auth` | [spec](../docs/design/2026-08-22-mobile-m1-auth-design.md) | Not started |
-| **M2** Profile, onboarding & settings | | `feature/mobile/profile` | [spec](../docs/design/2026-08-22-mobile-m2-profile-onboarding-design.md) | Not started |
-| **M3** Medications, dose logs & reminders | | `feature/mobile/medications` | [spec](../docs/design/2026-08-22-mobile-m3-medications-reminders-design.md) | Not started |
-| **M4** Vitals & trend charts | | `feature/mobile/vitals` | [spec](../docs/design/2026-08-22-mobile-m4-vitals-trends-design.md) | Not started |
-| **M5** Symptoms, activity & guidance | | `feature/mobile/symptoms-activity` | [spec](../docs/design/2026-08-22-mobile-m5-symptoms-activity-guidance-design.md) | Not started |
+| **M0** Foundation & app shell | *maintainer* | `mobile` | [programme](../docs/design/2026-08-22-mobile-frontend-program.md) | ✅ **Merged** |
+| **M1** Auth & session | Lachlan Smith | `feature/mobile/auth` | [spec](../docs/design/2026-08-22-mobile-m1-auth-design.md) | ✅ **Merged** — PR #24 |
+| **M2** Profile, onboarding & settings | Tracy Nguyen | `feature/mobile/profile` | [spec](../docs/design/2026-08-22-mobile-m2-profile-onboarding-design.md) | ⚠️ **On `main`, not `mobile`** — see below |
+| **M3** Medications, dose logs & reminders | Ehab | `feature/mobile/medications` | [spec](../docs/design/2026-08-22-mobile-m3-medications-reminders-design.md) | In progress — 81 commits, no PR |
+| **M4** Vitals & trend charts | Jacqueline Tran | `feature/mobile/vitals` | [spec](../docs/design/2026-08-22-mobile-m4-vitals-trends-design.md) | ✅ **Merged** — PR #25 |
+| **M5** Symptoms, activity & guidance | Saif Abdulsattar | `feature/mobile/symptoms-activity` | [spec](../docs/design/2026-08-22-mobile-m5-symptoms-activity-guidance-design.md) | In progress — 97 files, no PR |
+
+**M2 went to the wrong base.** PRs #21, #22 and #23 targeted `main` instead of
+`mobile` and self-merged. The CI workflow only watches PRs into `mobile` and
+`dev`, so roughly 4,200 lines landed with no `flutter analyze`, no tests and no
+boundaries check. The work itself respects the file boundaries; it just has
+never been verified. It needs re-merging into `mobile` through a normal PR.
+
+**Branch from `mobile`, PR into `mobile`.** Never `main`, never `dev`.
 
 M0 is the maintainer's slice and is already built — the Drift schema for every
 feature, the sync engine, the offline clinical evaluator, the router, the
