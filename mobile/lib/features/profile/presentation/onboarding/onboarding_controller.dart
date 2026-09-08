@@ -16,6 +16,15 @@ class OnboardingState {
   final String? managementPlan;
   final HealthGoals? goals;
 
+  /// Reminder preferences captured in step 3. These are device-local
+  /// Preferences rows (`PreferenceKeys.notificationsEnabled` /
+  /// `.symptomPromptTime`), not part of `PatientProfile` — the backend has
+  /// no notification fields, so [toPatientProfile] intentionally does not
+  /// include them. They are written separately via `ReminderPrefs` at the
+  /// same finish/skip moment the profile is saved.
+  final bool notificationsEnabled;
+  final String symptomPromptTime;
+
   const OnboardingState({
     this.birthYear,
     this.heightCm,
@@ -25,6 +34,8 @@ class OnboardingState {
     this.diseaseHistory,
     this.managementPlan,
     this.goals,
+    this.notificationsEnabled = true,
+    this.symptomPromptTime = '19:30',
   });
 
   OnboardingState copyWith({
@@ -36,6 +47,8 @@ class OnboardingState {
     String? diseaseHistory,
     String? managementPlan,
     HealthGoals? goals,
+    bool? notificationsEnabled,
+    String? symptomPromptTime,
   }) {
     return OnboardingState(
       birthYear: birthYear ?? this.birthYear,
@@ -46,6 +59,8 @@ class OnboardingState {
       diseaseHistory: diseaseHistory ?? this.diseaseHistory,
       managementPlan: managementPlan ?? this.managementPlan,
       goals: goals ?? this.goals,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      symptomPromptTime: symptomPromptTime ?? this.symptomPromptTime,
     );
   }
 
@@ -95,6 +110,19 @@ class OnboardingController extends Notifier<OnboardingState> {
 
   void updateGoals(HealthGoals goals) {
     state = state.copyWith(goals: goals);
+  }
+
+  /// Captures the reminder toggle and symptom check-in time chosen in step
+  /// 3. Written to Preferences (not the profile) at finish/skip time — see
+  /// the doc comment on [OnboardingState.notificationsEnabled].
+  void updateReminders({
+    bool? notificationsEnabled,
+    String? symptomPromptTime,
+  }) {
+    state = state.copyWith(
+      notificationsEnabled: notificationsEnabled,
+      symptomPromptTime: symptomPromptTime,
+    );
   }
 }
 

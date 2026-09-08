@@ -161,7 +161,9 @@
       "targetCholesterol": "የኮሌስትሮል ግብ",
       "targetCholesterolHint": "ለምሳሌ 180",
       "dietNote": "የአመጋገብ ማስታወሻ",
-      "dietNoteHint": "ለምሳሌ ጨው የቀነሰ፣ ስኳር ያልታከለበት"
+      "dietNoteHint": "ለምሳሌ ጨው የቀነሰ፣ ስኳር ያልታከለበት",
+      "notificationsEnabled": "ማሳወቂያዎችን አንቃ",
+      "symptomPromptTime": "የዕለት ምልክት ማረጋገጫ ሰዓት"
     },
 
     "comorbidityOptions": {
@@ -206,7 +208,8 @@
         "title": "ግቦችዎ",
         "intro": "እነዚህ አማራጭ ናቸው — በማንኛውም ጊዜ ከመገለጫዎ ሊያዘጋጁ ወይም ሊቀይሩ ይችላሉ።",
         "finish": "ማዋቀርን ጨርስ",
-        "skip": "አሁን ዝለል"
+        "skip": "አሁን ዝለል",
+        "remindersTitle": "ማሳሰቢያዎች"
       }
     },
 
