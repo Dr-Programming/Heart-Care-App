@@ -6,10 +6,17 @@ plugins {
 
 android {
     namespace = "com.libucare.app"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned rather than `flutter.compileSdkVersion`: flutter_secure_storage
+    // ships AAR metadata demanding API 37, and the build fails outright below
+    // it. compileSdk only sets which APIs are available at compile time - it
+    // does not affect which devices can install the app (that is minSdk).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications uses java.time, which needs desugaring
+        // to run below API 26. Without this the build fails on AAR metadata.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -19,7 +26,11 @@ android {
         applicationId = "com.libucare.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
+        // Follows the Flutter toolchain rather than a pinned number. The old
+        // hardcoded 21 predates the plugin set: flutter_secure_storage and
+        // flutter_local_notifications both need a higher floor, and `flutter
+        // run` rewrites a pinned value to this anyway.
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -36,6 +47,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 kotlin {
