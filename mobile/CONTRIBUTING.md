@@ -378,6 +378,38 @@ what it is.
   `build/native_assets/windows/sqlite3.dll`. Every later run then fails with
   a file-permission error that points nowhere near the real cause. Fix:
   `Get-Process flutter_tester | Stop-Process -Force`.
+- **Kotlin incremental compilation is off** in `android/gradle.properties`. It
+  memory-maps its `.tab` caches and cannot reliably release the handles on
+  Windows, so the build dies in `IncrementalCachesManager.close` even on a
+  cold build that compiled non-incrementally anyway. Do not turn it back on.
+- **`compileSdk` is pinned to 37** rather than following
+  `flutter.compileSdkVersion`, because `flutter_secure_storage`'s AAR metadata
+  requires it, and **core library desugaring is enabled** because
+  `flutter_local_notifications` requires that. Both live in
+  `android/app/build.gradle.kts`. Removing either breaks the Android build for
+  everyone.
+- **`flutter run` edits `build.gradle.kts` behind your back**, silently
+  replacing a pinned `minSdk` with `flutter.minSdkVersion`. Check `git status`
+  after running the app so the tool's auto-migration is not committed by
+  accident.
+
+### A green suite does not mean the app builds
+
+`flutter test` runs on the Dart VM. It never touches Gradle, the Android
+manifest, or AAR metadata — so it cannot tell you whether an APK assembles.
+`mobile` sat at 266 tests green while being completely unable to build for
+Android.
+
+**Run your slice on a real device or emulator before you open the PR**, not
+just `flutter test`:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+```
+
+The same gap hides UI bugs. M1's sign-out was fully implemented and tested,
+and no screen called it — a user could not sign out at all. Tests were green
+throughout. Only running the app found it.
 
 ---
 
