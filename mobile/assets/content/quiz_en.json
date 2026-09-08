@@ -1,0 +1,218 @@
+[
+  {
+    "question": "What causes coronary heart disease (CHD)?",
+    "options": [
+      {
+        "text": "A viral infection of the heart muscle",
+        "explanation": "This describes myocarditis, not CHD. CHD comes from plaque building up in the arteries that supply the heart, not an infection."
+      },
+      {
+        "text": "Plaque building up in the arteries that supply the heart",
+        "explanation": "Correct — CHD happens when plaque narrows or blocks the arteries that carry blood to your heart."
+      },
+      {
+        "text": "An allergic reaction to certain foods",
+        "explanation": "Food allergies don't cause CHD. CHD comes from plaque narrowing your heart's arteries over time."
+      }
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Which of these raises your risk of coronary heart disease?",
+    "options": [
+      {
+        "text": "Regular walking",
+        "explanation": "Regular activity actually lowers your CHD risk — see the Physical Activity topic."
+      },
+      {
+        "text": "Drinking enough water",
+        "explanation": "Staying hydrated isn't a CHD risk factor. High blood pressure, high cholesterol, smoking and diabetes are."
+      },
+      {
+        "text": "High blood pressure",
+        "explanation": "Correct — high blood pressure is one of the main risk factors for CHD."
+      }
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "What is the most common symptom of CHD?",
+    "options": [
+      {
+        "text": "Angina — chest pain or discomfort",
+        "explanation": "Correct — angina, often felt as pressure or tightness in the chest, is the classic CHD symptom."
+      },
+      {
+        "text": "A skin rash",
+        "explanation": "CHD doesn't cause skin rashes. Its classic symptom is angina — chest discomfort."
+      },
+      {
+        "text": "Joint pain",
+        "explanation": "Joint pain isn't a typical CHD symptom. Watch for chest pressure, tightness or burning instead."
+      }
+    ],
+    "correctIndex": 0
+  },
+  {
+    "question": "How long does stable angina usually last?",
+    "options": [
+      {
+        "text": "Several hours, regardless of rest",
+        "explanation": "Discomfort that doesn't ease with rest is a warning sign of unstable angina, not stable angina — see Heart Attack Warning Signs."
+      },
+      {
+        "text": "5 minutes or less, easing with rest",
+        "explanation": "Correct — stable angina is predictable and usually eases within 5 minutes of resting."
+      },
+      {
+        "text": "Only while you sleep",
+        "explanation": "Stable angina is linked to exertion, stress or heavy meals — not specifically sleep."
+      }
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Which of these is a sign that angina may be unstable and a medical emergency?",
+    "options": [
+      {
+        "text": "It happens during exercise, as usual",
+        "explanation": "That pattern describes stable angina, not an emergency sign."
+      },
+      {
+        "text": "It only lasts a few seconds",
+        "explanation": "Very brief discomfort isn't the warning sign described here — new, at-rest, or prolonged discomfort is."
+      },
+      {
+        "text": "It starts at rest, or doesn't ease with rest or your usual medication",
+        "explanation": "Correct — unstable angina can start at rest and won't go away with rest or medication. Treat it as an emergency."
+      }
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "Besides chest discomfort, which of these can be a heart attack warning sign?",
+    "options": [
+      {
+        "text": "Shortness of breath, cold sweat, or nausea",
+        "explanation": "Correct — these, along with pain spreading to the arms, back, neck, jaw or stomach, are also heart attack warning signs."
+      },
+      {
+        "text": "Improved appetite",
+        "explanation": "An improved appetite isn't a warning sign. Watch instead for shortness of breath, cold sweat, nausea or lightheadedness."
+      },
+      {
+        "text": "Better sleep",
+        "explanation": "Better sleep isn't a warning sign of a heart attack. The real signs include shortness of breath and cold sweat."
+      }
+    ],
+    "correctIndex": 0
+  },
+  {
+    "question": "Compared to corn injera or wheat bread, what's an advantage of teff injera if you're managing heart disease and diabetes?",
+    "options": [
+      {
+        "text": "It contains more salt, which helps flavor",
+        "explanation": "More salt isn't a heart-healthy advantage. The real benefit of teff injera is its lower glycemic index."
+      },
+      {
+        "text": "It has a lower glycemic index, so it raises blood sugar more slowly",
+        "explanation": "Correct — teff injera's lower glycemic index means a slower rise in blood sugar, which helps if you're also managing diabetes."
+      },
+      {
+        "text": "It has no nutritional difference from wheat bread",
+        "explanation": "There is a difference — teff injera has a notably lower glycemic index than wheat bread."
+      }
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Which foods does Ethiopia's own dietary guidance recommend as a core protein source?",
+    "options": [
+      {
+        "text": "Fried foods and pastries",
+        "explanation": "These are foods to limit, not a recommended protein source — they're linked to higher cholesterol."
+      },
+      {
+        "text": "Extra salt at every meal",
+        "explanation": "Salt isn't a protein source, and too much of it raises blood pressure. Berbere and mitmita are a better way to add flavor."
+      },
+      {
+        "text": "Legumes like shiro, misir and kik",
+        "explanation": "Correct — legumes are rich in plant-based protein and fibre, and are recommended as a core protein source."
+      }
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "How much moderate activity should you work up to on most days?",
+    "options": [
+      {
+        "text": "30-60 minutes",
+        "explanation": "Correct — working up to 30-60 minutes of moderate activity most days is a realistic, heart-healthy goal."
+      },
+      {
+        "text": "Only 2 minutes, once a week",
+        "explanation": "That's far less than recommended. Aim to build up to 30-60 minutes most days."
+      },
+      {
+        "text": "You must sit and rest as much as possible",
+        "explanation": "Sitting less, not more, is one of the tips — regular movement lowers your risk of heart attack and heart disease."
+      }
+    ],
+    "correctIndex": 0
+  },
+  {
+    "question": "What's one benefit of regular physical activity if you have CHD?",
+    "options": [
+      {
+        "text": "It has no effect on blood pressure or cholesterol",
+        "explanation": "Regular activity does help — it helps control blood pressure, cholesterol and weight."
+      },
+      {
+        "text": "It helps control blood pressure, cholesterol and weight",
+        "explanation": "Correct — regular activity helps manage these, along with strengthening your bones and muscles."
+      },
+      {
+        "text": "It increases your risk of heart attack",
+        "explanation": "The opposite is true — regular physical activity lowers your risk of heart attack and heart disease."
+      }
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "What do medicines like beta-blockers, nitrates and calcium channel blockers mainly do?",
+    "options": [
+      {
+        "text": "Cure CHD completely",
+        "explanation": "No CHD medicine is a cure — these particular medicines ease symptoms so you can be more active."
+      },
+      {
+        "text": "Replace the need for a heart-healthy diet",
+        "explanation": "Medicines work alongside — not instead of — a heart-healthy diet and lifestyle."
+      },
+      {
+        "text": "Ease symptoms like angina and improve daily life",
+        "explanation": "Correct — these medicines reduce how hard your heart works or improve blood flow, easing angina."
+      }
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "What's the purpose of medicines like statins, antiplatelet drugs and ACE inhibitors/ARBs?",
+    "options": [
+      {
+        "text": "They protect your heart long-term and help prevent heart attacks, strokes and death",
+        "explanation": "Correct — these medicines work on the underlying disease for long-term protection."
+      },
+      {
+        "text": "They only relieve chest pain during exercise",
+        "explanation": "That describes the symptom-relief medicines like nitrates — this group works on the disease itself, long-term."
+      },
+      {
+        "text": "They are only needed if you already had a heart attack",
+        "explanation": "These medicines are prescribed as part of ongoing prevention, based on your own health — not only after a heart attack."
+      }
+    ],
+    "correctIndex": 0
+  }
+]
