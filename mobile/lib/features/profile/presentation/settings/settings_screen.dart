@@ -9,6 +9,14 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../language_actions.dart';
 import '../providers/profile_providers.dart';
+import '../sign_out_actions.dart';
+
+/// Hardcoded to match `pubspec.yaml`'s `version:` line. There is no
+/// `package_info_plus` dependency yet to read this live, and `pubspec.yaml`
+/// is outside M2's editable region (see the M2 design spec §7) — so this
+/// constant has to be kept in sync by hand until someone adds that package
+/// to the shared pubspec. Flagged rather than silently guessed.
+const String _appVersion = 'v1.0.0';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -17,6 +25,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(patientProfileProvider);
     final pendingSync = ref.watch(pendingSyncCountProvider);
+    final notificationsEnabledAsync = ref.watch(notificationsEnabledProvider);
+    final symptomPromptTimeAsync = ref.watch(symptomPromptTimeProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -88,6 +98,40 @@ class SettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _SettingsCard(
+                    children: [
+                      SwitchListTile(
+                        secondary: const Icon(Icons.notifications_outlined),
+                        title: Text('profile.fields.notificationsEnabled'.tr()),
+                        value: notificationsEnabledAsync.value ?? true,
+                        onChanged: notificationsEnabledAsync.isLoading
+                            ? null
+                            : (value) => _setNotificationsEnabled(
+                                  ref,
+                                  value,
+                                  symptomPromptTimeAsync.value,
+                                ),
+                      ),
+                      if ((notificationsEnabledAsync.value ?? true))
+                        _SettingsRow(
+                          icon: Icons.access_time,
+                          label: 'profile.fields.symptomPromptTime'.tr(),
+                          trailing: Text(
+                            _formatTimeLabel(
+                              context,
+                              symptomPromptTimeAsync.value,
+                            ),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          onTap: () => _pickSymptomPromptTime(
+                            context,
+                            ref,
+                            symptomPromptTimeAsync.value,
+                          ),
+                        ),
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     'profile.settings.syncSection'.tr(),
@@ -116,6 +160,29 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      _SettingsRow(
+                        icon: Icons.cloud_upload_outlined,
+                        label: 'sync.syncNow'.tr(),
+                        onTap: () => _syncNow(context, ref),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'profile.settings.aboutSection'.tr(),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _SettingsCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.info_outline,
+                        label: 'profile.settings.appVersion'.tr(),
+                        trailing: Text(
+                          _appVersion,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.xxl),
@@ -125,7 +192,7 @@ class SettingsScreen extends ConsumerWidget {
                         icon: Icons.logout,
                         label: 'home.signOut'.tr(),
                         labelColor: AppColors.critical,
-                        onTap: () => _confirmSignOut(context, ref),
+                        onTap: () => confirmSignOut(context, ref),
                       ),
                     ],
                   ),
@@ -136,6 +203,83 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Formats the stored `HH:mm` string for display, falling back to the
+  /// wizard's default the first time this screen is opened with nothing
+  /// saved yet.
+  String _formatTimeLabel(BuildContext context, String? stored) {
+    final time = _parseTime(stored) ?? const TimeOfDay(hour: 19, minute: 30);
+    return time.format(context);
+  }
+
+  TimeOfDay? _parseTime(String? value) {
+    if (value == null) return null;
+    final parts = value.split(':');
+    if (parts.length != 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatTimeValue(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:'
+      '${time.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _setNotificationsEnabled(
+    WidgetRef ref,
+    bool value,
+    String? currentSymptomPromptTime,
+  ) async {
+    await ref.read(reminderPrefsProvider).write(
+          notificationsEnabled: value,
+          symptomPromptTime: currentSymptomPromptTime ?? '19:30',
+        );
+    ref.invalidate(notificationsEnabledProvider);
+  }
+
+  Future<void> _pickSymptomPromptTime(
+    BuildContext context,
+    WidgetRef ref,
+    String? currentValue,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime:
+          _parseTime(currentValue) ?? const TimeOfDay(hour: 19, minute: 30),
+    );
+    if (picked == null) return;
+
+    await ref.read(reminderPrefsProvider).write(
+          notificationsEnabled: true,
+          symptomPromptTime: _formatTimeValue(picked),
+        );
+    ref.invalidate(symptomPromptTimeProvider);
+  }
+
+  Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final report = await ref.read(syncServiceProvider).syncNow();
+
+    if (!context.mounted) return;
+
+    final String message;
+    if (report.skippedOffline) {
+      message = 'sync.offlineTitle'.tr();
+    } else if (report.failure != null) {
+      message = 'sync.failed'.tr();
+    } else if (report.rejected > 0) {
+      message = 'sync.rejected'.tr(
+        namedArgs: {'count': report.rejected.toString()},
+      );
+    } else if (!report.didWork) {
+      message = 'profile.settings.upToDate'.tr();
+    } else {
+      message = 'sync.syncNow'.tr();
+    }
+
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showLanguagePicker(
@@ -167,33 +311,6 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('profile.settings.signOutTitle'.tr()),
-        content: Text('profile.settings.signOutBody'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('common.cancel'.tr()),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('home.signOut'.tr()),
-          ),
-        ],
-      ),
-    );
-
-    // TODO(M2/M1): call the real sign-out once M1's AuthGate/session
-    // management lands — there is no session to clear yet.
-    if (confirmed == true) {
-      // ignore: use_build_context_synchronously
-      if (context.mounted) context.go('/');
-    }
   }
 }
 

@@ -9,6 +9,7 @@ import '../../domain/repositories/profile_repository.dart';
 import '../../domain/usecases/get_profile.dart';
 import '../../domain/usecases/save_profile.dart';
 import '../../domain/usecases/set_language.dart';
+import '../reminder_prefs.dart';
 
 final Provider<ProfileLocalDatasource> profileLocalDatasourceProvider =
     Provider<ProfileLocalDatasource>(
@@ -62,4 +63,27 @@ final Provider<SetLanguage> setLanguageProvider = Provider<SetLanguage>(
 final FutureProvider<PatientProfile> patientProfileProvider =
     FutureProvider<PatientProfile>(
   (Ref ref) => ref.watch(getProfileProvider)(),
+);
+
+/// Reminder preferences (notifications on/off, daily symptom check-in time).
+/// Written from onboarding step 3 and, later, Settings — see
+/// `reminder_prefs.dart` for why these are Preferences rows and not part of
+/// [PatientProfile].
+final Provider<ReminderPrefs> reminderPrefsProvider = Provider<ReminderPrefs>(
+  (Ref ref) => ReminderPrefs(ref.watch(appDatabaseProvider).preferencesDao),
+);
+
+/// Current value of the notifications toggle. Settings watches this to
+/// render the switch; write through [ReminderPrefs.write] then
+/// `ref.invalidate` this (and [symptomPromptTimeProvider]) to refresh.
+final FutureProvider<bool> notificationsEnabledProvider =
+    FutureProvider<bool>(
+  (Ref ref) => ref.watch(reminderPrefsProvider).readNotificationsEnabled(),
+);
+
+/// Current daily symptom check-in time, as `HH:mm`, or null if never set
+/// (falls back to the wizard's default the first time it is written).
+final FutureProvider<String?> symptomPromptTimeProvider =
+    FutureProvider<String?>(
+  (Ref ref) => ref.watch(reminderPrefsProvider).readSymptomPromptTime(),
 );

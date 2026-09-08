@@ -161,7 +161,9 @@
       "targetCholesterol": "Target cholesterol",
       "targetCholesterolHint": "e.g. 180",
       "dietNote": "Diet note",
-      "dietNoteHint": "e.g. Low salt, no added sugar"
+      "dietNoteHint": "e.g. Low salt, no added sugar",
+      "notificationsEnabled": "Enable notifications",
+      "symptomPromptTime": "Daily symptom check-in time"
     },
 
     "comorbidityOptions": {
@@ -206,7 +208,8 @@
         "title": "Your goals",
         "intro": "These are optional — you can set or change them anytime from your profile.",
         "finish": "Finish setup",
-        "skip": "Skip for now"
+        "skip": "Skip for now",
+        "remindersTitle": "Reminders"
       }
     },
 
