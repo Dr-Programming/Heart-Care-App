@@ -5,22 +5,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'app_button.dart';
 
-/// Asks the user to confirm something irreversible.
-///
-/// A bottom sheet rather than a dialog: the buttons land under the thumb, and
-/// the target users are more likely to be on a large low-end phone held
-/// one-handed. Returns true only on an explicit confirm — dismissing by tap or
-/// swipe is a no.
-///
-/// ```dart
-/// final ok = await ConfirmSheet.show(
-///   context,
-///   title: 'meds.deactivateTitle'.tr(),
-///   message: 'meds.deactivateBody'.tr(),
-///   confirmLabel: 'meds.deactivate'.tr(),
-///   isDestructive: true,
-/// );
-/// ```
 abstract final class ConfirmSheet {
   static Future<bool> show(
     BuildContext context, {

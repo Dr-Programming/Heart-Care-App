@@ -6,12 +6,20 @@ plugins {
 
 android {
     namespace = "com.libucare.app"
-    compileSdk = flutter.compileSdkVersion
+    // TEMPORARY, local-integration-test-branch-only: flutter_secure_storage
+    // now requires compileSdk 37, above flutter.compileSdkVersion's default.
+    // Pinned explicitly here to unblock a real device build; not something
+    // to carry back to any real feature branch without a maintainer call.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // TEMPORARY, local-integration-test-branch-only: flutter_local_notifications
+        // now requires core library desugaring. Not something to carry back to
+        // any real feature branch without a maintainer call.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -19,7 +27,7 @@ android {
         applicationId = "com.libucare.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -42,6 +50,10 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

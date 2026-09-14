@@ -1,0 +1,355 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:libu_care/core/error/failure.dart';
+import 'package:libu_care/core/localization/language.dart';
+import 'package:libu_care/features/medication/data/caregiver_notify_store.dart';
+import 'package:libu_care/features/medication/data/medication_instructions_store.dart';
+import 'package:libu_care/features/medication/domain/entities/medication.dart';
+import 'package:libu_care/features/medication/medication_providers.dart';
+import 'package:libu_care/features/medication/presentation/controllers/medication_form_controller.dart';
+import 'package:libu_care/features/medication/presentation/screens/review_medication_screen.dart';
+
+import '../../../../helpers/pump_app.dart';
+import '../../helpers/fake_medication_repository.dart';
+
+class _FakeSavingController extends MedicationFormController {
+  _FakeSavingController(this._state);
+  MedicationFormState _state;
+  bool saveCalled = false;
+  CaregiverNotifySettings? receivedCaregiverSettings;
+  MedicationInstructions? receivedInstructions;
+
+  @override
+  MedicationFormState build() => _state;
+
+  @override
+  Future<bool> save({
+    CaregiverNotifySettings? caregiverSettings,
+    MedicationInstructions? instructions,
+  }) async {
+    saveCalled = true;
+    receivedCaregiverSettings = caregiverSettings;
+    receivedInstructions = instructions;
+    _state = _state.copyWith(saved: true);
+    state = _state;
+    return true;
+  }
+}
+
+class _PrefilledFormController extends MedicationFormController {
+  _PrefilledFormController(this._initial);
+  final MedicationFormState _initial;
+
+  @override
+  MedicationFormState build() => _initial;
+}
+
+void main() {
+  setUpWidgetTests();
+
+  const state = MedicationFormState(
+    name: 'Metoprolol',
+    doseMg: '50',
+    frequency: MedicationFrequency.bid,
+    scheduleTimes: <String>['08:00', '20:00'],
+  );
+
+  testWidgets('shows the entered name, dose, frequency and times', (tester) async {
+    await pumpApp(
+      tester,
+      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+      overrides: <Override>[
+        medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+      ],
+    );
+
+    expect(find.textContaining('Metoprolol'), findsWidgets);
+    expect(find.textContaining('50'), findsWidgets);
+    expect(find.textContaining('08:00'), findsWidgets);
+  });
+
+  testWidgets('Save medication calls the controller\'s save()', (tester) async {
+    final fake = _FakeSavingController(state);
+    await pumpApp(
+      tester,
+      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+      overrides: <Override>[
+        medicationFormControllerProvider.overrideWith(() => fake),
+      ],
+    );
+
+    await tester.tap(find.text('meds.review.save'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(fake.saveCalled, isTrue);
+  });
+
+  testWidgets('a failed save shows the failure\'s own message in a SnackBar (I7)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+      overrides: <Override>[
+        medicationFormControllerProvider.overrideWith(() => _PrefilledFormController(state)),
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(
+            writeError: const NetworkFailure('No connection right now'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('meds.review.save'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('No connection right now'), findsOneWidget);
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'the save failure must be handled, not left unhandled',
+    );
+  });
+
+  testWidgets('a non-Failure save error falls back to the generic message (I7)', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+      overrides: <Override>[
+        medicationFormControllerProvider.overrideWith(() => _PrefilledFormController(state)),
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(
+            writeError: StateError('simulated local write failure'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('meds.review.save'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(find.text('errors.generic'.tr()), findsOneWidget);
+    expect(find.textContaining('simulated local write failure'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'shows the caregiver notify row as On when notifyCaregiverEnabled is true',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: true),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+        ],
+      );
+
+      expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
+
+      expect(find.text('meds.review.on'.tr()), findsNWidgets(2));
+      expect(find.text('meds.review.off'.tr()), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'shows the caregiver notify row as Off when notifyCaregiverEnabled is false',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+        ],
+      );
+
+      expect(find.text('meds.review.notifyCaregiver'.tr()), findsOneWidget);
+
+      expect(find.text('meds.review.on'.tr()), findsOneWidget);
+      expect(find.text('meds.review.off'.tr()), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the banner shows "reminders set" copy with the joined schedule times '
+    'alongside the offline note',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+        ],
+      );
+
+      final String expected = 'meds.review.remindersSet'.tr(
+        namedArgs: <String, String>{'times': state.scheduleTimes.join(', ')},
+      );
+      expect(find.text(expected), findsOneWidget);
+      expect(find.text('meds.review.offlineNote'.tr()), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'does not overflow with several Custom-frequency schedule times at a '
+    'narrow width',
+    (tester) async {
+
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const customState = MedicationFormState(
+        name: 'A medication with a fairly long name',
+        doseMg: '50',
+        frequency: MedicationFrequency.custom,
+        scheduleTimes: <String>['06:00', '10:00', '14:00', '18:00', '22:00'],
+      );
+
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: true),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(customState)),
+        ],
+      );
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  group('instructions row', () {
+    testWidgets(
+      'shows the selected instruction\'s label when one was passed in',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(
+            notifyCaregiverEnabled: false,
+            instructions: MedicationInstructions.withFood,
+          ),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          ],
+        );
+
+        expect(find.text('meds.form.instructions.title'.tr()), findsOneWidget);
+        expect(find.text('meds.form.instructions.withFood'.tr()), findsOneWidget);
+        expect(find.text('meds.review.instructionsNotSet'.tr()), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'shows "Not set" when no instruction was passed in (null, matching '
+      'existing call sites that predate this field)',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          ],
+        );
+
+        expect(find.text('meds.review.instructionsNotSet'.tr()), findsOneWidget);
+      },
+    );
+  });
+
+  group('"As needed" frequency display', () {
+    const asNeededState = MedicationFormState(
+      name: 'GTN spray',
+      doseMg: '0.4',
+      frequency: MedicationFrequency.custom,
+      scheduleTimes: <String>[],
+    );
+
+    testWidgets(
+      'shows "As needed", not "Custom", and "No fixed schedule" instead of '
+      'a blank times value',
+      (tester) async {
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(asNeededState),
+            ),
+          ],
+        );
+
+        expect(find.text('meds.frequency.asNeeded'.tr()), findsOneWidget);
+        expect(find.text('meds.frequency.custom'.tr()), findsNothing);
+        expect(find.text('meds.review.noFixedSchedule'.tr()), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'a real Custom frequency with times still reads "Custom" (regression: '
+      'the As-needed special-case does not leak into normal Custom)',
+      (tester) async {
+        const customState = MedicationFormState(
+          name: 'Metoprolol',
+          doseMg: '50',
+          frequency: MedicationFrequency.custom,
+          scheduleTimes: <String>['06:00', '18:00'],
+        );
+
+        await pumpApp(
+          tester,
+          const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+          overrides: <Override>[
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(customState),
+            ),
+          ],
+        );
+
+        expect(find.text('meds.frequency.custom'.tr()), findsOneWidget);
+        expect(find.text('meds.frequency.asNeeded'.tr()), findsNothing);
+        expect(find.text('meds.review.noFixedSchedule'.tr()), findsNothing);
+        expect(find.textContaining('06:00'), findsWidgets);
+      },
+    );
+  });
+
+  testWidgets(
+    'does not overflow with several Custom-frequency schedule times in '
+    'Amharic on a narrow width (I9)',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      const customState = MedicationFormState(
+        name: 'A medication with a fairly long name',
+        doseMg: '50',
+        frequency: MedicationFrequency.custom,
+        scheduleTimes: <String>['06:00', '10:00', '14:00', '18:00', '22:00'],
+      );
+
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: true),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(customState)),
+        ],
+        language: AppLanguage.am,
+      );
+
+      final String notifyOn = 'meds.review.on'.tr();
+      expect(notifyOn, isNot('On'));
+
+      expect(find.text(notifyOn), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+}

@@ -1,6 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// The bearer token at rest, in the platform keystore.
 class TokenStore {
   const TokenStore(this._storage);
 
