@@ -12,11 +12,6 @@ import '../theme/app_spacing.dart';
 import '../widgets/widgets.dart';
 import 'home_card.dart';
 
-/// The dashboard (FR-DASH).
-///
-/// Owns the greeting, the layout and pull-to-refresh; owns none of the
-/// content. Everything below the header is a [HomeCard] registered by a
-/// feature, sorted by [HomeCard.order].
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -25,12 +20,12 @@ class HomeScreen extends ConsumerWidget {
     final List<HomeCard> cards = <HomeCard>[...ref.watch(homeCardsProvider)]
       ..sort((HomeCard a, HomeCard b) => a.order.compareTo(b.order));
 
-    return AppScaffold(
+    return AppScaffold.banded(
       showBack: false,
+      scrollable: false,
       padded: false,
+      bandChild: const _Greeting(),
       body: RefreshIndicator(
-        // Pull-to-refresh means "push what I have", not "fetch". The device is
-        // the source of truth, so there is nothing to pull down.
         onRefresh: () => ref.read(syncServiceProvider).syncNow(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -40,8 +35,6 @@ class HomeScreen extends ConsumerWidget {
             AppSpacing.xxl,
           ),
           children: <Widget>[
-            const _Greeting(),
-            const SizedBox(height: AppSpacing.xl),
             if (cards.isEmpty)
               EmptyState(
                 icon: Iconsax.heart,

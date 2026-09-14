@@ -10,7 +10,6 @@ import '../network/api_response.dart';
 import '../network/dio_client.dart';
 import 'sync_queue_dao.dart';
 
-/// What one drain of the queue achieved.
 class SyncReport {
   const SyncReport({
     this.attempted = 0,
@@ -29,28 +28,17 @@ class SyncReport {
   final int conflicts;
   final int rejected;
 
-  /// Records that stayed in the queue and will be tried again.
   final int retryable;
 
-  /// Set when the batch failed as a whole rather than per record.
   final Failure? failure;
 
   final bool skippedOffline;
 
   bool get didWork => synced + conflicts + rejected > 0;
 
-  /// FR-OFF-008 — the user is told when a sync fails, and the records stay
-  /// queued for retry.
   bool get shouldNotifyUser => failure != null || rejected > 0;
 }
 
-/// Pushes everything this device owes the server (FR-OFF-003 … FR-OFF-008).
-///
-/// Push-only by design: `POST /api/v1/sync` has no pull half, so this never
-/// overwrites local data. It also never touches a feature table — the queue
-/// carries whole payloads, so the engine is ignorant of every feature's
-/// schema. That is what lets sync be owned by one person while five people own
-/// the features.
 class SyncService {
   SyncService({
     required this._dio,
@@ -64,17 +52,8 @@ class SyncService {
 
   StreamSubscription<bool>? _connectivity;
 
-  /// Guards against two drains overlapping — a reconnect event and a manual
-  /// pull-to-refresh landing together would otherwise push the same batch
-  /// twice. Harmless server-side thanks to `client_record_id`, but it wastes
-  /// the metered data FR-OFF-005 exists to conserve.
   bool _draining = false;
 
-  /// FR-OFF-004 — drain automatically whenever the device comes back online.
-  ///
-  /// Only the false-to-true edge triggers a sync; connectivity_plus emits on
-  /// every interface change, and syncing on "wifi to mobile" would spend the
-  /// user's data for nothing.
   void start(Stream<bool> onlineChanges) {
     _connectivity?.cancel();
     bool wasOnline = true;
@@ -90,8 +69,6 @@ class SyncService {
     _connectivity = null;
   }
 
-  /// Sends one batch. Call again while [SyncReport.didWork] is true to drain a
-  /// backlog larger than a single batch.
   Future<SyncReport> syncNow() async {
     if (_draining) return const SyncReport();
     _draining = true;
@@ -153,9 +130,6 @@ class SyncService {
               <dynamic>[],
         );
 
-    // One client record id can, in principle, sit in the queue under two
-    // entity types; the constraint is on the pair. Group so a result is
-    // applied to every entry it could refer to in this batch.
     final Map<String, List<SyncQueueEntry>> byClientId =
         <String, List<SyncQueueEntry>>{};
     for (final SyncQueueEntry entry in batch) {
@@ -199,8 +173,6 @@ class SyncService {
       }
     }
 
-    // Anything the server did not mention stays owed. Leaving it stuck in
-    // `syncing` would strand it forever.
     final List<int> unanswered = batch
         .map((SyncQueueEntry e) => e.id)
         .where((int id) => !answered.contains(id))
@@ -219,13 +191,6 @@ class SyncService {
     );
   }
 
-  /// Maps the server's four per-record outcomes onto the local lifecycle.
-  ///
-  /// `SAVED` and `DUPLICATE` are both success — a duplicate means an earlier
-  /// attempt already landed, which is exactly what `client_record_id` is for.
-  /// `CONFLICT` is terminal because the stored record always wins and the
-  /// incoming one is never written. `REJECTED` is permanent and must never be
-  /// retried.
   LocalSyncStatus _statusFromWire(String? status) => switch (status) {
     'SAVED' => LocalSyncStatus.synced,
     'DUPLICATE' => LocalSyncStatus.synced,

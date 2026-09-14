@@ -3,29 +3,17 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// Visual weight of a button, not its behaviour.
 enum AppButtonVariant {
-  /// Amber fill. One per screen — the thing the user came here to do.
+
   primary,
 
-  /// Outlined. Secondary actions that still deserve a button.
   secondary,
 
-  /// Text only, in the accent blue. Navigational, never destructive.
   text,
 
-  /// Text only, in the critical red. Deleting and deactivating.
   danger,
 }
 
-/// The app's only button.
-///
-/// Two things it guarantees that a bare `FilledButton` does not:
-///
-///  * a 44dp minimum tap target (FR-LOC-006), which matters for users who are
-///    unfamiliar with touchscreens;
-///  * a loading state that keeps the button's width, so a form does not jump
-///    when it is submitted.
 class AppButton extends StatelessWidget {
   const AppButton({
     required this.label,
@@ -39,8 +27,6 @@ class AppButton extends StatelessWidget {
 
   final String label;
 
-  /// Null disables the button. During [isLoading] the press is swallowed
-  /// regardless, so a double-tap cannot submit a form twice.
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final IconData? icon;

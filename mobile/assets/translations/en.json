@@ -18,7 +18,8 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "loading": "Loading",
-    "noValue": "—"
+    "noValue": "—",
+    "enterManually": "Enter manually"
   },
 
   "nav": {
@@ -123,115 +124,385 @@
 
   "profile": {
     "title": "Profile",
-
-    "screen": {
-      "headline": "My Profile",
-      "subtitle": "Your health information"
+    "empty": {
+      "title": "Your profile is empty",
+      "message": "Add your health details so your care can be personalized.",
+      "action": "Set up your profile"
     },
-
+    "actions": {
+      "settings": "Settings"
+    },
+    "home": {
+      "title": "Your profile",
+      "emptyMessage": "Complete your profile to see a summary here.",
+      "goalLabel": "Goal",
+      "goalSteps": "{value} steps/day",
+      "goalWeight": "{value} kg target weight"
+    },
     "sections": {
-      "medical": "Medical",
       "personal": "Personal",
+      "medical": "Medical",
       "goals": "Goals"
     },
-
     "fields": {
       "name": "Name",
       "birthYear": "Birth year",
-      "birthYearHint": "e.g. 1965",
-      "heightCm": "Height (cm)",
-      "heightCmHint": "e.g. 172",
-      "preferredLanguage": "Preferred language",
-      "diagnosis": "Diagnosis",
-      "diagnosisHint": "e.g. Coronary artery disease",
+      "height": "Height",
+      "heightValue": "{value} cm",
+      "chdStage": "CHD stage",
+      "comorbidities": "Other conditions",
       "diseaseHistory": "Disease history",
-      "diseaseHistoryHint": "e.g. Diagnosed 2019, one prior surgery",
-      "managementPlan": "Current management plan",
-      "managementPlanHint": "e.g. Aspirin, statin, cardiac rehab twice weekly",
-      "comorbidities": "Comorbidities",
-      "comorbiditiesOptional": "Comorbidities (optional)",
-      "comorbidityOther": "Other (optional)",
-      "targetBp": "Target blood pressure",
-      "systolicHint": "Systolic",
-      "diastolicHint": "Diastolic",
-      "targetWeight": "Target weight (kg)",
-      "targetWeightHint": "e.g. 70",
-      "stepsGoal": "Daily steps goal",
-      "stepsGoalHint": "e.g. 6000",
-      "targetCholesterol": "Target cholesterol",
-      "targetCholesterolHint": "e.g. 180",
+      "bpTarget": "Blood pressure target",
+      "bpTargetValue": "{systolic}/{diastolic} mmHg",
+      "cholesterolTarget": "Cholesterol target",
+      "stepsTarget": "Daily steps target",
+      "weightTarget": "Target weight (kg)",
       "dietNote": "Diet note",
-      "dietNoteHint": "e.g. Low salt, no added sugar",
-      "notificationsEnabled": "Enable notifications",
-      "symptomPromptTime": "Daily symptom check-in time"
+      "managementPlan": "Management plan",
+      "bpSystolicTarget": "Systolic BP target (mmHg)",
+      "bpDiastolicTarget": "Diastolic BP target (mmHg)"
     },
-
-    "comorbidityOptions": {
-      "diabetes": "Diabetes",
-      "hypertension": "Hypertension",
-      "kidneyDisease": "Kidney disease",
-      "highCholesterol": "High cholesterol",
-      "previousHeartAttack": "Previous heart attack",
-      "stroke": "Stroke"
+    "edit": {
+      "title": "Edit profile"
     },
-
-    "values": {
-      "notSet": "Not set",
-      "noneRecorded": "None recorded"
-    },
-
-    "actions": {
-      "editProfile": "Edit profile",
-      "settings": "Settings",
-      "saveChanges": "Save changes"
-    },
-
-    "errors": {
-      "loadFailed": "Could not load your profile.",
-      "birthYearRange": "Birth year must be between 1900 and 2100",
-      "heightRange": "Height must be between 50 and 250 cm",
-      "diagnosisLength": "Diagnosis must be 50 characters or fewer",
-      "negativeValue": "Enter a value of 0 or more"
-    },
-
-    "onboarding": {
-      "step1": {
-        "progress": "Step 1 of 3 — Personal details",
-        "title": "Tell us about yourself"
-      },
-      "step2": {
-        "progress": "Step 2 of 3 — Heart condition details",
-        "title": "Medical profile"
-      },
-      "step3": {
-        "progress": "Step 3 of 3 — Set your personal targets",
-        "title": "Your goals",
-        "intro": "These are optional — you can set or change them anytime from your profile.",
-        "finish": "Finish setup",
-        "skip": "Skip for now",
-        "remindersTitle": "Reminders"
-      }
-    },
-
     "settings": {
       "title": "Settings",
-      "preferencesSection": "PREFERENCES",
-      "syncSection": "SYNC",
-      "language": "Language",
-      "pendingSync": "Pending sync",
-      "upToDate": "Up to date",
-      "signOutTitle": "Sign out?",
-      "signOutBody": "You can sign back in anytime."
+      "language": {
+        "title": "Language",
+        "pickerTitle": "Choose language"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "subtitle": "Get reminders for medicines, vitals and check-ins"
+      },
+      "sync": {
+        "title": "Profile sync",
+        "pending": "Changes not yet sent to the server",
+        "synced": "Up to date",
+        "sendNow": "Send now"
+      },
+      "appVersion": {
+        "title": "App version"
+      },
+      "signOut": {
+        "title": "Sign out",
+        "confirmTitle": "Sign out?",
+        "confirmMessage": "You'll need to sign in again to use the app.",
+        "confirmLabel": "Sign out"
+      }
+    },
+    "onboarding": {
+      "step1Title": "Tell us about yourself",
+      "step1Subtitle": "This helps us personalize your care",
+      "step2Title": "Medical profile",
+      "step2Subtitle": "Tell us about your heart condition",
+      "step3Title": "Reminders",
+      "step3Subtitle": "Stay on track with gentle reminders",
+      "nameLabel": "Full name",
+      "nameHelper": "Set when you created your account",
+      "birthYearLabel": "Birth year",
+      "heightLabel": "Height (cm)",
+      "languageLabel": "Preferred language",
+      "languageEnglish": "English",
+      "languageAmharic": "Amharic",
+      "diagnosisLabel": "Diagnosis",
+      "comorbiditiesLabel": "Other conditions",
+      "medicationReminderTitle": "Medication reminders",
+      "medicationReminderSubtitle": "Morning dose 8:00 AM · Evening dose 8:00 PM",
+      "vitalsReminderTitle": "Vitals reminders",
+      "vitalsReminderSubtitle": "Daily BP check 9:00 AM",
+      "symptomReminderTitle": "Symptom check-in reminders",
+      "symptomReminderSubtitle": "Daily symptom check-in 7:30 PM",
+      "finish": "Finish setup"
+    },
+    "errors": {
+      "birthYearRange": "Enter a birth year between 1900 and 2100",
+      "heightRange": "Enter a height between 50 and 250 cm",
+      "goalNegative": "Enter a value of 0 or more"
     }
   },
 
-  "meds": {},
+  "meds": {
+    "title": "Medications",
+    "add": "Add medication",
+    "today": "Today",
+    "schedule": "Schedule",
+    "historyTab": "History",
+    "nextReminder": "Next reminder in {duration} — {name}",
+    "todayEmpty": "Nothing due right now",
+    "yourMedications": "Your medications",
+    "emptyTitle": "No medications yet",
+    "emptyBody": "Add your first medication to start tracking doses and reminders.",
+    "deactivate": "Stop taking this",
+    "deactivateTitle": "Stop taking this?",
+    "deactivateBody": "Reminders stop. Your dose history is kept.",
+    "deactivateConfirm": "Stop taking it",
+    "alert": {
+      "missedRunTitle": "Doses missed in a row",
+      "missedRunChip": "Check in",
+      "missedRunBody": "{name} was missed twice in a row. Tell your health worker if this keeps happening."
+    },
+    "status": {
+      "taken": "Taken",
+      "missed": "Missed",
+      "skipped": "Skipped"
+    },
+    "note": {
+      "add": "Add a note",
+      "edit": "Edit note",
+      "title": "Note",
+      "label": "Note (optional)",
+      "hint": "e.g. took it late, felt dizzy",
+      "save": "Save note"
+    },
+    "form": {
+      "title": "Medication",
+      "subtitle": "Set dosage and reminder schedule",
+      "name": "Name",
+      "nameHint": "e.g. Atorvastatin",
+      "doseMg": "Dose (mg)",
+      "scheduleTimes": "Times",
+      "notifyCaregiver": "Notify caregiver if missed",
+      "caregiverPhone": "Caregiver phone number",
+      "reviewButton": "Review & confirm",
+      "dosageLabel": "DOSAGE",
+      "frequencyLabel": "FREQUENCY",
+      "reminderTimesLabel": "REMINDER TIMES",
+      "instructions": {
+        "title": "Instructions",
+        "sectionLabel": "INSTRUCTIONS",
+        "afterMeal": "After meal",
+        "withFood": "With food",
+        "beforeMeal": "Before meal"
+      },
+      "asNeededCaption": "'As needed' disables reminders — used for GTN/nitro spray",
+      "pickTimeTitle": "Enter time",
+      "pickTimeHour": "Hour",
+      "pickTimeMinute": "Minute",
+      "am": "AM",
+      "pm": "PM"
+    },
+    "frequency": {
+      "onceDaily": "Once daily",
+      "bid": "Twice daily",
+      "tid": "Three times daily",
+      "custom": "Custom",
+      "asNeeded": "As needed"
+    },
+    "errors": {
+      "nameRequired": "Enter a medication name",
+      "nameTooLong": "Name is too long",
+      "doseRequired": "Enter a dose",
+      "doseInvalid": "Enter a number",
+      "dosePositive": "Dose must be greater than 0",
+      "scheduleRequired": "Add at least one time",
+      "scheduleFormat": "Enter a valid time"
+    },
+    "history": {
+      "title": "Dose history",
+      "emptyTitle": "No doses logged yet",
+      "emptyBody": "Logged doses will appear here.",
+      "filterAll": "All",
+      "syncPending": "Saved on this phone, waiting to send",
+      "syncRejected": "Could not be sent to the server"
+    },
+    "adherence": {
+      "title": "Adherence",
+      "overall7": "Last 7 days",
+      "overall30": "Last 30 days",
+      "count": "{taken} of {due} doses",
+      "countWithPercent": "{taken} of {due} doses ({percent}%)",
+      "perMedication": "By medication",
+      "noData": "Not enough data yet"
+    },
+    "reminders": {
+      "title": "Reminders",
+      "enabled": "Medication reminders",
+      "followUp": "1 hour follow-up if not logged"
+    },
+    "notifications": {
+      "doseTitle": "Time for your medication",
+      "doseBody": "It's time to take {name}. Tap to log it.",
+      "followUpTitle": "Still need to log a dose?",
+      "followUpBody": "You have not logged {name} yet — tap to record it."
+    },
+    "search": {
+      "title": "Add medication",
+      "subtitle": "Search or enter manually",
+      "hint": "Search medications",
+      "suggestions": "SUGGESTIONS",
+      "mostCommon": "most common",
+      "libraryHint": "Suggestions from offline medication library",
+      "cantFind": "Can't find your medication?"
+    },
+    "review": {
+      "title": "Review medication",
+      "subtitle": "Confirm before saving",
+      "frequency": "Frequency",
+      "reminder": "Reminder",
+      "on": "On",
+      "off": "Off",
+      "notifyCaregiver": "Notify caregiver",
+      "remindersSet": "Reminders set for {times} daily",
+      "offlineNote": "Notifications work offline",
+      "save": "Save medication",
+      "edit": "Edit details",
+      "instructionsNotSet": "Not set",
+      "noFixedSchedule": "No fixed schedule",
+      "reminderSchedulingFailed": "Saved. Reminders may not work until notification permission is granted."
+    }
+  },
 
-  "vitals": {},
+  "vitals": {
+    "tabTitle": "Vitals",
+    "tabSubtitle": "Track your readings over time",
+    "type": {
+      "bloodPressure": "Blood pressure",
+      "glucose": "Blood glucose",
+      "heartRate": "Heart rate",
+      "weight": "Weight",
+      "cholesterol": "Cholesterol"
+    },
+    "field": {
+      "systolic": "Systolic",
+      "diastolic": "Diastolic",
+      "glucose": "Glucose",
+      "heartRate": "Heart rate",
+      "weight": "Weight",
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "total": "Total"
+    },
+    "validation": {
+      "required": "Enter {field}",
+      "tooLow": "{field} looks too low — enter {min}–{max} {unit}",
+      "tooHigh": "{field} looks too high — enter {min}–{max} {unit}",
+      "systolicMustExceedDiastolic": "Systolic must be higher than diastolic",
+      "noteTooLong": "Note must be 500 characters or fewer"
+    },
+    "log": {
+      "title": "Log a reading",
+      "chooseType": "Fill in any readings you have — leave the rest blank.",
+      "nothingToSave": "Enter at least one reading before saving.",
+      "measuredAt": "When was this taken?",
+      "now": "Now",
+      "edit": "Change",
+      "note": "Note (optional)",
+      "next": "Next",
+      "back": "Back",
+      "confirmAndSave": "Confirm & save",
+      "editReading": "Edit reading",
+      "reviewTitle": "Review reading",
+      "saved": "Reading saved"
+    },
+    "history": {
+      "title": "History",
+      "emptyTitle": "No readings yet",
+      "emptyBody": "Log your first reading to start building your history.",
+      "filterAll": "All types"
+    },
+    "trend": {
+      "title": "Trend",
+      "range7": "7 days",
+      "range30": "30 days",
+      "insufficientTitle": "Not enough readings yet to show a trend",
+      "insufficientBody": "Log a few more readings to see how this is changing over time.",
+      "min": "Min",
+      "max": "Max",
+      "average": "Average"
+    },
+    "home": {
+      "title": "Vitals",
+      "seeAll": "See all",
+      "noReading": "No reading yet",
+      "addHeightPrompt": "Add your height in Profile to see your BMI"
+    }
+  },
 
-  "symptoms": {},
+  "symptoms": {
+    "tabTitle": "Check-in",
+    "tabSubtitle": "How are you feeling today?",
+    "hub": {
+      "notDoneTitle": "Today's check-in",
+      "notDoneBody": "Takes about a minute.",
+      "notDoneShort": "Not done yet — takes about a minute",
+      "startCta": "Start check-in",
+      "doneTitle": "Checked in today",
+      "historyCta": "View history"
+    },
+    "checkIn": {
+      "title": "Daily check-in",
+      "subtitle": "Takes about 1 minute",
+      "chestPain": "Chest pain today?",
+      "shortnessOfBreath": "Shortness of breath?",
+      "swelling": "Leg or ankle swelling?",
+      "vitalsTitle": "Resting vitals",
+      "vitalsHint": "Needed so your clinician sees the full picture",
+      "heartRate": "Heart rate (bpm)",
+      "bpSystolic": "BP systolic",
+      "bpDiastolic": "BP diastolic",
+      "missingVitals": "Enter your heart rate and blood pressure to continue.",
+      "systolicMustExceedDiastolic": "Systolic must be higher than diastolic.",
+      "err": {
+        "hrRequired": "Enter your heart rate",
+        "hrRange": "Heart rate must be between 20 and 250 bpm",
+        "sysRequired": "Enter systolic",
+        "sysRange": "Systolic must be between 40 and 300 mmHg",
+        "diaRequired": "Enter diastolic",
+        "diaRange": "Diastolic must be between 40 and 300 mmHg"
+      },
+      "energyLevel": "Energy level today",
+      "exhausted": "Exhausted",
+      "energetic": "Energetic",
+      "worseThanYesterday": "Worse than yesterday?",
+      "worseThanYesterdayHint": "Tap if symptoms feel worse — your clinician will see",
+      "note": "Note (optional)",
+      "none": "None",
+      "mild": "Mild",
+      "moderate": "Moderate",
+      "severe": "Severe",
+      "no": "No",
+      "yes": "Yes",
+      "next": "Next"
+    },
+    "summary": {
+      "title": "Check-in summary",
+      "subtitle": "Your symptoms today",
+      "overall": "Overall",
+      "done": "Done",
+      "field": {
+        "chestPain": "Chest pain",
+        "shortnessOfBreath": "Shortness of breath",
+        "bloodPressure": "Blood pressure",
+        "heartRate": "Heart rate",
+        "swelling": "Leg/ankle swelling",
+        "energyLevel": "Energy level"
+      }
+    },
+    "history": {
+      "title": "Check-in history",
+      "empty": "No check-ins yet"
+    }
+  },
 
   "activity": {},
 
-  "education": {}
+  "education": {
+    "tabTitle": "Learn",
+    "tabSubtitle": "Heart health education — fully offline",
+    "topicsEmpty": "No topics available",
+    "videoCaptionTip": "Tip: on YouTube, tap CC then Settings > Auto-translate > Amharic for captions in Amharic.",
+    "quiz": {
+      "notFound": "No quiz available for this topic",
+      "cta": "Take the quiz",
+      "questionOf": "Question {current} of {total}",
+      "checkAnswer": "Check answer",
+      "next": "Next",
+      "finish": "Finish",
+      "retake": "Retake quiz",
+      "done": "Nice work - you've finished this quiz.",
+      "correctLabel": "Correct",
+      "incorrectLabel": "Not quite"
+    }
+  }
 }

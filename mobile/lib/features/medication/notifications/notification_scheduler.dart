@@ -1,0 +1,120 @@
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
+
+class PendingScheduledNotification {
+  const PendingScheduledNotification({required this.id, required this.payload});
+  final int id;
+  final String? payload;
+}
+
+abstract interface class NotificationScheduler {
+  Future<void> init();
+
+  Future<void> zonedSchedule({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+    required String payload,
+  });
+
+  Future<List<PendingScheduledNotification>> pending();
+
+  Future<void> cancel(int id);
+}
+
+class FlutterLocalNotificationsScheduler implements NotificationScheduler {
+  FlutterLocalNotificationsScheduler(this._plugin);
+
+  final FlutterLocalNotificationsPlugin _plugin;
+
+  static const AndroidNotificationDetails _android = AndroidNotificationDetails(
+    'medication_reminders',
+    'Medication reminders',
+    importance: Importance.high,
+    priority: Priority.high,
+    icon: 'ic_stat_libucare',
+  );
+  static const NotificationDetails _details = NotificationDetails(
+    android: _android,
+    iOS: DarwinNotificationDetails(),
+  );
+
+  @override
+  Future<void> init() async {
+    tz_data.initializeTimeZones();
+
+    tz.setLocalLocation(tz.getLocation('Africa/Addis_Ababa'));
+
+    const AndroidInitializationSettings android = AndroidInitializationSettings(
+      'ic_stat_libucare',
+    );
+    const DarwinInitializationSettings ios = DarwinInitializationSettings();
+    await _plugin.initialize(
+      const InitializationSettings(android: android, iOS: ios),
+    );
+    final AndroidFlutterLocalNotificationsPlugin? androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    await androidPlugin?.requestNotificationsPermission();
+    if (androidPlugin != null) {
+      final bool canExact =
+          await androidPlugin.canScheduleExactNotifications() ?? true;
+      if (!canExact) {
+        await androidPlugin.requestExactAlarmsPermission();
+      }
+    }
+  }
+
+  @override
+  Future<void> zonedSchedule({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+    required String payload,
+  }) async {
+    final tz.TZDateTime at = tz.TZDateTime.from(when, tz.local);
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        at,
+        _details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: payload,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } on PlatformException {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        at,
+        _details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: payload,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    }
+  }
+
+  @override
+  Future<List<PendingScheduledNotification>> pending() async {
+    final List<PendingNotificationRequest> requests = await _plugin
+        .pendingNotificationRequests();
+    return requests
+        .map(
+          (PendingNotificationRequest r) =>
+              PendingScheduledNotification(id: r.id, payload: r.payload),
+        )
+        .toList();
+  }
+
+  @override
+  Future<void> cancel(int id) => _plugin.cancel(id);
+}

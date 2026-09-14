@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
@@ -9,8 +12,11 @@ import 'package:libu_care/core/db/app_database.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
+import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/core/shell/app_shell.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
+import 'package:libu_care/features/education/presentation/screens/quiz_screen.dart';
+import 'package:libu_care/features/education/presentation/screens/topic_screen.dart';
 
 import 'helpers/fake_dio.dart';
 import 'helpers/pump_app.dart';
@@ -24,17 +30,54 @@ import 'helpers/test_database.dart';
 /// landing at different times: it proves the shell still runs with some, or
 /// none, of them present.
 ///
-/// Only the three providers that would reach a platform channel are replaced
-/// (database file, HTTP client, connectivity). Everything else is the app.
+class _FakeTokenStore extends TokenStore {
+  _FakeTokenStore() : super(const FlutterSecureStorage());
+
+  String? _value;
+
+  @override
+  Future<void> clear() async => _value = null;
+
+  @override
+  Future<String?> read() async => _value;
+
+  @override
+  Future<void> write(String token) async => _value = token;
+}
+
+String _jwt({required DateTime exp}) {
+  String segment(Map<String, dynamic> json) =>
+      base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
+  final String header = segment(<String, dynamic>{'alg': 'none'});
+  final String payload = segment(<String, dynamic>{
+    'exp': exp.millisecondsSinceEpoch ~/ 1000,
+  });
+  return '$header.$payload.signature';
+}
+
 void main() {
   setUpWidgetTests();
 
   late AppDatabase db;
   late FakeDio http;
+  late _FakeTokenStore tokens;
 
-  setUp(() {
+  setUp(() async {
     db = testDatabase();
     http = FakeDio();
+    tokens = _FakeTokenStore();
+
+    await tokens.write(_jwt(exp: DateTime.now().add(const Duration(days: 7))));
+    await db.cachedUserDao.save(
+      CachedUsersCompanion.insert(
+        id: 'u1',
+        name: 'Abebe Girma',
+        phone: '+251911234567',
+        preferredLanguage: 'en',
+        role: 'PATIENT',
+      ),
+    );
+    await LanguageStore(db.preferencesDao).write(AppLanguage.en);
   });
 
   tearDown(() => db.close());
@@ -43,6 +86,7 @@ void main() {
     ...featureOverrides(),
     appDatabaseProvider.overrideWithValue(db),
     dioProvider.overrideWithValue(http.dio),
+    tokenStoreProvider.overrideWithValue(tokens),
     isOnlineProvider.overrideWithValue(() async => false),
     connectivityStreamProvider.overrideWithValue(const Stream<bool>.empty()),
     onlineStatusProvider.overrideWith((Ref ref) => Stream<bool>.value(true)),
@@ -101,9 +145,6 @@ void main() {
   ) async {
     final GoRouter router = await bootApp(tester);
 
-    // OpenAuthGate reports a resolved, signed-in session, so the redirect
-    // sends `/` to Home. This is what lets the other four slices build
-    // against a running app before M1 lands.
     expect(
       router.routerDelegate.currentConfiguration.uri.path,
       AppRoutes.homePath,
@@ -134,6 +175,65 @@ void main() {
       );
       expect(tester.takeException(), isNull, reason: tab.labelKey);
     }
+  });
+
+  testWidgets('named vitals sub-routes resolve to single-prefixed paths', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await bootApp(tester);
+
+    expect(router.namedLocation(AppRoutes.vitalsLog), AppRoutes.vitalsLogPath);
+    expect(
+      router.namedLocation(AppRoutes.vitalsHistory),
+      AppRoutes.vitalsHistoryPath,
+    );
+    expect(
+      router.namedLocation(
+        AppRoutes.vitalsTrend,
+        pathParameters: <String, String>{'type': 'HEART_RATE'},
+      ),
+      '/vitals/trend/HEART_RATE',
+    );
+  });
+
+  test('learn topic and quiz routes resolve without a doubled /learn prefix', () {
+    final ProviderContainer container = ProviderContainer(
+      overrides: bootOverrides(),
+    );
+    addTearDown(container.dispose);
+
+    final GoRouter router = container.read(routerProvider);
+
+    expect(
+      router.namedLocation(
+        AppRoutes.learnTopic,
+        pathParameters: <String, String>{'topic': 'chd-basics'},
+      ),
+      '/learn/chd-basics',
+    );
+    expect(
+      router.namedLocation(
+        AppRoutes.quiz,
+        queryParameters: <String, String>{'topic': 'chd-basics'},
+      ),
+      '/learn/quiz?topic=chd-basics',
+    );
+  });
+
+  testWidgets('the /learn/quiz route actually matches to QuizScreen, not TopicScreen', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await bootApp(tester);
+
+    router.go('/learn/quiz?topic=chd-basics');
+    await tester.pumpAndSettle(
+      const Duration(milliseconds: 100),
+      EnginePhase.sendSemanticsUpdate,
+      const Duration(seconds: 10),
+    );
+
+    expect(find.byType(QuizScreen), findsOneWidget);
+    expect(find.byType(TopicScreen), findsNothing);
   });
 
   testWidgets('boots in Amharic without falling back to Latin script', (

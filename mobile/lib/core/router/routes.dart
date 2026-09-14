@@ -1,18 +1,7 @@
-/// Every route in the app, declared up front by the foundation slice.
-///
-/// Declaring all of them before any of them are built is deliberate. A feature
-/// that needs to send the user somewhere outside itself — the medication card
-/// on Home opening the medication list, the symptom result linking to the
-/// exercise guidance — can name that destination today without importing the
-/// feature that will eventually own it. That is what keeps architectural
-/// rule #1 ("features never import each other") true for navigation as well
-/// as for code.
-///
-/// Navigate by **name**, never by literal path:
-/// `context.goNamed(AppRoutes.vitalsLog)`. Paths may still move; names will
-/// not.
+
+
 abstract final class AppRoutes {
-  // ------------------------------------------------------------- Auth (M1)
+
   static const String splash = 'splash';
   static const String splashPath = '/';
 
@@ -28,8 +17,6 @@ abstract final class AppRoutes {
   static const String forgotPin = 'forgotPin';
   static const String forgotPinPath = '/forgot-pin';
 
-  // -------------------------------------------- Profile & onboarding (M2)
-  /// The three-step wizard shown once, straight after registration.
   static const String onboarding = 'onboarding';
   static const String onboardingPath = '/onboarding';
 
@@ -42,11 +29,9 @@ abstract final class AppRoutes {
   static const String settings = 'settings';
   static const String settingsPath = '/settings';
 
-  // ------------------------------------------------------ Home tab (shell)
   static const String home = 'home';
   static const String homePath = '/home';
 
-  // --------------------------------------------------- Medications (M3)
   static const String medications = 'medications';
   static const String medicationsPath = '/medications';
 
@@ -65,7 +50,6 @@ abstract final class AppRoutes {
   static const String reminderSettings = 'reminderSettings';
   static const String reminderSettingsPath = '/medications/reminders';
 
-  // -------------------------------------------------------- Vitals (M4)
   static const String vitals = 'vitals';
   static const String vitalsPath = '/vitals';
 
@@ -75,11 +59,9 @@ abstract final class AppRoutes {
   static const String vitalsHistory = 'vitalsHistory';
   static const String vitalsHistoryPath = '/vitals/history';
 
-  /// `:type` is a wire `VitalType` — BLOOD_PRESSURE, WEIGHT, GLUCOSE.
   static const String vitalsTrend = 'vitalsTrend';
   static const String vitalsTrendPath = '/vitals/trend/:type';
 
-  // ------------------------------------------ Symptoms & activity (M5)
   static const String checkIn = 'checkIn';
   static const String checkInPath = '/check-in';
 
@@ -95,20 +77,15 @@ abstract final class AppRoutes {
   static const String activityHistory = 'activityHistory';
   static const String activityHistoryPath = '/check-in/activity/history';
 
-  // ------------------------------------------- Education & diet (M5)
   static const String learn = 'learn';
   static const String learnPath = '/learn';
 
-  /// `:topic` is an education module id — `chd-basics`, `heart-attack`,
-  /// `diet`, `exercise`, `medication-adherence`, `psychosocial`.
   static const String learnTopic = 'learnTopic';
   static const String learnTopicPath = '/learn/:topic';
 
   static const String quiz = 'quiz';
   static const String quizPath = '/learn/quiz';
 
-  /// Routes a signed-out user is allowed to reach. The auth gate sends
-  /// everything else to [login].
   static const Set<String> publicPaths = <String>{
     splashPath,
     languagePath,

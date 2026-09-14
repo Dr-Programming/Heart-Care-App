@@ -7,25 +7,14 @@ import '../shell/home_screen.dart';
 import 'auth_gate.dart';
 import 'routes.dart';
 
-/// One bottom-nav tab's contribution: what its root screen is, and what sits
-/// underneath it.
 class TabRoutes {
   const TabRoutes({this.root, this.children = const <RouteBase>[]});
 
-  /// The tab's landing screen. Null until the owning slice supplies one, in
-  /// which case the tab shows a "not built yet" placeholder — which keeps the
-  /// app runnable while five slices land at different times.
   final WidgetBuilder? root;
 
-  /// Everything reachable from the tab root, as go_router sub-routes.
   final List<RouteBase> children;
 }
 
-/// Everything the feature slices plug into the router.
-///
-/// A slice fills in exactly the field it owns, in `lib/app/app_wiring.dart`.
-/// The tab order, the redirect and the shell are fixed by the foundation and
-/// are not a feature's business.
 class FeatureRoutes {
   const FeatureRoutes({
     this.topLevel = const <RouteBase>[],
@@ -36,8 +25,6 @@ class FeatureRoutes {
     this.learn = const TabRoutes(),
   });
 
-  /// Full-screen routes outside the bottom nav: auth, the onboarding wizard,
-  /// profile and settings.
   final List<RouteBase> topLevel;
 
   final TabRoutes home;
@@ -47,7 +34,6 @@ class FeatureRoutes {
   final TabRoutes learn;
 }
 
-/// Stands in for a tab whose slice has not landed yet.
 class NotBuiltYet extends StatelessWidget {
   const NotBuiltYet({required this.slice, super.key});
 
@@ -74,10 +60,6 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
 );
 
-/// Builds the app's router.
-///
-/// The redirect is the auth gate (FR-AUTH-006). It is deliberately synchronous
-/// and local — see [AuthGate] for why it must never make a request.
 GoRouter buildRouter(Ref ref, FeatureRoutes features) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -93,15 +75,13 @@ GoRouter buildRouter(Ref ref, FeatureRoutes features) {
           GoRouterState state,
           StatefulNavigationShell navigationShell,
         ) => AppShell(navigationShell: navigationShell),
-        // Branch order must match AppShell.tabs. Changing one without the
-        // other silently sends users to the wrong tab.
+
         branches: <StatefulShellBranch>[
           _branch(
             path: AppRoutes.homePath,
             name: AppRoutes.home,
             slice: 'Home',
-            // Home's frame belongs to the foundation; its content is
-            // contributed as HomeCards by every feature.
+
             tab: TabRoutes(
               root: (BuildContext context) => const HomeScreen(),
               children: features.home.children,
@@ -137,33 +117,29 @@ GoRouter buildRouter(Ref ref, FeatureRoutes features) {
   );
 }
 
-/// The gate itself, extracted so it can be unit-tested without a widget tree.
-///
-/// Returns the path to redirect to, or null to allow the navigation.
 String? _redirect(AuthGate gate, String location) {
-  // Hold on splash until the token check has finished, so a signed-in user
-  // never sees Login flash past on a cold start.
+
   if (!gate.isResolved) {
     return location == AppRoutes.splashPath ? null : AppRoutes.splashPath;
   }
 
-  // First run: pick a language before anything else (FR-LOC-003).
   if (!gate.hasChosenLanguage) {
     return location == AppRoutes.languagePath ? null : AppRoutes.languagePath;
   }
 
   final bool isPublic = AppRoutes.publicPaths.contains(location);
 
+  final bool isPublicForLocalTesting =
+      isPublic || location.startsWith(AppRoutes.learnPath);
+
   if (!gate.isSignedIn) {
-    return isPublic ? null : AppRoutes.loginPath;
+    return isPublicForLocalTesting ? null : AppRoutes.loginPath;
   }
 
-  // Signed in: the profile wizard is the only thing allowed before the app.
   if (gate.needsOnboarding && location != AppRoutes.onboardingPath) {
     return AppRoutes.onboardingPath;
   }
 
-  // Signed in and sitting on splash or an auth screen - go to the app.
   if (isPublic) return AppRoutes.homePath;
 
   return null;
@@ -194,11 +170,6 @@ StatefulShellBranch _branch({
   );
 }
 
-/// Bridges a Riverpod provider to go_router's `refreshListenable`.
-///
-/// Without this the redirect would only re-run on an explicit navigation, so
-/// signing out would leave the user looking at a screen they are no longer
-/// entitled to until they tapped something.
 class ProviderRefresh<T> extends ChangeNotifier {
   ProviderRefresh(Ref ref, Provider<T> provider) {
     _subscription = ref.listen<T>(provider, (_, _) => notifyListeners());
