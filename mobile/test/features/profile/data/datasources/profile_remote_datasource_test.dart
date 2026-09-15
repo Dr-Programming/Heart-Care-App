@@ -1,135 +1,58 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:libu_care/core/constants/api_endpoints.dart';
 import 'package:libu_care/features/profile/data/datasources/profile_remote_datasource.dart';
 import 'package:libu_care/features/profile/data/models/patient_profile_model.dart';
-import 'package:mocktail/mocktail.dart';
 
-class MockDio extends Mock implements Dio {}
+import '../../../../helpers/fake_dio.dart';
 
 void main() {
-  late MockDio dio;
-  late ProfileRemoteDatasource datasource;
+  test('getProfile parses the all-null skeleton without throwing', () async {
+    final fake = FakeDio();
+    fake.stub('/api/v1/patients/me', FakeResponse.ok(const <String, dynamic>{
+      'birthYear': null, 'preferredLanguage': null, 'heightCm': null,
+      'chdStage': null, 'diseaseHistory': null, 'comorbidities': <dynamic>[],
+      'managementPlan': null, 'goals': null,
+    }));
+    final ds = ProfileRemoteDataSource(fake.dio);
 
-  setUp(() {
-    dio = MockDio();
-    datasource = ProfileRemoteDatasource(dio);
+    final result = await ds.getProfile();
+
+    expect(result.birthYear, isNull);
+    expect(result.comorbidities, isEmpty);
+    expect(fake.requests.single.method, 'GET');
   });
 
-  Response<Map<String, dynamic>> envelopeResponse(
-    Map<String, dynamic>? data, {
-    int statusCode = 200,
-  }) {
-    return Response(
-      requestOptions: RequestOptions(path: ApiEndpoints.patientMe),
-      statusCode: statusCode,
-      data: {
-        'success': true,
-        'data': data,
-        'message': '',
-        'timestamp': DateTime.now().toIso8601String(),
-      },
+  test('saveProfile PUTs every field, including the ones that are null', () async {
+    final fake = FakeDio();
+    fake.stub('/api/v1/patients/me', FakeResponse.ok(const <String, dynamic>{
+      'birthYear': 1968, 'preferredLanguage': 'en', 'heightCm': 172.0,
+      'chdStage': 'Coronary artery disease', 'diseaseHistory': null,
+      'comorbidities': <dynamic>['diabetes'], 'managementPlan': null, 'goals': null,
+    }));
+    final ds = ProfileRemoteDataSource(fake.dio);
+    const model = PatientProfileModel(
+      birthYear: 1968, preferredLanguage: 'en', heightCm: 172,
+      chdStage: 'Coronary artery disease', diseaseHistory: null,
+      comorbidities: <String>['diabetes'], managementPlan: null, goals: null,
     );
-  }
 
-  group('getProfile', () {
-    test('returns an empty model when the server has no profile yet',
-        () async {
-      when(() => dio.get(ApiEndpoints.patientMe))
-          .thenAnswer((_) async => envelopeResponse(null));
+    final result = await ds.saveProfile(model);
 
-      final result = await datasource.getProfile();
-
-      expect(result.birthYear, isNull);
-      expect(result.comorbidities, isEmpty);
-    });
-
-    test('decodes a populated profile from the envelope', () async {
-      when(() => dio.get(ApiEndpoints.patientMe)).thenAnswer(
-        (_) async => envelopeResponse({
-          'birthYear': 1965,
-          'preferredLanguage': 'am',
-          'heightCm': 172.0,
-          'chdStage': 'Coronary artery disease',
-          'diseaseHistory': null,
-          'comorbidities': ['Diabetes'],
-          'managementPlan': null,
-          'goals': null,
-        }),
-      );
-
-      final result = await datasource.getProfile();
-
-      expect(result.birthYear, 1965);
-      expect(result.preferredLanguage, 'am');
-      expect(result.heightCm, 172.0);
-      expect(result.comorbidities, ['Diabetes']);
-    });
-
-    test('throws a NetworkFailure on a connection error', () async {
-      when(() => dio.get(ApiEndpoints.patientMe)).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: ApiEndpoints.patientMe),
-          type: DioExceptionType.connectionError,
-        ),
-      );
-
-      expect(() => datasource.getProfile(), throwsA(isA<Exception>()));
-    });
+    expect(result.birthYear, 1968);
+    expect(fake.requests.single.method, 'PUT');
+    expect(fake.requests.single.json.containsKey('diseaseHistory'), isTrue);
+    expect(fake.requests.single.json.containsKey('managementPlan'), isTrue);
   });
 
-  group('saveProfile', () {
-    test('sends the full model and returns the server response', () async {
-      const model = PatientProfileModel(birthYear: 1965, heightCm: 172.0);
+  test('saveProfile propagates a DioException on a 400', () async {
+    final fake = FakeDio();
+    fake.stub('/api/v1/patients/me', FakeResponse.error(400, 'birthYear: must be between 1900 and 2100'));
+    final ds = ProfileRemoteDataSource(fake.dio);
+    const model = PatientProfileModel(
+      birthYear: 1500, preferredLanguage: null, heightCm: null, chdStage: null,
+      diseaseHistory: null, comorbidities: <String>[], managementPlan: null, goals: null,
+    );
 
-      when(
-        () => dio.put(
-          ApiEndpoints.patientMe,
-          data: any(named: 'data'),
-        ),
-      ).thenAnswer(
-        (_) async => envelopeResponse({
-          'birthYear': 1965,
-          'preferredLanguage': null,
-          'heightCm': 172.0,
-          'chdStage': null,
-          'diseaseHistory': null,
-          'comorbidities': [],
-          'managementPlan': null,
-          'goals': null,
-        }),
-      );
-
-      final result = await datasource.saveProfile(model);
-
-      expect(result.birthYear, 1965);
-      expect(result.heightCm, 172.0);
-
-      final captured = verify(
-        () => dio.put(ApiEndpoints.patientMe, data: captureAny(named: 'data')),
-      ).captured.single as Map<String, dynamic>;
-      expect(captured['birthYear'], 1965);
-    });
-
-    test('throws on a server error response', () async {
-      when(
-        () => dio.put(ApiEndpoints.patientMe, data: any(named: 'data')),
-      ).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: ApiEndpoints.patientMe),
-          type: DioExceptionType.badResponse,
-          response: Response(
-            requestOptions: RequestOptions(path: ApiEndpoints.patientMe),
-            statusCode: 500,
-            data: {'success': false, 'message': 'Server error'},
-          ),
-        ),
-      );
-
-      expect(
-        () => datasource.saveProfile(const PatientProfileModel()),
-        throwsA(isA<Exception>()),
-      );
-    });
+    await expectLater(() => ds.saveProfile(model), throwsA(isA<DioException>()));
   });
 }

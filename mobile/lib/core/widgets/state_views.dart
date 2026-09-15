@@ -6,10 +6,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'app_button.dart';
 
-/// Shown where a list would be if the list is empty.
-///
-/// Always offers the action that would fill it. A bare "No records" is a dead
-/// end for a user who is not sure what the screen is for (FR-LOC-004).
 class EmptyState extends StatelessWidget {
   const EmptyState({
     required this.title,
@@ -64,11 +60,6 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Renders a [Failure] with a retry affordance.
-///
-/// Retry is deliberately withheld for failures that retrying cannot fix — a
-/// rejected payload or an expired session will fail identically every time,
-/// and offering the button teaches the user to distrust it.
 class ErrorView extends StatelessWidget {
   const ErrorView({required this.failure, this.onRetry, super.key});
 
@@ -98,11 +89,6 @@ class ErrorView extends StatelessWidget {
   }
 }
 
-/// Dims and blocks the screen behind a spinner.
-///
-/// For operations the user must not interrupt — submitting a form, signing
-/// out. Never for a plain list load; use a skeleton or an inline spinner there
-/// so the app does not feel like it freezes on a slow connection.
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({
     required this.isLoading,

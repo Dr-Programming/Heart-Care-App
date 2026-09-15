@@ -18,7 +18,8 @@
     "today": "ዛሬ",
     "yesterday": "ትናንት",
     "loading": "በመጫን ላይ",
-    "noValue": "—"
+    "noValue": "—",
+    "enterManually": "በእጅ ያስገቡ"
   },
 
   "nav": {
@@ -123,115 +124,385 @@
 
   "profile": {
     "title": "መገለጫ",
-
-    "screen": {
-      "headline": "የእኔ መገለጫ",
-      "subtitle": "የጤና መረጃዎ"
+    "empty": {
+      "title": "መገለጫዎ ባዶ ነው",
+      "message": "እንክብካቤዎ እንዲበጅ የጤና ዝርዝሮችዎን ያክሉ።",
+      "action": "መገለጫዎን ያዋቅሩ"
     },
-
+    "actions": {
+      "settings": "ቅንብሮች"
+    },
+    "home": {
+      "title": "መገለጫዎ",
+      "emptyMessage": "እዚህ ማጠቃለያ ለማየት መገለጫዎን ያጠናቅቁ።",
+      "goalLabel": "ግብ",
+      "goalSteps": "{value} እርምጃ/በቀን",
+      "goalWeight": "{value} ኪ.ግ የታለመ ክብደት"
+    },
     "sections": {
-      "medical": "የሕክምና መረጃ",
       "personal": "የግል መረጃ",
+      "medical": "የህክምና መረጃ",
       "goals": "ግቦች"
     },
-
     "fields": {
       "name": "ስም",
       "birthYear": "የትውልድ ዓመት",
-      "birthYearHint": "ለምሳሌ 1965",
-      "heightCm": "ቁመት (ሴ.ሜ)",
-      "heightCmHint": "ለምሳሌ 172",
-      "preferredLanguage": "የሚመርጡት ቋንቋ",
-      "diagnosis": "ምርመራ",
-      "diagnosisHint": "ለምሳሌ የልብ ደም ስር በሽታ",
+      "height": "ቁመት",
+      "heightValue": "{value} ሴ.ሜ",
+      "chdStage": "የልብ በሽታ ደረጃ",
+      "comorbidities": "ሌሎች ሁኔታዎች",
       "diseaseHistory": "የበሽታ ታሪክ",
-      "diseaseHistoryHint": "ለምሳሌ በ2019 ተመረመረ፣ አንድ ቀዶ ጥገና ተደርጓል",
-      "managementPlan": "የአሁኑ የሕክምና ዕቅድ",
-      "managementPlanHint": "ለምሳሌ አስፕሪን፣ ስታቲን፣ በሳምንት ሁለቴ የልብ ማገገሚያ",
-      "comorbidities": "አብሮ ያሉ በሽታዎች",
-      "comorbiditiesOptional": "አብሮ ያሉ በሽታዎች (አማራጭ)",
-      "comorbidityOther": "ሌላ (አማራጭ)",
-      "targetBp": "የደም ግፊት ግብ",
-      "systolicHint": "ሲስቶሊክ",
-      "diastolicHint": "ዲያስቶሊክ",
-      "targetWeight": "የክብደት ግብ (ኪ.ግ)",
-      "targetWeightHint": "ለምሳሌ 70",
-      "stepsGoal": "የዕለት ርምጃ ግብ",
-      "stepsGoalHint": "ለምሳሌ 6000",
-      "targetCholesterol": "የኮሌስትሮል ግብ",
-      "targetCholesterolHint": "ለምሳሌ 180",
+      "bpTarget": "የደም ግፊት ግብ",
+      "bpTargetValue": "{systolic}/{diastolic} mmHg",
+      "cholesterolTarget": "የኮሌስትሮል ግብ",
+      "stepsTarget": "የዕለታዊ እርምጃ ግብ",
+      "weightTarget": "የክብደት ግብ (ኪ.ግ)",
       "dietNote": "የአመጋገብ ማስታወሻ",
-      "dietNoteHint": "ለምሳሌ ጨው የቀነሰ፣ ስኳር ያልታከለበት",
-      "notificationsEnabled": "ማሳወቂያዎችን አንቃ",
-      "symptomPromptTime": "የዕለት ምልክት ማረጋገጫ ሰዓት"
+      "managementPlan": "የአያያዝ እቅድ",
+      "bpSystolicTarget": "የላይኛው የደም ግፊት ግብ (mmHg)",
+      "bpDiastolicTarget": "የታችኛው የደም ግፊት ግብ (mmHg)"
     },
-
-    "comorbidityOptions": {
-      "diabetes": "የስኳር በሽታ",
-      "hypertension": "የደም ግፊት",
-      "kidneyDisease": "የኩላሊት በሽታ",
-      "highCholesterol": "ከፍተኛ ኮሌስትሮል",
-      "previousHeartAttack": "ቀደም ሲል የደረሰ የልብ ድካም",
-      "stroke": "ስትሮክ"
+    "edit": {
+      "title": "መገለጫ አስተካክል"
     },
-
-    "values": {
-      "notSet": "አልተመዘገበም",
-      "noneRecorded": "ምንም አልተመዘገበም"
-    },
-
-    "actions": {
-      "editProfile": "መገለጫ አስተካክል",
-      "settings": "ቅንብሮች",
-      "saveChanges": "ለውጦችን አስቀምጥ"
-    },
-
-    "errors": {
-      "loadFailed": "መገለጫዎን መጫን አልተቻለም።",
-      "birthYearRange": "የትውልድ ዓመት ከ1900 እስከ 2100 መሆን አለበት",
-      "heightRange": "ቁመት ከ50 እስከ 250 ሴ.ሜ መሆን አለበት",
-      "diagnosisLength": "ምርመራ ከ50 ፊደላት መብለጥ የለበትም",
-      "negativeValue": "ከ0 ወይም በላይ ዋጋ ያስገቡ"
-    },
-
-    "onboarding": {
-      "step1": {
-        "progress": "ደረጃ 1 ከ3 — የግል መረጃ",
-        "title": "ስለ እርስዎ ይንገሩን"
-      },
-      "step2": {
-        "progress": "ደረጃ 2 ከ3 — የልብ ሁኔታ ዝርዝሮች",
-        "title": "የሕክምና መገለጫ"
-      },
-      "step3": {
-        "progress": "ደረጃ 3 ከ3 — የግል ግቦችዎን ያስቀምጡ",
-        "title": "ግቦችዎ",
-        "intro": "እነዚህ አማራጭ ናቸው — በማንኛውም ጊዜ ከመገለጫዎ ሊያዘጋጁ ወይም ሊቀይሩ ይችላሉ።",
-        "finish": "ማዋቀርን ጨርስ",
-        "skip": "አሁን ዝለል",
-        "remindersTitle": "ማሳሰቢያዎች"
-      }
-    },
-
     "settings": {
       "title": "ቅንብሮች",
-      "preferencesSection": "ምርጫዎች",
-      "syncSection": "ማመሳሰል",
-      "language": "ቋንቋ",
-      "pendingSync": "በመጠባበቅ ላይ ያለ ማመሳሰል",
-      "upToDate": "ወቅታዊ ነው",
-      "signOutTitle": "ይውጡ?",
-      "signOutBody": "በማንኛውም ጊዜ መልሰው መግባት ይችላሉ።"
+      "language": {
+        "title": "ቋንቋ",
+        "pickerTitle": "ቋንቋ ይምረጡ"
+      },
+      "notifications": {
+        "title": "ማሳወቂያዎች",
+        "subtitle": "ስለ መድኃኒት፣ የጤና መለኪያ እና ምዝገባ አስታዋሾችን ያግኙ"
+      },
+      "sync": {
+        "title": "የመገለጫ ማመሳሰል",
+        "pending": "ለውጦች ገና ወደ አገልጋዩ አልተላኩም",
+        "synced": "ወቅታዊ ነው",
+        "sendNow": "አሁን ላክ"
+      },
+      "appVersion": {
+        "title": "የመተግበሪያ ስሪት"
+      },
+      "signOut": {
+        "title": "ውጣ",
+        "confirmTitle": "ይውጡ?",
+        "confirmMessage": "መተግበሪያውን ለመጠቀም እንደገና መግባት ያስፈልግዎታል።",
+        "confirmLabel": "ውጣ"
+      }
+    },
+    "onboarding": {
+      "step1Title": "ስለ እርስዎ ይንገሩን",
+      "step1Subtitle": "ይህ እንክብካቤዎን እንድናበጅ ይረዳናል",
+      "step2Title": "የህክምና መገለጫ",
+      "step2Subtitle": "ስለ ልብ ሁኔታዎ ይንገሩን",
+      "step3Title": "አስታዋሾች",
+      "step3Subtitle": "በለዘብተኛ አስታዋሾች ይከታተሉ",
+      "nameLabel": "ሙሉ ስም",
+      "nameHelper": "መለያዎን ሲፈጥሩ የተቀመጠ",
+      "birthYearLabel": "የትውልድ ዓመት",
+      "heightLabel": "ቁመት (ሴ.ሜ)",
+      "languageLabel": "የሚመርጡት ቋንቋ",
+      "languageEnglish": "እንግሊዝኛ",
+      "languageAmharic": "አማርኛ",
+      "diagnosisLabel": "ምርመራ",
+      "comorbiditiesLabel": "ሌሎች ሁኔታዎች",
+      "medicationReminderTitle": "የመድኃኒት አስታዋሾች",
+      "medicationReminderSubtitle": "የጠዋት መጠን 8:00 ጥዋት · የማታ መጠን 8:00 ማታ",
+      "vitalsReminderTitle": "የጤና መለኪያ አስታዋሾች",
+      "vitalsReminderSubtitle": "ዕለታዊ የደም ግፊት ምርመራ 9:00 ጥዋት",
+      "symptomReminderTitle": "የምልክት ምዝገባ አስታዋሾች",
+      "symptomReminderSubtitle": "ዕለታዊ የምልክት ምዝገባ 7:30 ማታ",
+      "finish": "ማዋቀር ጨርስ"
+    },
+    "errors": {
+      "birthYearRange": "ከ1900 እስከ 2100 ያለ የትውልድ ዓመት ያስገቡ",
+      "heightRange": "ከ50 እስከ 250 ሴ.ሜ ያለ ቁመት ያስገቡ",
+      "goalNegative": "0 ወይም ከዚያ በላይ የሆነ ዋጋ ያስገቡ"
     }
   },
 
-  "meds": {},
+  "meds": {
+    "title": "መድሃኒቶች",
+    "add": "መድሃኒት ጨምር",
+    "today": "ዛሬ",
+    "schedule": "መርሃ ግብር",
+    "historyTab": "ታሪክ",
+    "nextReminder": "ቀጣይ ማስታወሻ በ {duration} ውስጥ — {name}",
+    "todayEmpty": "አሁን የሚወሰድ የለም",
+    "yourMedications": "የእርስዎ መድሃኒቶች",
+    "emptyTitle": "እስካሁን መድሃኒት የለም",
+    "emptyBody": "መከታተል ለመጀመር የመጀመሪያ መድሃኒትዎን ያክሉ።",
+    "deactivate": "ይህን መውሰድ አቁም",
+    "deactivateTitle": "መውሰድ ያቁሙ?",
+    "deactivateBody": "ማስታወሻዎቹ ይቆማሉ። የመድሃኒት ታሪክዎ ግን ይቀመጣል።",
+    "deactivateConfirm": "አዎ፣ አቁም",
+    "alert": {
+      "missedRunTitle": "ተከታታይ መጠኖች ታልፈዋል",
+      "missedRunChip": "ትኩረት ይስጡ",
+      "missedRunBody": "{name} ሁለት ጊዜ በተከታታይ ታልፏል። ይህ የሚቀጥል ከሆነ የጤና ባለሙያዎን ያሳውቁ።"
+    },
+    "status": {
+      "taken": "ተወስዷል",
+      "missed": "ታልፏል",
+      "skipped": "ታልፏል በፈቃድ"
+    },
+    "note": {
+      "add": "ማስታወሻ ጨምር",
+      "edit": "ማስታወሻ አስተካክል",
+      "title": "ማስታወሻ",
+      "label": "ማስታወሻ (አማራጭ)",
+      "hint": "ለምሳሌ ዘግይቼ ወሰድኩት፣ ማዞር ተሰማኝ",
+      "save": "ማስታወሻ አስቀምጥ"
+    },
+    "form": {
+      "title": "መድሃኒት",
+      "subtitle": "መጠን እና የማስታወሻ መርሃ ግብር ያዘጋጁ",
+      "name": "ስም",
+      "nameHint": "ለምሳሌ Atorvastatin",
+      "doseMg": "መጠን (mg)",
+      "scheduleTimes": "ሰዓቶች",
+      "notifyCaregiver": "ካልተወሰደ አሳዳጊን አሳውቅ",
+      "caregiverPhone": "የአሳዳጊ ስልክ ቁጥር",
+      "reviewButton": "ይገምግሙ እና ያረጋግጡ",
+      "dosageLabel": "መጠን",
+      "frequencyLabel": "ድግግሞሽ",
+      "reminderTimesLabel": "የማስታወሻ ሰዓቶች",
+      "instructions": {
+        "title": "መመሪያ",
+        "sectionLabel": "መመሪያ",
+        "afterMeal": "ከምግብ በኋላ",
+        "withFood": "ከምግብ ጋር",
+        "beforeMeal": "ከምግብ በፊት"
+      },
+      "asNeededCaption": "'እንደአስፈላጊነቱ' ማስታወሻዎችን ያሰናክላል — ለ GTN/ናይትሮ ስፕሬይ ይውላል",
+      "pickTimeTitle": "ሰዓት ያስገቡ",
+      "pickTimeHour": "ሰዓት",
+      "pickTimeMinute": "ደቂቃ",
+      "am": "ጥዋት",
+      "pm": "ከሰዓት"
+    },
+    "frequency": {
+      "onceDaily": "በቀን አንድ ጊዜ",
+      "bid": "በቀን ሁለት ጊዜ",
+      "tid": "በቀን ሶስት ጊዜ",
+      "custom": "ሌላ",
+      "asNeeded": "እንደአስፈላጊነቱ"
+    },
+    "errors": {
+      "nameRequired": "የመድሃኒት ስም ያስገቡ",
+      "nameTooLong": "ስሙ በጣም ረጅም ነው",
+      "doseRequired": "መጠን ያስገቡ",
+      "doseInvalid": "ቁጥር ያስገቡ",
+      "dosePositive": "መጠኑ ከ0 በላይ መሆን አለበት",
+      "scheduleRequired": "ቢያንስ አንድ ሰዓት ያክሉ",
+      "scheduleFormat": "ትክክለኛ ሰዓት ያስገቡ"
+    },
+    "history": {
+      "title": "የመድሃኒት ታሪክ",
+      "emptyTitle": "እስካሁን የተመዘገበ የለም",
+      "emptyBody": "የተመዘገቡ መጠኖች እዚህ ይታያሉ።",
+      "filterAll": "ሁሉም",
+      "syncPending": "በዚህ ስልክ ተቀምጧል፤ ለመላክ በመጠባበቅ ላይ",
+      "syncRejected": "ወደ አገልጋዩ መላክ አልተቻለም"
+    },
+    "adherence": {
+      "title": "ተገዢነት",
+      "overall7": "ያለፉት 7 ቀናት",
+      "overall30": "ያለፉት 30 ቀናት",
+      "count": "{taken} ከ{due} መጠኖች",
+      "countWithPercent": "{taken} ከ{due} መጠኖች ({percent}%)",
+      "perMedication": "በመድሃኒት",
+      "noData": "እስካሁን በቂ መረጃ የለም"
+    },
+    "reminders": {
+      "title": "ማስታወሻዎች",
+      "enabled": "የመድሃኒት ማስታወሻዎች",
+      "followUp": "ካልተመዘገበ በ1 ሰዓት ውስጥ ተከታይ ማሳሰቢያ"
+    },
+    "notifications": {
+      "doseTitle": "የመድሃኒት ጊዜ ደርሷል",
+      "doseBody": "{name} የመውሰጃ ጊዜዎ ነው። ለመመዝገብ ይንኩ።",
+      "followUpTitle": "መጠን ገና አልመዘገቡም?",
+      "followUpBody": "{name} ገና አልመዘገቡትም — ለመመዝገብ ይንኩ።"
+    },
+    "search": {
+      "title": "መድሃኒት ጨምር",
+      "subtitle": "ይፈልጉ ወይም በእጅ ያስገቡ",
+      "hint": "መድሃኒቶችን ይፈልጉ",
+      "suggestions": "ጥቆማዎች",
+      "mostCommon": "በጣም የተለመደ",
+      "libraryHint": "ጥቆማዎቹ ከመስመር ውጭ የመድሃኒት ዝርዝር የተገኙ ናቸው",
+      "cantFind": "መድሃኒትዎን ማግኘት አልቻሉም?"
+    },
+    "review": {
+      "title": "መድሃኒት ይገምግሙ",
+      "subtitle": "ከማስቀመጥዎ በፊት ያረጋግጡ",
+      "frequency": "ድግግሞሽ",
+      "reminder": "ማሳወቂያ",
+      "on": "በርቷል",
+      "off": "ጠፍቷል",
+      "notifyCaregiver": "አሳዳጊን አሳውቅ",
+      "remindersSet": "ማሳወቂያዎች በቀን {times} ተዘጋጅተዋል",
+      "offlineNote": "ማሳወቂያዎች ከመስመር ውጭም ይሰራሉ",
+      "save": "መድሃኒት አስቀምጥ",
+      "edit": "ዝርዝሮችን አርትዕ",
+      "instructionsNotSet": "አልተቀናበረም",
+      "noFixedSchedule": "ቋሚ መርሃ ግብር የለም",
+      "reminderSchedulingFailed": "ተቀምጧል። የማሳወቂያ ፈቃድ እስኪሰጥ ድረስ ማሳወቂያዎች ላይሰሩ ይችላሉ።"
+    }
+  },
 
-  "vitals": {},
+  "vitals": {
+    "tabTitle": "የጤና መለኪያዎች",
+    "tabSubtitle": "ንባቦችዎን በጊዜ ሂደት ይከታተሉ",
+    "type": {
+      "bloodPressure": "የደም ግፊት",
+      "glucose": "የደም ስኳር",
+      "heartRate": "የልብ ትርታ",
+      "weight": "ክብደት",
+      "cholesterol": "ኮሌስትሮል"
+    },
+    "field": {
+      "systolic": "ሲስቶሊክ",
+      "diastolic": "ዳያስቶሊክ",
+      "glucose": "ስኳር",
+      "heartRate": "የልብ ትርታ",
+      "weight": "ክብደት",
+      "ldl": "LDL",
+      "hdl": "HDL",
+      "total": "ጠቅላላ"
+    },
+    "validation": {
+      "required": "{field} ያስገቡ",
+      "tooLow": "{field} በጣም ዝቅተኛ ይመስላል — {min}–{max} {unit} ያስገቡ",
+      "tooHigh": "{field} በጣም ከፍተኛ ይመስላል — {min}–{max} {unit} ያስገቡ",
+      "systolicMustExceedDiastolic": "ሲስቶሊክ ከዳያስቶሊክ የበለጠ መሆን አለበት",
+      "noteTooLong": "ማስታወሻው ከ500 ቁምፊዎች መብለጥ የለበትም"
+    },
+    "log": {
+      "title": "ንባብ ይመዝግቡ",
+      "chooseType": "ያሉዎትን ንባቦች ይሙሉ — የቀሩትን ባዶ ይተዉ።",
+      "nothingToSave": "ከማስቀመጥዎ በፊት ቢያንስ አንድ ንባብ ያስገቡ።",
+      "measuredAt": "ይህ መቼ ተለካ?",
+      "now": "አሁን",
+      "edit": "ቀይር",
+      "note": "ማስታወሻ (አማራጭ)",
+      "next": "ቀጣይ",
+      "back": "ተመለስ",
+      "confirmAndSave": "አረጋግጥ እና አስቀምጥ",
+      "editReading": "ንባብ አስተካክል",
+      "reviewTitle": "ንባብ ይገምግሙ",
+      "saved": "ንባብ ተቀምጧል"
+    },
+    "history": {
+      "title": "ታሪክ",
+      "emptyTitle": "እስካሁን ምንም ንባብ የለም",
+      "emptyBody": "ታሪክዎን ለመጀመር የመጀመሪያ ንባብዎን ይመዝግቡ።",
+      "filterAll": "ሁሉም አይነቶች"
+    },
+    "trend": {
+      "title": "አዝማሚያ",
+      "range7": "7 ቀናት",
+      "range30": "30 ቀናት",
+      "insufficientTitle": "አዝማሚያ ለማሳየት እስካሁን በቂ ንባቦች የሉም",
+      "insufficientBody": "ከጊዜ ወደ ጊዜ እንዴት እንደሚለዋወጥ ለማየት ተጨማሪ ንባቦችን ይመዝግቡ።",
+      "min": "ዝቅተኛ",
+      "max": "ከፍተኛ",
+      "average": "አማካይ"
+    },
+    "home": {
+      "title": "የጤና መለኪያዎች",
+      "seeAll": "ሁሉንም ይመልከቱ",
+      "noReading": "እስካሁን ንባብ የለም",
+      "addHeightPrompt": "BMIዎን ለማየት ቁመትዎን በመገለጫ ውስጥ ያክሉ።"
+    }
+  },
 
-  "symptoms": {},
+  "symptoms": {
+    "tabTitle": "ቼክ-ኢን",
+    "tabSubtitle": "ዛሬ ስሜትዎ እንዴት ነው?",
+    "hub": {
+      "notDoneTitle": "የዛሬ ቼክ-ኢን",
+      "notDoneBody": "አንድ ደቂቃ ያህል ይወስዳል።",
+      "notDoneShort": "እስካሁን አልተደረገም — አንድ ደቂቃ ያህል ይወስዳል",
+      "startCta": "ቼክ-ኢን ጀምር",
+      "doneTitle": "ዛሬ ቼክ-ኢን ተደርጓል",
+      "historyCta": "ታሪክ ይመልከቱ"
+    },
+    "checkIn": {
+      "title": "የዕለት ቼክ-ኢን",
+      "subtitle": "አንድ ደቂቃ ያህል ይወስዳል",
+      "chestPain": "ዛሬ የደረት ህመም አለ?",
+      "shortnessOfBreath": "የትንፋሽ ማጠር?",
+      "swelling": "የእግር ወይም ቁርጭምጭሚት እብጠት?",
+      "vitalsTitle": "የእረፍት ጊዜ የጤና መለኪያዎች",
+      "vitalsHint": "ሐኪምዎ ሙሉ ገጽታውን እንዲያይ ያስፈልጋል",
+      "heartRate": "የልብ ምት (bpm)",
+      "bpSystolic": "የደም ግፊት (ከፍተኛ)",
+      "bpDiastolic": "የደም ግፊት (ዝቅተኛ)",
+      "missingVitals": "ለመቀጠል የልብ ምትዎን እና የደም ግፊትዎን ያስገቡ።",
+      "systolicMustExceedDiastolic": "ከፍተኛው ቁጥር ከዝቅተኛው መብለጥ አለበት።",
+      "err": {
+        "hrRequired": "የልብ ምትዎን ያስገቡ",
+        "hrRange": "የልብ ምት ከ20 እስከ 250 bpm መሆን አለበት",
+        "sysRequired": "ከፍተኛውን የደም ግፊት ያስገቡ",
+        "sysRange": "ከፍተኛው የደም ግፊት ከ40 እስከ 300 mmHg መሆን አለበት",
+        "diaRequired": "ዝቅተኛውን የደም ግፊት ያስገቡ",
+        "diaRange": "ዝቅተኛው የደም ግፊት ከ40 እስከ 300 mmHg መሆን አለበት"
+      },
+      "energyLevel": "የዛሬ የጉልበት ደረጃ",
+      "exhausted": "ደክሞኛል",
+      "energetic": "ጉልበት አለኝ",
+      "worseThanYesterday": "ከትናንት የከፋ ነው?",
+      "worseThanYesterdayHint": "ምልክቶቹ የከፉ ከሆኑ ይንኩ — ሐኪምዎ ያያል",
+      "note": "ማስታወሻ (አማራጭ)",
+      "none": "የለም",
+      "mild": "መጠነኛ",
+      "moderate": "መካከለኛ",
+      "severe": "ከባድ",
+      "no": "የለም",
+      "yes": "አዎ",
+      "next": "ቀጣይ"
+    },
+    "summary": {
+      "title": "የቼክ-ኢን ማጠቃለያ",
+      "subtitle": "የዛሬ ምልክቶችዎ",
+      "overall": "አጠቃላይ",
+      "done": "ተጠናቅቋል",
+      "field": {
+        "chestPain": "የደረት ህመም",
+        "shortnessOfBreath": "የትንፋሽ ማጠር",
+        "bloodPressure": "የደም ግፊት",
+        "heartRate": "የልብ ምት",
+        "swelling": "የእግር/ቁርጭምጭሚት እብጠት",
+        "energyLevel": "የጉልበት ደረጃ"
+      }
+    },
+    "history": {
+      "title": "የቼክ-ኢን ታሪክ",
+      "empty": "እስካሁን ቼክ-ኢን የለም"
+    }
+  },
 
   "activity": {},
 
-  "education": {}
+  "education": {
+    "tabTitle": "ትምህርት",
+    "tabSubtitle": "የልብ ጤና ትምህርት — ሙሉ በሙሉ ከመስመር ውጭ",
+    "topicsEmpty": "ምንም ርዕስ የለም",
+    "videoCaptionTip": "ጠቃሚ ምክር፦ በዩቲዩብ ላይ CC ይንኩ ከዚያ Settings > Auto-translate > አማርኛ ይምረጡ ለአማርኛ የግርጌ ጽሑፍ።",
+    "quiz": {
+      "notFound": "ለዚህ ርዕስ ምንም ጥያቄ የለም",
+      "cta": "ጥያቄውን ውሰዱ",
+      "questionOf": "ጥያቄ {current} ከ{total}",
+      "checkAnswer": "መልስ ያረጋግጡ",
+      "next": "ቀጣይ",
+      "finish": "ጨርስ",
+      "retake": "ጥያቄውን እንደገና ውሰዱ",
+      "done": "በጣም ጥሩ - ይህን ጥያቄ ጨርሰዋል።",
+      "correctLabel": "ትክክል",
+      "incorrectLabel": "ልክ አይደለም"
+    }
+  }
 }

@@ -4,12 +4,6 @@ import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// A labelled form field.
-///
-/// The label sits above the box rather than floating inside it: a floating
-/// label disappears once the field has content, and for a user who is not
-/// confident with forms, losing the question while answering it is a real
-/// usability problem (FR-LOC-004).
 class AppTextField extends StatelessWidget {
   const AppTextField({
     required this.label,
@@ -37,8 +31,6 @@ class AppTextField extends StatelessWidget {
   final String? hint;
   final String? helper;
 
-  /// Already-translated text. Validators across the app return translation
-  /// keys, so callers resolve the key before handing it here.
   final String? errorText;
 
   final TextInputType? keyboardType;
@@ -79,8 +71,8 @@ class AppTextField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             errorText: errorText,
-            // The theme already supplies the counter-free look; an explicit
-            // empty counter stops maxLength from adding "0/4" under a PIN box.
+            errorMaxLines: 4,
+
             counterText: '',
             prefixIcon: prefixIcon == null
                 ? null

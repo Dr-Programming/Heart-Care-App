@@ -5,8 +5,6 @@ import '../clinical/alert_evaluator.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// Colours for one clinical severity, kept in one place so a "watch" reading
-/// looks identical on the vitals list, the symptom history and the home card.
 class SeverityStyle {
   const SeverityStyle(this.foreground, this.background);
 
@@ -33,16 +31,9 @@ class SeverityStyle {
   };
 }
 
-/// A clinical status pill.
-///
-/// Colour alone never carries the meaning — the label is always present.
-/// Bright outdoor screens wash out hue (FR-LOC-008), and colour-blind users
-/// would otherwise get nothing.
 class StatusChip extends StatelessWidget {
   const StatusChip({required this.severity, this.label, super.key});
 
-  /// Reads the status straight off the server's `flagged` boolean, for lists
-  /// that have no finer signal than "flagged or not".
   const StatusChip.flagged({required bool flagged, String? label, Key? key})
     : this(
         severity: flagged ? Severity.monitor : Severity.none,
@@ -52,7 +43,6 @@ class StatusChip extends StatelessWidget {
 
   final Severity severity;
 
-  /// Overrides the default translated label.
   final String? label;
 
   @override

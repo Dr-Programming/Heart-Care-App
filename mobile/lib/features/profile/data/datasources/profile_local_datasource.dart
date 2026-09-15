@@ -1,68 +1,102 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' show Value;
 
-import '../../../../core/db/app_database.dart';
-import '../models/patient_profile_model.dart';
+import '../../../../core/db/app_database.dart' as drift;
+import '../../../../core/db/daos/preferences_dao.dart';
+import '../../domain/entities/health_goals.dart';
+import '../../domain/entities/patient_profile.dart';
 
-class ProfileLocalDatasource {
-  final AppDatabase db;
+class ProfileLocalDataSource {
+  const ProfileLocalDataSource({
+    required this.db,
+    required this.preferencesDao,
+  });
 
-  ProfileLocalDatasource(this.db);
+  final drift.AppDatabase db;
+  final PreferencesDao preferencesDao;
 
-  /// Returns the cached profile for this user, or an empty model if none has
-  /// been saved locally yet — mirrors the backend's "no 404" behavior.
-  Future<PatientProfileModel> getProfile(String userId) async {
-    final row = await (db.select(
+  String _dirtyKey(String userId) => 'profile_dirty_$userId';
+
+  Future<PatientProfile> getProfile(String userId) async {
+    final drift.PatientProfile? row = await (db.select(
       db.patientProfiles,
     )..where((t) => t.userId.equals(userId))).getSingleOrNull();
-
-    if (row == null) {
-      return const PatientProfileModel();
-    }
-
-    return _rowToModel(row);
+    return row == null ? PatientProfile.empty(userId) : _fromRow(row);
   }
 
-  /// Full upsert — always writes the complete profile, matching the
-  /// backend's full-replace PUT semantics.
-  Future<void> saveProfile(String userId, PatientProfileModel model) async {
+  Future<void> saveProfile(PatientProfile profile) async {
     await db
         .into(db.patientProfiles)
         .insertOnConflictUpdate(
-          PatientProfilesCompanion(
-            userId: Value(userId),
-            birthYear: Value(model.birthYear),
-            preferredLanguage: Value(model.preferredLanguage),
-            heightCm: Value(model.heightCm),
-            chdStage: Value(model.chdStage),
-            diseaseHistory: Value(model.diseaseHistory),
-            comorbiditiesJson: Value(jsonEncode(model.comorbidities)),
-            managementPlan: Value(model.managementPlan),
+          drift.PatientProfilesCompanion.insert(
+            userId: profile.userId,
+            birthYear: Value(profile.birthYear),
+            preferredLanguage: Value(profile.preferredLanguage),
+            heightCm: Value(profile.heightCm),
+            chdStage: Value(profile.chdStage),
+            diseaseHistory: Value(profile.diseaseHistory),
+            comorbiditiesJson: Value(jsonEncode(profile.comorbidities)),
+            managementPlan: Value(profile.managementPlan),
             goalsJson: Value(
-              model.goals == null ? null : jsonEncode(model.goals!.toJson()),
+              profile.goals == null
+                  ? null
+                  : jsonEncode(_goalsToJson(profile.goals!)),
             ),
-            updatedAt: Value(DateTime.now()),
+            updatedAt: DateTime.now(),
           ),
         );
   }
 
-  PatientProfileModel _rowToModel(PatientProfile row) {
-    return PatientProfileModel(
+  Future<bool> isDirty(String userId) async =>
+      await preferencesDao.get(_dirtyKey(userId)) == 'true';
+
+  Future<void> setDirty(String userId, bool value) =>
+      preferencesDao.set(_dirtyKey(userId), value.toString());
+
+  Future<void> deleteProfile(String userId) async {
+    await (db.delete(
+      db.patientProfiles,
+    )..where((t) => t.userId.equals(userId))).go();
+    await preferencesDao.remove(_dirtyKey(userId));
+  }
+
+  PatientProfile _fromRow(drift.PatientProfile row) {
+    return PatientProfile(
+      userId: row.userId,
       birthYear: row.birthYear,
       preferredLanguage: row.preferredLanguage,
       heightCm: row.heightCm,
       chdStage: row.chdStage,
       diseaseHistory: row.diseaseHistory,
-      comorbidities: List<String>.from(
-        jsonDecode(row.comorbiditiesJson) as List,
-      ),
+      comorbidities: (jsonDecode(row.comorbiditiesJson) as List<dynamic>)
+          .map((e) => e as String)
+          .toList(),
       managementPlan: row.managementPlan,
       goals: row.goalsJson == null
           ? null
-          : HealthGoalsModel.fromJson(
-              jsonDecode(row.goalsJson!) as Map<String, dynamic>,
-            ),
+          : _goalsFromJson(jsonDecode(row.goalsJson!) as Map<String, dynamic>),
+      updatedAt: row.updatedAt,
     );
   }
+
+  HealthGoals _goalsFromJson(Map<String, dynamic> json) {
+    return HealthGoals(
+      bpSystolic: json['bpSystolic'] as int?,
+      bpDiastolic: json['bpDiastolic'] as int?,
+      totalCholesterol: (json['totalCholesterol'] as num?)?.toDouble(),
+      stepsPerDay: json['stepsPerDay'] as int?,
+      targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
+      dietNote: json['dietNote'] as String?,
+    );
+  }
+
+  Map<String, dynamic> _goalsToJson(HealthGoals g) => <String, dynamic>{
+    'bpSystolic': g.bpSystolic,
+    'bpDiastolic': g.bpDiastolic,
+    'totalCholesterol': g.totalCholesterol,
+    'stepsPerDay': g.stepsPerDay,
+    'targetWeightKg': g.targetWeightKg,
+    'dietNote': g.dietNote,
+  };
 }
