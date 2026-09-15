@@ -3,13 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Poppins is the design font, but it ships **no Ethiopic glyphs** — Amharic
-/// text rendered in Poppins comes out as tofu. The Figma file never exposed
-/// this because it labels the language option "Amharic" in Latin script.
-///
-/// So: Latin locales get Poppins exactly as designed; the Amharic locale gets
-/// Noto Sans Ethiopic. This is an addition for a script the design font cannot
-/// draw, not a substitution of the design font.
 abstract final class AppTypography {
   static TextTheme textTheme(String languageCode) {
     final TextTheme base = languageCode == 'am'

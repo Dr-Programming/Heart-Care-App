@@ -2,11 +2,8 @@ import '../entities/patient_profile.dart';
 import '../repositories/profile_repository.dart';
 
 class SaveProfile {
-  final ProfileRepository repository;
+  const SaveProfile(this._repository);
+  final ProfileRepository _repository;
 
-  const SaveProfile(this.repository);
-
-  Future<PatientProfile> call(PatientProfile profile) {
-    return repository.saveProfile(profile);
-  }
+  Future<void> call(PatientProfile profile) => _repository.saveProfile(profile);
 }

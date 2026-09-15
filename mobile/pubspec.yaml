@@ -60,6 +60,7 @@ dependencies:
   fl_chart: ^1.1.1                # M4 vitals trend charts
   flutter_local_notifications: ^19.4.2  # M3 medication reminders
   timezone: ^0.10.1               # scheduling reminders at a local wall clock
+  url_launcher: ^6.3.2            # M5 learn - open external videos/citations
 
 dev_dependencies:
   flutter_test:
@@ -92,6 +93,7 @@ flutter:
   assets:
     - assets/translations/
     - assets/images/
+    - assets/content/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

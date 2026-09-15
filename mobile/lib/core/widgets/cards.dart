@@ -3,11 +3,83 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// A titled block of content.
-///
-/// The unit every screen is built from: one card per idea, an optional action
-/// in the corner. Use it instead of Material's `Card` so elevation, radius and
-/// padding stay identical across five people's screens.
+class AccentCard extends StatelessWidget {
+  const AccentCard({
+    required this.accent,
+    required this.icon,
+    required this.title,
+    required this.child,
+    this.action,
+    super.key,
+  });
+
+  final Color accent;
+  final IconData icon;
+  final String title;
+  final Widget child;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: <Widget>[
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            child: Container(width: 5, color: accent),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg + AppSpacing.xs,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, size: 18, color: accent),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    ?action,
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                child,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class SectionCard extends StatelessWidget {
   const SectionCard({
     required this.child,
@@ -21,7 +93,6 @@ class SectionCard extends StatelessWidget {
   final Widget child;
   final String? title;
 
-  /// Usually an `AppButton` with `AppButtonVariant.text`.
   final Widget? action;
   final EdgeInsets padding;
   final VoidCallback? onTap;
@@ -69,11 +140,6 @@ class SectionCard extends StatelessWidget {
   }
 }
 
-/// One number with its label and unit — a blood pressure, a weight, an
-/// adherence percentage.
-///
-/// [trailing] is where a `StatusChip` goes. [value] is rendered large because
-/// on the dashboard it is the only thing a user scanning quickly will read.
 class MetricTile extends StatelessWidget {
   const MetricTile({
     required this.label,
@@ -81,6 +147,7 @@ class MetricTile extends StatelessWidget {
     this.unit,
     this.caption,
     this.icon,
+    this.iconColor,
     this.trailing,
     this.onTap,
     super.key,
@@ -88,14 +155,12 @@ class MetricTile extends StatelessWidget {
 
   final String label;
 
-  /// Already formatted. Pass "—" when there is no reading yet rather than
-  /// hiding the tile: an empty slot tells the user what they could record.
   final String value;
   final String? unit;
 
-  /// Usually a relative timestamp — "2 hours ago".
   final String? caption;
   final IconData? icon;
+  final Color? iconColor;
   final Widget? trailing;
   final VoidCallback? onTap;
 
@@ -107,7 +172,18 @@ class MetricTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         if (icon != null) ...<Widget>[
-          Icon(icon, size: 20, color: AppColors.textSecondary),
+          if (iconColor == null)
+            Icon(icon, size: 20, color: AppColors.textSecondary)
+          else
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: iconColor!.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 21, color: iconColor),
+            ),
           const SizedBox(width: AppSpacing.md),
         ],
         Expanded(

@@ -12,8 +12,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
-  // Portrait only. The design is drawn for one orientation, and a rotated
-  // form on a low-end phone is a reliable way to lose half-entered input.
   await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
     DeviceOrientation.portraitUp,
   ]);
@@ -25,9 +23,7 @@ Future<void> main() async {
           .toList(growable: false),
       path: 'assets/translations',
       fallbackLocale: AppLanguage.en.locale,
-      // Amharic is a full alternative, not a partial translation
-      // (FR-LOC-002). Falling back key-by-key would produce screens that mix
-      // scripts, so a missing key is a bug to fix rather than to paper over.
+
       useFallbackTranslations: true,
       child: ProviderScope(
         overrides: featureOverrides(),
@@ -47,8 +43,7 @@ class LibuCareApp extends ConsumerWidget {
     return MaterialApp.router(
       onGenerateTitle: (BuildContext context) => 'app.name'.tr(),
       debugShowCheckedModeBanner: false,
-      // The theme depends on the locale: Poppins has no Ethiopic glyphs, so
-      // Amharic needs a different family. See AppTypography.
+
       theme: AppTheme.light(context.locale.languageCode),
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,

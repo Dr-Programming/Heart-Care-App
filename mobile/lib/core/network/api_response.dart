@@ -1,8 +1,5 @@
-/// The envelope every Heart-Care endpoint returns, success or error:
-/// `{ "success": bool, "data": T|null, "message": string, "timestamp": string }`.
-///
-/// Note the API returns **200 for creates as well** — there is no 201 anywhere,
-/// so callers must never treat 201 as the success case.
+
+
 class ApiResponse<T> {
   const ApiResponse({
     required this.success,

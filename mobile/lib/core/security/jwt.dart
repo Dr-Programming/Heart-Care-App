@@ -1,11 +1,5 @@
 import 'dart:convert';
 
-/// Reads the `exp` claim without verifying the signature.
-///
-/// Verification is the server's job — this only exists so the auth gate can
-/// avoid routing a user to Home with a token the server will reject. Anything
-/// unreadable counts as expired: failing closed sends the user to Login, which
-/// is recoverable, while failing open strands them on a broken Home screen.
 bool isJwtExpired(String token, {DateTime? now}) {
   final DateTime reference = now ?? DateTime.now().toUtc();
 

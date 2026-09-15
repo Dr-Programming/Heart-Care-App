@@ -3,11 +3,6 @@ import 'package:dio/dio.dart';
 import '../error/failure.dart';
 import 'interceptors/auth_token_interceptor.dart';
 
-/// Builds the app's single configured Dio instance.
-///
-/// Timeouts are deliberately generous: the target deployment is intermittent
-/// Ethiopian mobile data, where a 5-second timeout would fail requests that
-/// would otherwise have succeeded.
 Dio buildDio({
   required String baseUrl,
   required Future<String?> Function() readToken,
@@ -19,8 +14,7 @@ Dio buildDio({
       receiveTimeout: const Duration(seconds: 20),
       sendTimeout: const Duration(seconds: 20),
       contentType: Headers.jsonContentType,
-      // Let every status through to the error mapper rather than having Dio
-      // throw its own opaque error for 4xx.
+
       validateStatus: (int? status) => status != null && status < 400,
     ),
   );
@@ -33,11 +27,6 @@ Dio buildDio({
 const String _offlineMessage =
     'No connection. Check your network and try again.';
 
-/// The single place that knows how an HTTP status becomes a `Failure`.
-///
-/// Written as if/return rather than a switch: Dart forbids falling through a
-/// non-empty `case`, and `unknown` needs to fall through to the status-code
-/// path whenever a response is present.
 Failure failureFromDioException(DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionTimeout:
@@ -55,7 +44,6 @@ Failure failureFromDioException(DioException e) {
       break;
   }
 
-  // No response body to classify — treat as a transport failure.
   if (e.response == null) return const NetworkFailure(_offlineMessage);
 
   final Response<dynamic>? response = e.response;
@@ -77,8 +65,6 @@ Failure failureFromDioException(DioException e) {
   };
 }
 
-/// Pulls `message` out of the standard envelope, falling back to something
-/// printable if the body is not the shape we expect.
 String _messageFrom(Response<dynamic>? response) {
   final dynamic data = response?.data;
   if (data is Map && data['message'] is String) {

@@ -6,14 +6,6 @@ import '../providers/core_providers.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// Tells the user that the app is offline and that nothing is being lost.
-///
-/// The reassurance is the point. Offline is the expected state on intermittent
-/// Ethiopian mobile data, not an error, so this is an amber strip rather than
-/// a red one and it never blocks input. Anything the user records while it is
-/// showing is saved locally and queued (FR-OFF-001).
-///
-/// [AppScaffold] shows this automatically — screens do not place it by hand.
 class OfflineBanner extends ConsumerWidget {
   const OfflineBanner({super.key});
 
@@ -22,8 +14,6 @@ class OfflineBanner extends ConsumerWidget {
     final AsyncValue<bool> online = ref.watch(onlineStatusProvider);
     final int pending = ref.watch(pendingSyncCountProvider).value ?? 0;
 
-    // While connectivity is still unknown, say nothing. Flashing an offline
-    // strip for one frame on every cold start is worse than a moment's delay.
     if (online.value ?? true) {
       return pending > 0
           ? _Strip(

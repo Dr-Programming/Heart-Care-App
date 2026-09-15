@@ -4,18 +4,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'offline_banner.dart';
 
-/// The page frame every screen uses.
-///
-/// Three things it centralises so five people's screens stay one app:
-///
-///  * the cream header band from the Figma frames, and the 30dp gutter that
-///    gives the 342dp content column the design was drawn against;
-///  * the offline / pending-sync strip, which appears on every screen without
-///    anyone having to remember it;
-///  * consistent back-button and title treatment.
-///
-/// Use `AppScaffold.banded` for a screen that opens a flow (login, a wizard
-/// step, a tab root); the plain constructor for everything nested below one.
 class AppScaffold extends StatelessWidget {
   const AppScaffold({
     required this.body,
@@ -31,7 +19,6 @@ class AppScaffold extends StatelessWidget {
   }) : bandHeight = 0,
        bandChild = null;
 
-  /// A screen topped by the brand's cream band.
   const AppScaffold.banded({
     required this.body,
     this.bandChild,
@@ -52,16 +39,11 @@ class AppScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final bool showBack;
 
-  /// Pinned to the bottom, outside the scroll area — where a form's primary
-  /// action goes so it stays reachable with the keyboard open.
   final Widget? bottomBar;
   final Widget? floatingActionButton;
 
-  /// Wraps [body] in a scroll view. Leave false when the body is itself a
-  /// `ListView`, or the list will be unbounded.
   final bool scrollable;
 
-  /// Applies the design's 30dp side gutter.
   final bool padded;
   final Color? backgroundColor;
   final double bandHeight;
@@ -89,7 +71,7 @@ class AppScaffold extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.surface,
-      appBar: title == null && !showBack
+      appBar: !_hasAppBar
           ? null
           : AppBar(
               backgroundColor: _hasBand
@@ -117,20 +99,57 @@ class AppScaffold extends StatelessWidget {
             ),
       body: Column(
         children: <Widget>[
-          const OfflineBanner(),
-          if (_hasBand)
-            Container(
-              width: double.infinity,
-              height: bandHeight,
-              color: AppColors.headerBand,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.gutter,
-              ),
-              child: bandChild,
-            ),
+          if (_hasAppBar)
+            _bandColumn
+          else
+            SafeArea(top: true, bottom: false, child: _bandColumn),
           Expanded(child: SafeArea(top: false, child: content)),
         ],
       ),
     );
   }
+
+  bool get _hasAppBar => title != null || showBack;
+
+  Widget get _bandColumn => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      const OfflineBanner(),
+      if (_hasBand)
+        Stack(
+          children: <Widget>[
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(minHeight: bandHeight),
+              color: AppColors.headerBand,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.xs,
+                AppSpacing.gutter,
+                AppSpacing.sm,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Center(
+                    child: Image.asset(
+                      'assets/images/logo_band.png',
+                      height: 52,
+                    ),
+                  ),
+                  ?bandChild,
+                ],
+              ),
+            ),
+            if (!_hasAppBar && actions != null && actions!.isNotEmpty)
+              Positioned(
+                top: AppSpacing.xs,
+                right: AppSpacing.sm,
+                child: Row(mainAxisSize: MainAxisSize.min, children: actions!),
+              ),
+          ],
+        ),
+    ],
+  );
 }
