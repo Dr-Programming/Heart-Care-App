@@ -492,16 +492,26 @@ Assign ownership: one person owns `medication/` end-to-end (Flutter feature + Sp
 ## 6. Git Branch Strategy
 
 ```
-main                  ← Production-ready code only. Protected branch.
-  └── dev             ← Integration branch. All features merge here first.
-        ├── feature/auth-module
-        ├── feature/medication-module
-        ├── feature/vitals-module
-        ├── feature/offline-sync
-        └── feature/clinician-view
+main                  ← Production-ready code only.
+  └── dev             ← Integration branch.
+        ├── feature/<backend-module>        backend slices (all merged)
+        └── mobile                          Flutter foundation + team integration
+              ├── feature/mobile/auth
+              ├── feature/mobile/profile
+              ├── feature/mobile/medications
+              ├── feature/mobile/vitals
+              └── feature/mobile/symptoms-activity
 ```
 
-Pull requests go from `feature/*` → `dev`. Only the team lead merges `dev` → `main` after testing.
+Frontend slices PR into `mobile`; `mobile` merges to `dev` at milestones. Only
+the team lead merges `dev` → `main` after testing.
+
+> **No branch is mechanically protected.** GitHub gates branch protection and
+> rulesets behind a paid plan for private repositories, so the rules above are
+> enforced by convention and code review, not by the platform. CI still runs
+> on every PR into `mobile` and fails loudly on a boundary violation — the
+> standing rule is that a red PR is never merged. Revisit if the repository
+> ever goes public or onto GitHub Pro.
 
 ---
 
