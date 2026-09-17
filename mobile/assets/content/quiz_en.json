@@ -1,0 +1,205 @@
+[
+  {
+    "topicId": "chd-basics",
+    "questions": [
+      {
+        "question": "What actually happens in coronary heart disease?",
+        "options": [
+          { "text": "Plaque builds up in the arteries that supply the heart", "correct": true, "explanation": "Right - that build-up is what narrows the arteries and reduces blood flow to the heart." },
+          { "text": "The heart becomes too large", "correct": false, "explanation": "Not quite - CHD is about narrowed arteries, not the size of the heart itself." },
+          { "text": "An infection in the heart valves", "correct": false, "explanation": "That describes a different condition. CHD is caused by plaque build-up in the coronary arteries." }
+        ]
+      },
+      {
+        "question": "Which of these is a risk factor you CAN change?",
+        "options": [
+          { "text": "Family history", "correct": false, "explanation": "Family history matters, but it's not something you can change." },
+          { "text": "Smoking", "correct": true, "explanation": "Right - quitting smoking is one of the most powerful changes you can make for your heart." },
+          { "text": "Age", "correct": false, "explanation": "Getting older is a real risk factor, but it isn't something you can change." }
+        ]
+      },
+      {
+        "question": "According to Ethiopia's 2015 national survey, roughly how many adults have high blood pressure?",
+        "options": [
+          { "text": "About 1 in 6", "correct": true, "explanation": "Correct - the survey found hypertension in about 15.8% of adults, close to 1 in 6." },
+          { "text": "About 1 in 100", "correct": false, "explanation": "The real figure is much higher - about 15.8%, not 1%." },
+          { "text": "About 1 in 2", "correct": false, "explanation": "That overstates it - the survey found about 15.8%, not 50%." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "symptoms",
+    "questions": [
+      {
+        "question": "Where is angina discomfort typically felt?",
+        "options": [
+          { "text": "Behind the breastbone", "correct": true, "explanation": "Right - that's the typical location, though it can radiate elsewhere." },
+          { "text": "Only in the left foot", "correct": false, "explanation": "Angina is a chest symptom, not a foot symptom." },
+          { "text": "Only in the ears", "correct": false, "explanation": "That's not a typical location for angina." }
+        ]
+      },
+      {
+        "question": "Which of these makes angina 'unstable' and a medical emergency?",
+        "options": [
+          { "text": "It happens at rest, is new, or is more severe than usual", "correct": true, "explanation": "Right - any of these makes it unstable angina, which needs urgent care." },
+          { "text": "It happens only after climbing stairs", "correct": false, "explanation": "That pattern - predictable, exertion-related, and short-lived - describes stable angina, not unstable." },
+          { "text": "It goes away after 2 minutes of rest", "correct": false, "explanation": "Settling quickly with rest is a feature of stable angina, not unstable angina." }
+        ]
+      },
+      {
+        "question": "Besides chest discomfort, which of these is a common accompanying sign?",
+        "options": [
+          { "text": "Shortness of breath", "correct": true, "explanation": "Right - shortness of breath, cold sweat, and nausea often accompany angina or ACS." },
+          { "text": "Improved appetite", "correct": false, "explanation": "That's not a symptom associated with angina or ACS." },
+          { "text": "Better sleep", "correct": false, "explanation": "That's not a symptom associated with angina or ACS." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "heart-attack",
+    "questions": [
+      {
+        "question": "Which of these is a LESS well-known heart attack sign, more common in women?",
+        "options": [
+          { "text": "Jaw or back pain, sweating, or dizziness", "correct": true, "explanation": "Right - these signs are real but less well-known than chest pain, and are common in women." },
+          { "text": "Chest pain", "correct": false, "explanation": "Chest pain is the well-known sign, not the less-known one this question is asking about." },
+          { "text": "A runny nose", "correct": false, "explanation": "A runny nose is not a heart attack warning sign." }
+        ]
+      },
+      {
+        "question": "What should you do if you notice heart attack warning signs?",
+        "options": [
+          { "text": "Wait a few hours to see if it goes away on its own", "correct": false, "explanation": "Waiting hours risks serious harm - act promptly instead." },
+          { "text": "Tell someone right away, and call your emergency contact if it's severe or doesn't improve in about 10 minutes", "correct": true, "explanation": "Right - every minute matters when it comes to a heart attack." },
+          { "text": "Ignore it if you feel fine otherwise", "correct": false, "explanation": "Warning signs should never be ignored, even if you otherwise feel okay." }
+        ]
+      },
+      {
+        "question": "Why does every minute matter during a heart attack?",
+        "options": [
+          { "text": "The longer it takes to get help, the more the heart muscle can be damaged", "correct": true, "explanation": "Right - quick action limits the damage to the heart." },
+          { "text": "It doesn't - there's no rush", "correct": false, "explanation": "There is a real rush - delay increases the damage to the heart." },
+          { "text": "Only the first 24 hours matter", "correct": false, "explanation": "It's the first minutes, not the first day, that matter most." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "diet",
+    "questions": [
+      {
+        "question": "Is a heart-healthy eating pattern a strict, restrictive diet?",
+        "options": [
+          { "text": "No - it's a pattern of foods chosen regularly, over time", "correct": true, "explanation": "Right - it's about a sustainable pattern, not a restrictive short-term diet." },
+          { "text": "Yes - you must cut out entire food groups", "correct": false, "explanation": "That's not how a heart-healthy eating pattern works - it's about balance, not elimination." },
+          { "text": "Yes - it means eating the same single meal every day", "correct": false, "explanation": "There's real variety in a heart-healthy pattern - it isn't one repeated meal." }
+        ]
+      },
+      {
+        "question": "Which is a good example of the 'protein-rich foods' step?",
+        "options": [
+          { "text": "Shiro, misir, and kik most days, with fish", "correct": true, "explanation": "Right - legumes and fish are the best options, with smaller amounts of eggs and lean meat." },
+          { "text": "Fried food every day", "correct": false, "explanation": "Fried food is not part of the recommended protein-rich pattern." },
+          { "text": "Only red meat every day", "correct": false, "explanation": "Lean red meat should be limited, not eaten daily as the main protein source." }
+        ]
+      },
+      {
+        "question": "What's the easiest way to cut down on salt?",
+        "options": [
+          { "text": "Choose fresh, unprocessed foods and flavour with herbs and spices instead", "correct": true, "explanation": "Right - processed and packaged foods are the biggest source of hidden salt." },
+          { "text": "Add extra salt to make food taste better", "correct": false, "explanation": "That increases salt intake, which raises blood pressure risk - the opposite of the goal." },
+          { "text": "Eat more canned and packaged food", "correct": false, "explanation": "Canned and packaged foods are usually high in salt, not a way to reduce it." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "exercise",
+    "questions": [
+      {
+        "question": "How much moderate activity is recommended most days of the week?",
+        "options": [
+          { "text": "30-60 minutes", "correct": true, "explanation": "Right - that's the recommended range, built up gradually from a smaller starting point." },
+          { "text": "5 hours", "correct": false, "explanation": "That's far more than the recommended amount - start smaller and build up." },
+          { "text": "None - rest is always better", "correct": false, "explanation": "Regular activity, not rest, is what reduces heart disease risk." }
+        ]
+      },
+      {
+        "question": "What's a good way to stay motivated to be active?",
+        "options": [
+          { "text": "Choose activities you enjoy and involve friends or family", "correct": true, "explanation": "Right - enjoyment and social support both help activity stick." },
+          { "text": "Only do activities you dislike, to build discipline", "correct": false, "explanation": "Disliking an activity makes it much harder to keep doing - enjoyment matters." },
+          { "text": "Wait until you feel highly motivated before starting", "correct": false, "explanation": "Starting small and building the habit works better than waiting for motivation to appear." }
+        ]
+      },
+      {
+        "question": "Why does sitting less matter, even if you exercise sometimes?",
+        "options": [
+          { "text": "People who sit less throughout the day have a lower risk of early death", "correct": true, "explanation": "Right - reducing sitting time throughout the day is its own separate benefit." },
+          { "text": "It doesn't matter as long as you exercise once a week", "correct": false, "explanation": "Time spent sitting through the rest of the day matters on its own, separate from exercise sessions." },
+          { "text": "Sitting is always better for the heart", "correct": false, "explanation": "Prolonged sitting is linked to higher risk, not lower." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "medication-adherence",
+    "questions": [
+      {
+        "question": "Why might a prevention medication feel like it's 'doing nothing'?",
+        "options": [
+          { "text": "It works silently in the background to prevent future problems, without an obvious day-to-day feeling", "correct": true, "explanation": "Right - that's exactly how prevention medications work, unlike symptom-relief ones." },
+          { "text": "Because it genuinely does nothing and can be stopped safely", "correct": false, "explanation": "Feeling nothing doesn't mean it isn't working - stopping it can undo real protection." },
+          { "text": "Because only symptom-relief medications actually work", "correct": false, "explanation": "Both kinds of medication do real work - they just work in different, sometimes invisible, ways." }
+        ]
+      },
+      {
+        "question": "What should you do before stopping or changing a heart medication?",
+        "options": [
+          { "text": "Talk to your clinician first", "correct": true, "explanation": "Right - never change or stop a heart medication on your own." },
+          { "text": "Just stop it once you feel better", "correct": false, "explanation": "Feeling better is often a sign the medication is working, not a signal to stop it." },
+          { "text": "Ask a friend or family member for advice instead", "correct": false, "explanation": "This decision needs your clinician, who knows your full medical picture." }
+        ]
+      },
+      {
+        "question": "What is the job of a symptom-relief heart medication?",
+        "options": [
+          { "text": "Easing the heart's workload to reduce chest pain and allow more activity", "correct": true, "explanation": "Right - that's the symptom-relief job, distinct from disease-prevention." },
+          { "text": "Curing coronary heart disease completely", "correct": false, "explanation": "No current medication cures CHD outright - these medications manage and reduce risk." },
+          { "text": "Replacing the need for a heart-healthy lifestyle", "correct": false, "explanation": "Medication works alongside diet, activity, and other lifestyle changes - not instead of them." }
+        ]
+      }
+    ]
+  },
+  {
+    "topicId": "psychosocial",
+    "questions": [
+      {
+        "question": "About how much more likely is a smoker to die of a heart attack or stroke?",
+        "options": [
+          { "text": "About four times more likely", "correct": true, "explanation": "Right - that's the real increase in risk from smoking." },
+          { "text": "Not more likely at all", "correct": false, "explanation": "Smoking substantially raises this risk - it isn't neutral." },
+          { "text": "About four times LESS likely", "correct": false, "explanation": "It's the opposite direction - smoking increases the risk, not decreases it." }
+        ]
+      },
+      {
+        "question": "What does the 'D' in 'Delay' mean in the 5 D's technique?",
+        "options": [
+          { "text": "Wait out the craving, even briefly - it will pass", "correct": true, "explanation": "Right - a craving is temporary, and delaying gives it time to fade." },
+          { "text": "Decide to smoke later instead of now", "correct": false, "explanation": "Delay means waiting out the urge without smoking, not postponing a cigarette." },
+          { "text": "Give up on quitting for the day", "correct": false, "explanation": "Delay is about getting through one craving, not giving up on the whole attempt." }
+        ]
+      },
+      {
+        "question": "How soon does heart attack and stroke risk start to drop after quitting?",
+        "options": [
+          { "text": "Almost straight away", "correct": true, "explanation": "Right - the risk reduction begins quickly, which is real encouragement to quit." },
+          { "text": "Only after 10 years", "correct": false, "explanation": "The benefit starts much sooner than that, even though full risk reduction builds over time." },
+          { "text": "It never changes once you've smoked", "correct": false, "explanation": "Quitting does genuinely lower risk, starting soon after you stop." }
+        ]
+      }
+    ]
+  }
+]

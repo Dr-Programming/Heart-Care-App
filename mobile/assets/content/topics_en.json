@@ -1,0 +1,364 @@
+[
+  {
+    "id": "chd-basics",
+    "title": "Understanding coronary heart disease",
+    "summary": "What CHD is, and the main things that raise your risk.",
+    "sections": [
+      {
+        "title": "What is coronary heart disease?",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Coronary heart disease (CHD), also called coronary artery disease, happens when plaque builds up inside the arteries that carry oxygen-rich blood to your heart. Over time this narrows the arteries, so your heart does not get all the blood it needs, especially when it is working harder."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Read more from the Heart Foundation",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease",
+            "kind": "article"
+          }
+        ]
+      },
+      {
+        "title": "What raises your risk",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "High blood pressure",
+              "High LDL (\"bad\") cholesterol",
+              "Diabetes",
+              "Not being active enough, and carrying extra weight",
+              "Smoking",
+              "An unhealthy diet",
+              "Getting older",
+              "A family history of heart disease",
+              "Long-term stress"
+            ]
+          },
+          {
+            "type": "callout",
+            "style": "info",
+            "text": "Most of these risk factors can be managed. Small, steady changes - like the ones in the other Learn topics - make a real difference over time."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Watch: Lowering your risk of heart disease",
+            "url": "https://www.youtube.com/watch?v=2UMbE91HdpM",
+            "kind": "video"
+          }
+        ]
+      },
+      {
+        "title": "What your Vitals check flags",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "When you log a blood pressure reading in the Vitals tab, the app checks it against the same thresholds shown below - so what you see there and what you learn here always agree."
+          },
+          {
+            "type": "chart",
+            "chartType": "categoryRanges",
+            "title": "Systolic blood pressure: what gets flagged",
+            "citation": "The same systolic thresholds your Heart Care app uses to flag a Vitals reading.",
+            "unit": "mmHg",
+            "ranges": [
+              { "label": "Low - flagged", "low": 0, "high": 90, "severity": "urgent" },
+              { "label": "Typical range", "low": 91, "high": 179, "severity": "none" },
+              { "label": "High - flagged", "low": 180, "high": 300, "severity": "urgent" }
+            ]
+          },
+          {
+            "type": "chart",
+            "chartType": "bar",
+            "title": "How common are these risk factors in Ethiopia?",
+            "citation": "2015 Ethiopia National NCDs STEPS Survey (WHO STEPS, 10,260 adults aged 15-69), published in PLOS ONE.",
+            "unit": "%",
+            "bars": [
+              { "label": "High blood pressure", "value": 15.8 },
+              { "label": "High LDL cholesterol", "value": 14.1 },
+              { "label": "Low HDL cholesterol", "value": 68.7 },
+              { "label": "Diabetes", "value": 3.2 }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "symptoms",
+    "title": "Recognising the signs and symptoms",
+    "summary": "What angina feels like, and how to tell a warning sign from an emergency.",
+    "sections": [
+      {
+        "title": "Two ways CHD can show up",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Coronary heart disease usually shows up in one of two ways: chronic stable angina, which is predictable chest discomfort brought on by exertion, or acute coronary syndrome (ACS) - a medical emergency that includes unstable angina and heart attack."
+          }
+        ]
+      },
+      {
+        "title": "What angina feels like",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Quality: often described as pressure, squeezing, fullness, heaviness, or burning - rarely a sharp, stabbing pain",
+              "Location: typically felt behind the breastbone",
+              "Radiation: may spread to the shoulders, arms (often the left arm), neck, jaw, or back"
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Stable vs. unstable - and other signs",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Stable angina happens at predictable times - climbing stairs, emotional stress, a heavy meal - and usually settles within 5 minutes of rest."
+          },
+          {
+            "type": "callout",
+            "style": "warning",
+            "text": "Unstable angina is different and dangerous: it can happen at rest, be new, or be more severe and longer-lasting than usual, and it does not go away with rest. Treat it as a medical emergency."
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "Pain or discomfort in one or both arms, the back, neck, jaw, or stomach",
+              "Shortness of breath",
+              "Cold sweat, nausea, vomiting, or lightheadedness"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "heart-attack",
+    "title": "Heart attack warning signs",
+    "summary": "The signs to know, and what to do if you notice them.",
+    "sections": [
+      {
+        "title": "Common warning signs",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Pain or discomfort in the chest, arm, or shoulder",
+              "Pain that spreads to the back, neck, or jaw",
+              "Shortness of breath",
+              "Sweating",
+              "Feeling sick or vomiting",
+              "Dizziness or feeling lightheaded",
+              "Extreme tiredness"
+            ]
+          },
+          {
+            "type": "callout",
+            "style": "info",
+            "text": "Some of these signs - sweating, dizziness, back or jaw pain - are less well known but are common, especially in women. A heart attack does not always feel like the chest-clutching moment shown on TV."
+          }
+        ]
+      },
+      {
+        "title": "What to do",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "If you notice these signs, tell someone how you feel straight away - do not wait to see if they pass."
+          },
+          {
+            "type": "callout",
+            "style": "warning",
+            "text": "Call your emergency contact now if the symptoms are severe, or if they do not improve within about 10 minutes. Every minute matters - the longer it takes to get help, the more the heart muscle can be damaged."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Read more from the Heart Foundation",
+            "url": "https://www.heartfoundation.org.au/your-heart/heart-attack-warning-signs",
+            "kind": "article"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "diet",
+    "title": "Eating well for your heart",
+    "summary": "A 5-step Ethiopian heart-healthy eating pattern - not a strict diet.",
+    "sections": [
+      {
+        "title": "It's a pattern, not a restriction",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "A heart-healthy way of eating is not about cutting everything out. It is a pattern of foods you choose regularly, over time, that is naturally lower in unhealthy fat, salt, and added sugar, and rich in fibre, healthy fats, and protein."
+          }
+        ]
+      },
+      {
+        "title": "Your 5-step pattern",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "1. Plenty of vegetables, fruit, and whole grains - gomen, ye'abesha gomen, timatim salata, and whole-grain teff injera or kita instead of refined grains",
+              "2. A variety of protein-rich foods - shiro, misir, and kik (legumes) most days, with fish, and smaller amounts of eggs and lean meat",
+              "3. Milk, yogurt, and cheese - ergo (Ethiopian yogurt) and other dairy in moderation; unflavoured, lower-fat options are the healthiest choice if you have heart disease or high cholesterol",
+              "4. Healthy fats and oils - niger seed (nug) oil in place of butter or fatty meat drippings; fish 2-3 times a week if you eat it",
+              "5. Flavour with herbs and spices instead of salt - garlic, ginger, koseret, and rue add real flavour without the salt in heavy berbere or added table salt"
+            ]
+          },
+          {
+            "type": "callout",
+            "style": "info",
+            "text": "Too much salt is a real risk factor for high blood pressure. Cutting back on processed and packaged foods, and flavouring meals with herbs and spices instead, is the easiest way to reduce it."
+          }
+        ]
+      },
+      {
+        "title": "Where this comes from",
+        "blocks": [
+          {
+            "type": "referenceLink",
+            "label": "Heart Foundation's heart-healthy eating pattern",
+            "url": "https://www.heartfoundation.org.au/healthy-living/healthy-eating/heart-healthy-eating-pattern",
+            "kind": "article"
+          },
+          {
+            "type": "referenceLink",
+            "label": "Ethiopian Public Health Institute booklet",
+            "url": "https://ephi.gov.et/wp-content/uploads/2021/02/Booklet_web.pdf",
+            "kind": "article"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "exercise",
+    "title": "Staying physically active",
+    "summary": "Why moving more helps your heart, and simple ways to do it.",
+    "sections": [
+      {
+        "title": "Why it helps",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Regular physical activity reduces your risk of a heart attack and helps control common heart disease risk factors, including high blood pressure, high cholesterol, and carrying extra weight. It can also help you feel more energetic, happier, and relaxed."
+          }
+        ]
+      },
+      {
+        "title": "Tips for being more active",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Move more - any activity is better than none",
+              "Set realistic goals - start small and build up toward 30-60 minutes of moderate activity most days of the week",
+              "Choose activities you enjoy - you're more likely to keep doing them",
+              "Get social - being active with friends, family, or even a dog helps you stay motivated",
+              "Sit less - people who sit less through the day have a lower risk of early death, especially from heart disease"
+            ]
+          },
+          {
+            "type": "referenceLink",
+            "label": "Read more from the Heart Foundation",
+            "url": "https://www.heartfoundation.org.au/healthy-living/physical-activity/physical-activity-and-exercise",
+            "kind": "article"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "medication-adherence",
+    "title": "Why your medication matters",
+    "summary": "Two different jobs your heart medications do, and why taking them as prescribed counts.",
+    "sections": [
+      {
+        "title": "Two kinds of medicine, two jobs",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Heart medications generally do one of two jobs. Some relieve symptoms and improve day-to-day life by easing the heart's workload. Others work silently in the background to prevent future heart attacks, strokes, and worsening disease - you may not feel any different from taking them, but they are still working."
+          },
+          {
+            "type": "bulletList",
+            "items": [
+              "Symptom relief: eases chest pain and allows more activity",
+              "Disease prevention: protects against future heart attacks and strokes, even without a noticeable day-to-day feeling"
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Why sticking with your plan matters",
+        "blocks": [
+          {
+            "type": "callout",
+            "style": "warning",
+            "text": "Prevention medications often work with no symptoms to remind you they're needed. Stopping them because you feel fine can undo their protection - never change or stop a medication without talking to your clinician first."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Read more from the Heart Foundation",
+            "url": "https://www.heartfoundation.org.au/your-heart/coronary-heart-disease",
+            "kind": "article"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "psychosocial",
+    "title": "Coping and quitting smoking",
+    "summary": "How smoking affects your heart, and a real technique for getting through a craving.",
+    "sections": [
+      {
+        "title": "Why it matters",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "Smoking damages the blood vessels leading to your heart, brain, and other parts of your body. It makes you about four times more likely to die of a heart attack or stroke, and three times more likely to die from sudden cardiac death."
+          },
+          {
+            "type": "callout",
+            "style": "info",
+            "text": "The good news: when you quit, your risk of heart attack and stroke starts dropping almost straight away."
+          }
+        ]
+      },
+      {
+        "title": "Getting through a craving: the 5 D's",
+        "blocks": [
+          {
+            "type": "bulletList",
+            "items": [
+              "Delay - even for a short while, the urge will pass",
+              "Drink water - slowly, and give the craving time to fade",
+              "Deep breathing - a few slow breaths can ease the urge",
+              "Do something different - change what you're doing or where you are",
+              "Discuss the craving - talk it through with someone else"
+            ]
+          },
+          {
+            "type": "callout",
+            "style": "info",
+            "text": "Quitting isn't always easy, and it can take more than one try. Planning, practice, and support all help - and support is available if you're finding it hard."
+          },
+          {
+            "type": "referenceLink",
+            "label": "Read more from the Heart Foundation",
+            "url": "https://www.heartfoundation.org.au/about-us/advocacy/smoking-and-tobacco-regulation",
+            "kind": "article"
+          }
+        ]
+      }
+    ]
+  }
+]
