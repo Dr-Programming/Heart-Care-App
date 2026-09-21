@@ -3,19 +3,25 @@
 ## Prerequisites
 - Java 21, Maven 3.9+, Docker (running).
 
-## Local database
+## Local stack (Docker)
 From the repo root:
 ```bash
-docker compose up -d      # starts postgres:16 on localhost:5432 — works out of the box
-docker compose down       # stop
+docker compose up -d --build   # postgres:16 on localhost:5432 + the API on localhost:8080
+docker compose logs -f backend # follow API logs
+docker compose down            # stop both
 ```
-`docker compose up -d` works without a `.env` file; `docker-compose.yml` supplies `heartcare` as the
-default db, user, and password. Copy `.env.example` to `.env` only when you want to override those
-values or set a strong `JWT_SECRET` for a shared/production environment.
+The API needs `JWT_SECRET`, which has no default anywhere: copy `.env.example` to `.env` and set it.
+Without it the `backend` container exits at startup. `docker-compose.yml` supplies `heartcare` as the
+default db, user, and password, so those can stay unset. Inside the compose network the API reaches
+the database as `postgres:5432`, via `SPRING_DATASOURCE_URL` overriding `application-dev.yml`.
 
-## Running & testing
+`--build` is needed after backend code changes; the image does not rebuild on its own.
+
+## Running & testing on the host
 ```bash
+docker compose up -d postgres                   # database only; works without a .env
 cd backend
+export JWT_SECRET=$(openssl rand -base64 48)    # mvn does not read .env
 mvn spring-boot:run                             # run API (profile: dev)
 mvn test                                        # all tests (uses Testcontainers → needs Docker)
 mvn test -Dtest=AuthControllerIntegrationTest   # single test class

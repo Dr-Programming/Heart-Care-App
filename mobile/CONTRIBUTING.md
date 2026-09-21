@@ -45,9 +45,8 @@ and only prints a warning.
 Run against a local backend:
 
 ```bash
-# from the repo root, in another terminal
-docker compose up -d
-mvn -f backend/pom.xml spring-boot:run
+# from the repo root (first time: cp .env.example .env and set JWT_SECRET)
+docker compose up -d --build
 
 # then
 cd mobile

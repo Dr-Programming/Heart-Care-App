@@ -16,5 +16,25 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: ./backend
+    container_name: heartcare-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Inside the compose network the database is reached by service name, not localhost.
+      # This overrides the localhost URL in application-dev.yml.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-heartcare}
+      POSTGRES_USER: ${POSTGRES_USER:-heartcare}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-heartcare}
+      # Deliberately no default, same as application.yml: set it in .env (see .env.example).
+      # Left empty when unset rather than failing interpolation, so `docker compose up -d postgres`
+      # still works without a .env. The backend itself refuses to start on an empty secret.
+      JWT_SECRET: ${JWT_SECRET:-}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:*}
+    ports:
+      - "8080:8080"
+
 volumes:
   heartcare-pgdata:

@@ -14,15 +14,15 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
 `10.0.2.2` is the Android emulator's alias for the host machine's localhost,
-which is where `mvn spring-boot:run` serves the API. On a physical device use
+which is where Docker publishes the API on port 8080. On a physical device use
 your machine's LAN address. The default if you omit the define is the same
 emulator address.
 
 Start the backend first, from the repo root:
 
 ```bash
-docker compose up -d                 # PostgreSQL
-mvn -f backend/pom.xml spring-boot:run
+cp .env.example .env                 # first time only - set JWT_SECRET
+docker compose up -d --build         # PostgreSQL + API
 ```
 
 ## Test

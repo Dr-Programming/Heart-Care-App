@@ -10,17 +10,23 @@ Spring Boot REST API for the Heart-Care App (patient-only scope). Offline-first 
 
 ## Quick Start
 ```bash
-# 1. Start PostgreSQL (from repo root)
-cp .env.example .env        # first time only — fill in overrides + JWT_SECRET
-docker compose up -d
+# 1. Start PostgreSQL + the API in Docker (from repo root)
+cp .env.example .env        # first time only — set JWT_SECRET (required, no default)
+docker compose up -d --build   # API on http://localhost:8080, DB on localhost:5432
 
-# 2. Run the API (from backend/)
+# 2. Run tests (from backend/, requires Docker for Testcontainers)
 cd backend
-export JWT_SECRET=$(openssl rand -base64 48)   # required — no profile supplies a default
-mvn spring-boot:run         # serves on http://localhost:8080
-
-# 3. Run tests (requires Docker for Testcontainers)
 mvn test
+```
+
+To run the API on the host instead (IDE debugging, faster edit loop), start only the database and
+export the secret yourself — `mvn` does not read `.env`:
+
+```bash
+docker compose up -d postgres
+cd backend
+export JWT_SECRET=$(openssl rand -base64 48)
+mvn spring-boot:run
 ```
 
 ## Build Progress
