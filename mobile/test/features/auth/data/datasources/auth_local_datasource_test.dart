@@ -9,14 +9,6 @@ import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 
 import '../../../../helpers/test_database.dart';
 
-
-
-
-
-
-
-
-
 class _FakeTokenStore extends TokenStore {
   _FakeTokenStore() : super(const FlutterSecureStorage());
 
@@ -39,9 +31,6 @@ const _user = AuthUser(
   preferredLanguage: 'en',
   role: 'PATIENT',
 );
-
-
-
 
 String _jwt({required DateTime exp}) {
   String segment(Map<String, dynamic> json) =>

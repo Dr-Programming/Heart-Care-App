@@ -243,4 +243,44 @@ void main() {
       expect((sent.first as Map<String, dynamic>)['clientRecordId'], 'older');
     });
   });
+
+  group('session', () {
+    test('the session is refreshed before anything is pushed', () async {
+      await enqueueVital('a1');
+      stubResults(<Map<String, dynamic>>[
+        <String, dynamic>{'clientRecordId': 'a1', 'status': 'SAVED'},
+      ]);
+      final List<String> calls = <String>[];
+      final SyncService service = SyncService(
+        dio: http.dio,
+        queue: queue,
+        isOnline: () async => true,
+        refreshSession: () async {
+          calls.add('refresh:${http.requests.length}');
+          return true;
+        },
+      );
+
+      await service.syncNow();
+
+      expect(calls, <String>['refresh:0']);
+      expect(await queue.statusFor('a1'), LocalSyncStatus.synced);
+    });
+
+    test('a revoked session pushes nothing and keeps the records', () async {
+      await enqueueVital('a1');
+      final SyncService service = SyncService(
+        dio: http.dio,
+        queue: queue,
+        isOnline: () async => true,
+        refreshSession: () async => false,
+      );
+
+      final SyncReport report = await service.syncNow();
+
+      expect(http.requests, isEmpty);
+      expect(report.failure, isA<SessionExpiredFailure>());
+      expect(await queue.statusFor('a1'), LocalSyncStatus.pending);
+    });
+  });
 }

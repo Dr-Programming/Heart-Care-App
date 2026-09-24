@@ -12,6 +12,11 @@ abstract interface class AuthRepository {
 
   Future<AuthUser> getMe();
 
+  /// If the patient signed in offline, trades that session for a real one now
+  /// that the server may be reachable. Returns false only when the server
+  /// rejected the credentials, meaning the patient must sign in again.
+  Future<bool> refreshSession();
+
   Future<void> logout();
 
   Future<AuthUser?> cachedUser();

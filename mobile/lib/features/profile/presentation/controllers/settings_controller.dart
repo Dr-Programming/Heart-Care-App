@@ -7,8 +7,6 @@ import '../../domain/usecases/set_language.dart';
 import '../../profile_providers.dart';
 
 class SettingsController extends Notifier<void> {
-  static const String _needsOnboardingKey = 'auth_needs_onboarding';
-
   @override
   void build() {}
 
@@ -29,14 +27,13 @@ class SettingsController extends Notifier<void> {
       ref.read(profileRepositoryProvider).retryPendingSave(userId);
 
   Future<void> signOut() async {
-    final tokenStore = ref.read(tokenStoreProvider);
     final db = ref.read(appDatabaseProvider);
     final cachedUser = await db.cachedUserDao.current();
     final String userId = cachedUser?.id ?? '';
 
-    await tokenStore.clear();
-    await db.cachedUserDao.clear();
-    await db.preferencesDao.remove(_needsOnboardingKey);
+    // Through the repository, so an offline session ends too; the account
+    // stays remembered for the next offline sign-in.
+    await ref.read(authRepositoryProvider).logout();
     if (userId.isNotEmpty) {
       await ref.read(profileRepositoryProvider).deleteProfile(userId);
     }

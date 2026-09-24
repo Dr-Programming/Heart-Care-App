@@ -44,11 +44,15 @@ class SyncService {
     required this._dio,
     required this._queue,
     required this._isOnline,
-  });
+    Future<bool> Function()? refreshSession,
+  }) : _refreshSession = refreshSession ?? _alwaysValid;
 
   final Dio _dio;
   final SyncQueueDao _queue;
   final Future<bool> Function() _isOnline;
+  final Future<bool> Function() _refreshSession;
+
+  static Future<bool> _alwaysValid() async => true;
 
   StreamSubscription<bool>? _connectivity;
 
@@ -74,6 +78,12 @@ class SyncService {
     _draining = true;
     try {
       if (!await _isOnline()) return const SyncReport.offline();
+
+      if (!await _refreshSession()) {
+        return const SyncReport(
+          failure: SessionExpiredFailure('Sign in again to sync.'),
+        );
+      }
 
       final List<SyncQueueEntry> batch = await _queue.pending();
       if (batch.isEmpty) return const SyncReport();

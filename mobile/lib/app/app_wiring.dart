@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:go_router/go_router.dart';
 
+import '../core/providers/core_providers.dart';
 import '../core/router/app_router.dart';
 import '../core/router/auth_gate.dart';
 import '../core/router/routes.dart';
@@ -203,6 +204,9 @@ final List<HomeCard> _homeCards = <HomeCard>[
 List<Override> featureOverrides() {
   return <Override>[
     authGateProvider.overrideWith((ref) => ref.watch(realAuthGateProvider)),
+    sessionRefresherProvider.overrideWith(
+      (ref) => ref.watch(authSessionRefresherProvider),
+    ),
 
     homeCardsProvider.overrideWithValue(_homeCards),
   ];

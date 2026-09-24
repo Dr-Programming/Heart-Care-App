@@ -7,7 +7,7 @@ import 'package:libu_care/features/vitals/domain/repositories/vitals_repository.
 import 'package:libu_care/features/vitals/domain/usecases/build_series.dart';
 
 class _FakeRepository implements VitalsRepository {
-  _FakeRepository(this.readingsToReturn, {this.goals});
+  _FakeRepository(this.readingsToReturn) : goals = null;
 
   final List<VitalReading> readingsToReturn;
   final VitalGoals? goals;

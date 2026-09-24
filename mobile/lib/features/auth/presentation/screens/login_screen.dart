@@ -152,7 +152,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           AppButton(
             label: 'auth.login.createAccount'.tr(),
             variant: AppButtonVariant.secondary,
-            onPressed: () => context.goNamed(AppRoutes.register),
+            onPressed: () => context.pushNamed(AppRoutes.register),
           ),
           const SizedBox(height: AppSpacing.xl),
           Align(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +60,14 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell>
     with WidgetsBindingObserver {
+  /// How often queued records are retried while the app is open. A change in
+  /// the radio state is not the only way back online: the network can stay up
+  /// the whole time the server is down, and nothing else would notice it
+  /// coming back.
+  static const Duration _retryInterval = Duration(minutes: 2);
+
+  Timer? _retryTimer;
+
   @override
   void initState() {
     super.initState();
@@ -66,10 +76,12 @@ class _AppShellState extends ConsumerState<AppShell>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncServiceProvider).syncNow();
     });
+    _startRetrying();
   }
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -78,7 +90,18 @@ class _AppShellState extends ConsumerState<AppShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.read(syncServiceProvider).syncNow();
+      _startRetrying();
+    } else if (state == AppLifecycleState.paused) {
+      _retryTimer?.cancel();
     }
+  }
+
+  void _startRetrying() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(
+      _retryInterval,
+      (_) => unawaited(ref.read(syncServiceProvider).syncNow()),
+    );
   }
 
   @override

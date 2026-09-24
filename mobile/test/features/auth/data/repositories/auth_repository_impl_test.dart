@@ -4,6 +4,7 @@ import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:libu_care/features/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:libu_care/features/auth/data/datasources/offline_credential_store.dart';
 import 'package:libu_care/features/auth/data/repositories/auth_repository_impl.dart';
 
 import '../../../../helpers/fake_dio.dart';
@@ -33,6 +34,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -53,6 +56,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => false,
       );
 
@@ -75,6 +80,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -99,6 +106,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -125,6 +134,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -153,6 +164,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -178,6 +191,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -205,6 +220,8 @@ void main() {
           cachedUserDao: db.cachedUserDao,
           preferencesDao: db.preferencesDao,
         ),
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -226,6 +243,8 @@ void main() {
       final repo = AuthRepositoryImpl(
         remote: AuthRemoteDataSource(FakeDio().dio),
         local: local,
+        offline: _MemoryCredentialStore(),
+        session: OfflineSession(),
         isOnline: () async => true,
       );
 
@@ -236,13 +255,197 @@ void main() {
       expect(await local.needsOnboarding(), isFalse);
     });
   });
+
+  group('offline sign-in', () {
+    late _MemoryCredentialStore remembered;
+    late _FakeTokenStore tokens;
+    late OfflineSession session;
+    late FakeDio fake;
+    late bool online;
+    late AuthRepositoryImpl repo;
+
+    setUp(() {
+      final db = testDatabase();
+      addTearDown(db.close);
+      remembered = _MemoryCredentialStore();
+      tokens = _FakeTokenStore();
+      session = OfflineSession();
+      fake = FakeDio()
+        ..stub('/api/v1/auth/login', FakeResponse.ok(_validJson));
+      online = true;
+      repo = AuthRepositoryImpl(
+        remote: AuthRemoteDataSource(fake.dio),
+        local: AuthLocalDataSource(
+          tokenStore: tokens,
+          cachedUserDao: db.cachedUserDao,
+          preferencesDao: db.preferencesDao,
+        ),
+        offline: remembered,
+        session: session,
+        isOnline: () async => online,
+      );
+    });
+
+    /// A patient who signed in on this phone once, then signed out.
+    Future<void> signedInBefore() async {
+      await repo.login(phone: '+251911234567', pin: '1234');
+      await repo.logout();
+      fake.requests.clear();
+    }
+
+    test('a patient who signed in here before can sign in with no network',
+        () async {
+      await signedInBefore();
+      online = false;
+
+      final user = await repo.login(phone: '+251911234567', pin: '1234');
+
+      expect(user.name, 'Abebe Girma');
+      expect(fake.requests, isEmpty);
+      expect(await repo.isSignedIn(), isTrue);
+      expect(await repo.cachedUser(), user);
+    });
+
+    test('a wrong PIN offline is rejected', () async {
+      await signedInBefore();
+      online = false;
+
+      await expectLater(
+        () => repo.login(phone: '+251911234567', pin: '9999'),
+        throwsA(isA<InvalidCredentialsFailure>()),
+      );
+      expect(await repo.isSignedIn(), isFalse);
+    });
+
+    test('five wrong PINs offline lock the account for 15 minutes', () async {
+      await signedInBefore();
+      online = false;
+
+      for (int i = 0; i < 4; i++) {
+        await expectLater(
+          () => repo.login(phone: '+251911234567', pin: '9999'),
+          throwsA(isA<InvalidCredentialsFailure>()),
+        );
+      }
+      try {
+        await repo.login(phone: '+251911234567', pin: '9999');
+        fail('expected AccountLockedFailure');
+      } on AccountLockedFailure catch (e) {
+        expect(e.minutesRemaining, 15);
+      }
+      // Even the right PIN waits out the lock.
+      await expectLater(
+        () => repo.login(phone: '+251911234567', pin: '1234'),
+        throwsA(isA<AccountLockedFailure>()),
+      );
+    });
+
+    test('a server that cannot be reached falls back to the remembered account',
+        () async {
+      await signedInBefore();
+      fake.stub('/api/v1/auth/login', FakeResponse.offline());
+
+      final user = await repo.login(phone: '+251911234567', pin: '1234');
+
+      expect(user.id, 'u1');
+      expect(await repo.isSignedIn(), isTrue);
+    });
+
+    test('a dead ngrok tunnel counts as unreachable, not as a reply', () async {
+      await signedInBefore();
+      fake.stub(
+        '/api/v1/auth/login',
+        const FakeResponse(
+          statusCode: 404,
+          body: <String, dynamic>{},
+          headers: <String, String>{'ngrok-error-code': 'ERR_NGROK_3200'},
+        ),
+      );
+
+      final user = await repo.login(phone: '+251911234567', pin: '1234');
+
+      expect(user.id, 'u1');
+    });
+
+    test('a server that answers 401 wins over a matching remembered PIN',
+        () async {
+      await signedInBefore();
+      fake.stub(
+        '/api/v1/auth/login',
+        FakeResponse.error(401, 'Invalid phone or PIN'),
+      );
+
+      await expectLater(
+        () => repo.login(phone: '+251911234567', pin: '1234'),
+        throwsA(isA<InvalidCredentialsFailure>()),
+      );
+    });
+
+    test('a phone that never signed in here still needs the server', () async {
+      online = false;
+
+      await expectLater(
+        () => repo.login(phone: '+251911234567', pin: '1234'),
+        throwsA(isA<NetworkFailure>()),
+      );
+    });
+
+    test('logout keeps the remembered account', () async {
+      await signedInBefore();
+      expect((await remembered.rememberedUser())?.id, 'u1');
+    });
+
+    test('refreshSession trades an offline sign-in for a server token',
+        () async {
+      await signedInBefore();
+      online = false;
+      await repo.login(phone: '+251911234567', pin: '1234');
+      expect(session.isActive, isTrue);
+      expect(await tokens.read(), isNull);
+
+      online = true;
+      expect(await repo.refreshSession(), isTrue);
+
+      expect(session.isActive, isFalse);
+      expect(await tokens.read(), 'header.payload.signature');
+      expect(fake.requests.single.path, '/api/v1/auth/login');
+    });
+
+    test('refreshSession is a no-op without an offline session', () async {
+      expect(await repo.refreshSession(), isTrue);
+      expect(fake.requests, isEmpty);
+    });
+
+    test('refreshSession keeps the offline session while the server is down',
+        () async {
+      await signedInBefore();
+      online = false;
+      await repo.login(phone: '+251911234567', pin: '1234');
+      online = true;
+      fake.stub('/api/v1/auth/login', FakeResponse.offline());
+
+      expect(await repo.refreshSession(), isTrue);
+      expect(session.isActive, isTrue);
+    });
+
+    test('a PIN the server no longer accepts ends the session and is forgotten',
+        () async {
+      await signedInBefore();
+      online = false;
+      await repo.login(phone: '+251911234567', pin: '1234');
+      online = true;
+      fake.stub(
+        '/api/v1/auth/login',
+        FakeResponse.error(401, 'Invalid phone or PIN'),
+      );
+
+      expect(await repo.refreshSession(), isFalse);
+      expect(await repo.isSignedIn(), isFalse);
+      expect(await repo.cachedUser(), isNull);
+      expect(await remembered.rememberedUser(), isNull);
+    });
+  });
 }
-
-
-
-
-
-
 
 class _FakeTokenStore extends TokenStore {
   _FakeTokenStore() : super(const FlutterSecureStorage());
@@ -257,4 +460,19 @@ class _FakeTokenStore extends TokenStore {
 
   @override
   Future<void> write(String token) async => value = token;
+}
+
+class _MemoryCredentialStore extends OfflineCredentialStore {
+  _MemoryCredentialStore() : super(const FlutterSecureStorage());
+
+  final Map<String, String> _values = <String, String>{};
+
+  @override
+  Future<String?> readRaw(String key) async => _values[key];
+
+  @override
+  Future<void> writeRaw(String key, String value) async => _values[key] = value;
+
+  @override
+  Future<void> deleteRaw(String key) async => _values.remove(key);
 }

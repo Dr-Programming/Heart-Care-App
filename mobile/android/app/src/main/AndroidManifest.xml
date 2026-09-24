@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in release builds to reach the backend API; debug/profile
+         manifests add it automatically, the main manifest must declare it. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Required for medication reminder notifications (flutter_local_notifications).
          POST_NOTIFICATIONS: Android 13+ runtime permission to show any
          notification at all; requested at runtime, this declaration is what

@@ -67,6 +67,10 @@
 
   "errors": {
     "offline": "You need a connection to sign in the first time",
+    "checkingConnection": "Checking the connection…",
+    "noInternet": "No internet connection. You need one to create an account.",
+    "serverUnreachable": "Cannot reach the server right now. You need it to create an account.",
+    "tryAgain": "Try again",
     "generic": "Something went wrong. Please try again.",
     "required": "This field is required",
     "invalidNumber": "Enter a number",

@@ -9,6 +9,7 @@ class PinBoxInput extends StatefulWidget {
     required this.onCompleted,
     this.onIncomplete,
     this.errorText,
+    this.enabled = true,
     super.key,
   });
 
@@ -16,6 +17,9 @@ class PinBoxInput extends StatefulWidget {
 
   final VoidCallback? onIncomplete;
   final String? errorText;
+
+  /// When false the boxes refuse focus, so no keyboard can open over them.
+  final bool enabled;
 
   @override
   State<PinBoxInput> createState() => _PinBoxInputState();
@@ -84,6 +88,7 @@ class _PinBoxInputState extends State<PinBoxInput> {
                   child: TextField(
                     controller: _controllers[i],
                     focusNode: _focusNodes[i],
+                    enabled: widget.enabled,
                     textAlign: TextAlign.center,
                     obscureText: true,
                     keyboardType: TextInputType.number,

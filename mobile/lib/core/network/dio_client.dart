@@ -46,6 +46,13 @@ Failure failureFromDioException(DioException e) {
 
   if (e.response == null) return const NetworkFailure(_offlineMessage);
 
+  // A tunnel that is no longer forwarding (the dev setup runs behind ngrok)
+  // answers with its own error page. That is "cannot reach the server", not
+  // a reply from it.
+  if (e.response?.headers.value('ngrok-error-code') != null) {
+    return const NetworkFailure(_offlineMessage);
+  }
+
   final Response<dynamic>? response = e.response;
   final int status = response?.statusCode ?? 0;
   final String message = _messageFrom(response);

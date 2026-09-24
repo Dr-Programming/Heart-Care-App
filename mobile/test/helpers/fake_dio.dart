@@ -7,6 +7,7 @@ class FakeResponse {
   const FakeResponse({
     this.statusCode = 200,
     this.body = const <String, dynamic>{},
+    this.headers = const <String, String>{},
     this.throwing,
   });
 
@@ -48,6 +49,12 @@ class FakeResponse {
 
   final int statusCode;
   final Object body;
+
+  /// Extra response headers, on top of the JSON content type. Needed to
+  /// imitate a reply written by something other than our backend — a tunnel
+  /// or a proxy error page, which is identifiable only by its headers.
+  final Map<String, String> headers;
+
   final DioException? throwing;
 }
 
@@ -140,6 +147,8 @@ class _Adapter implements HttpClientAdapter {
       stub.statusCode,
       headers: <String, List<String>>{
         Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        for (final MapEntry<String, String> header in stub.headers.entries)
+          header.key: <String>[header.value],
       },
     );
   }

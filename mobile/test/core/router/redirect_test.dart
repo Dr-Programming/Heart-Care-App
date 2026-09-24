@@ -69,8 +69,13 @@ void main() {
 
     test('the auth screens are reachable', () {
       for (final String path in AppRoutes.publicPaths) {
+        if (path == AppRoutes.splashPath) continue;
         expect(redirectFor(gate, path), isNull, reason: path);
       }
+    });
+
+    test('leaves splash for login once resolved', () {
+      expect(redirectFor(gate, AppRoutes.splashPath), AppRoutes.loginPath);
     });
   });
 

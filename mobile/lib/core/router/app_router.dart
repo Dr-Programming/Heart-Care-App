@@ -133,6 +133,10 @@ String? _redirect(AuthGate gate, String location) {
       isPublic || location.startsWith(AppRoutes.learnPath);
 
   if (!gate.isSignedIn) {
+    // Splash is public only so it can be shown while resolving; once the
+    // gate has an answer it must hand over, or a signed-out patient sits on
+    // the logo forever.
+    if (location == AppRoutes.splashPath) return AppRoutes.loginPath;
     return isPublicForLocalTesting ? null : AppRoutes.loginPath;
   }
 

@@ -18,8 +18,17 @@ class AuthLocalDataSource {
 
   static const String _needsOnboardingKey = 'auth_needs_onboarding';
 
-  Future<void> saveSession({required String token, required AuthUser user}) async {
+  Future<void> saveSession({
+    required String token,
+    required AuthUser user,
+  }) async {
     await tokenStore.write(token);
+    await saveUser(user);
+  }
+
+  /// Caches [user] as the signed-in patient without touching the token — an
+  /// offline sign-in has no new token to write.
+  Future<void> saveUser(AuthUser user) async {
     await cachedUserDao.save(
       CachedUsersCompanion.insert(
         id: user.id,
