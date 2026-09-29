@@ -29,9 +29,10 @@ heart-care-app/
 │
 ├── mobile/                            ← Flutter frontend
 ├── backend/                           ← Spring Boot backend
+├── admin-web/                         ← React admin panel (read-only database viewer)
 ├── database/                          ← Schema, migrations & seed data (see Section 3)
 │
-├── docker-compose.yml                 ← Spins up PostgreSQL + pgAdmin for local dev
+├── docker-compose.yml                 ← PostgreSQL + backend + admin-web for local dev
 ├── .env.example                       ← Credential template — COMMITTED (no real secrets)
 ├── .env                               ← Actual local credentials — GITIGNORED
 │

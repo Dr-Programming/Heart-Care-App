@@ -98,4 +98,8 @@ public class User {
     public OffsetDateTime getLockedUntil() {
         return lockedUntil;
     }
+
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

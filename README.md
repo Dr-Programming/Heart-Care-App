@@ -18,6 +18,7 @@ The current scope is **patient-only**. A clinician role, real-time alerting, and
 - **Mobile:** Flutter (Dart) — iOS & Android
 - **Backend:** Spring Boot (Java) — REST API
 - **Database:** PostgreSQL (hosted on Railway)
+- **Admin panel:** React + Vite (`admin-web/`) — read-only web view of the database
 
 ## Key Features
 
@@ -34,3 +35,18 @@ Early development.
 
 - **Backend:** all 7 slices (auth, patient profile, medications & dose logs, vitals, symptoms, activity, offline sync) are implemented and tested. See [`backend/README.md`](./backend/README.md) for build/run instructions and slice-by-slice progress.
 - **Mobile:** not yet built, but the first slice — **Foundation & Auth** — is designed and approved (`docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md`). Stack decided: Flutter · Riverpod · go_router · Drift · Dio. Auth moves to phone + 4-digit PIN (see [`docs/frontend-decisions.md`](./docs/frontend-decisions.md)).
+
+## Admin panel
+
+`admin-web/` is a read-only React console for browsing patients and their records (profile, medications,
+dose history, vitals, symptom check-ins, activity), plus cross-patient lists of out-of-range vitals and
+urgent symptom check-ins. It replaces opening the database in a generic DB manager.
+
+1. Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` (12+ characters) in `.env` — see `.env.example`. The backend
+   creates that admin account on startup if it doesn't exist; it never overwrites an existing one.
+2. `docker compose up -d --build`
+3. Open http://localhost:3000 and sign in.
+
+Admin accounts are separate from patient accounts, admin tokens last 8 hours, and every admin request is
+written to the backend log under `admin-audit`. See [`admin-web/README.md`](./admin-web/README.md) for local
+development.

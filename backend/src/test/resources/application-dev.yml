@@ -7,3 +7,7 @@
 app:
   jwt:
     secret: test-only-signing-secret-not-used-outside-unit-tests
+  # Bootstraps the admin account used by the admin integration tests.
+  admin:
+    username: test-admin
+    password: test-admin-password

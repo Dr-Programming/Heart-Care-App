@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* Atkinson Hyperlegible was drawn for low-vision readers; in a tool where a misread digit
+   is a misread blood pressure, legibility is the brand. Bundled, so the panel works offline. */
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/atkinson-hyperlegible/400-italic.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --paper: #f5f7f8;
+  --surface: #ffffff;
+  --ink: #1c2530;
+  --muted: #5b6875;
+  --faint: #8a96a1;
+  --line: #dce2e6;
+  --line-strong: #c3ccd3;
+  --heart: #c0263b;
+  --heart-soft: #fbe9ec;
+  --calm: #1f7a6d;
+  --calm-soft: #e3f2ef;
+  --amber: #9a5b00;
+  --amber-soft: #fbf0dc;
+  --grid-minor: #f1dfe2;
+  --grid-major: #e6c3c9;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #121820;
+  --surface: #1a222c;
+  --ink: #e6ebef;
+  --muted: #a3afba;
+  --faint: #76838f;
+  --line: #2a3441;
+  --line-strong: #3a4654;
+  --heart: #f0586a;
+  --heart-soft: #3a1e25;
+  --calm: #4fbfad;
+  --calm-soft: #16302d;
+  --amber: #e8a948;
+  --amber-soft: #33291a;
+  --grid-minor: #22262e;
+  --grid-major: #3a2a31;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-heart: var(--heart);
+  --color-heart-soft: var(--heart-soft);
+  --color-calm: var(--calm);
+  --color-calm-soft: var(--calm-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers in tables and stats line up column-wise. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--heart);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* ECG paper: 1 mm minor squares, 5 mm major squares, as on a real 12-lead printout. */
+.ecg-paper {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trace-draw path.recharts-curve {
+    stroke-dasharray: 4000;
+    stroke-dashoffset: 4000;
+    animation: trace 1.6s ease-out forwards;
+  }
+}
+
+@keyframes trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

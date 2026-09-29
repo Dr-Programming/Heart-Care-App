@@ -101,6 +101,7 @@ rows. Offline-first clients should always send one.
 | `200 OK` | Success | All successful calls, including creates (no `201` is used) |
 | `400 Bad Request` | Invalid input | Body validation failure, malformed JSON, bad enum/date/UUID in a query param, missing required query param |
 | `401 Unauthorized` | Not authenticated | Missing, malformed, expired, or badly-signed token |
+| `403 Forbidden` | Wrong role | A patient token on `/api/v1/admin/**`, or an admin token on any patient route |
 | `404 Not Found` | Absent or not owned | Unknown route, or a record that does not exist **or belongs to another user** |
 | `405 Method Not Allowed` | Wrong verb | e.g. `GET /api/v1/medications/{id}` (only `PUT`/`DELETE` exist) |
 | `409 Conflict` | Duplicate | Registering a phone that already exists |
@@ -1057,3 +1058,46 @@ unrecognized value is a `400` on the direct endpoints and a per-record `REJECTED
 
 18 endpoints across 7 features. There is no `GET /medications/{id}`, no update or delete on any log
 type (all append-only), and no pull direction on sync.
+
+## 9. Admin (read-only)
+
+Backs the `admin-web/` panel. Every route except login requires a token with role `ADMIN`; patient
+tokens get `403`, and admin tokens get `403` on every patient route. There are no write endpoints.
+Each request is logged by the `admin-audit` logger with the admin id, path and status.
+
+### `POST /api/v1/admin/auth/login` — public
+
+Body `{ "username": "...", "password": "..." }`. Returns `{ token, expiresAt, admin: { id, username, lastLoginAt } }`.
+Tokens last 8 hours (`app.admin.jwt-expiration-ms`). Wrong username and wrong password both return `401`
+with the same message; five failures for a username lock it for 15 minutes (`423`).
+
+### `GET /api/v1/admin/auth/me` — admin
+
+The signed-in admin.
+
+### Paging
+
+List endpoints take `page` (0-based, default 0), `size` (1–100, default 20) and `sort` (`field` or
+`field,asc|desc`; the allowed fields are listed per endpoint — anything else is `400`). They return
+`{ items, page, size, totalElements, totalPages }`. Date filters `from` / `to` are inclusive
+`YYYY-MM-DD` days in UTC.
+
+| Endpoint | Filters | Sort fields |
+|---|---|---|
+| `GET /api/v1/admin/stats` | — | — |
+| `GET /api/v1/admin/users` | `q` (name or phone substring) | `createdAt`, `fullName` |
+| `GET /api/v1/admin/users/{id}` | — | — |
+| `GET /api/v1/admin/users/{id}/medications` | — (not paged) | — |
+| `GET /api/v1/admin/users/{id}/dose-logs` | `status`, `medicationId`, `from`, `to` | `scheduledDate`, `loggedAt` |
+| `GET /api/v1/admin/users/{id}/vitals` | `type`, `flagged`, `from`, `to` | `measuredAt`, `createdAt` |
+| `GET /api/v1/admin/users/{id}/symptoms` | `minSeverity`, `from`, `to` | `measuredAt`, `createdAt` |
+| `GET /api/v1/admin/users/{id}/activities` | `from`, `to` | `measuredAt`, `createdAt` |
+| `GET /api/v1/admin/vitals` | `flagged` (default `true`), `type`, `from`, `to` | `measuredAt`, `createdAt` |
+| `GET /api/v1/admin/symptoms` | `minSeverity` (default `URGENT`), `from`, `to` | `measuredAt`, `createdAt` |
+
+`/stats` returns per-table totals, new users in the last 7/30 days, flagged-vital and urgent-symptom
+counts, locked accounts, and zero-filled per-day series (`signupsPerDay`, `recordsPerDay`) for the last
+30 UTC days.
+
+The user list returns a masked phone (`+2519••••5678`); the full number appears only on
+`/admin/users/{id}`. `pin_hash` is never returned by any endpoint.

@@ -38,12 +38,17 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(UUID userId, String role) {
+        return generateToken(userId, role, expirationMs);
+    }
+
+    /** As {@link #generateToken(UUID, String)} but with its own lifetime — admin sessions are kept short. */
+    public String generateToken(UUID userId, String role, long ttlMs) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("role", role)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusMillis(expirationMs)))
+                .expiration(Date.from(now.plusMillis(ttlMs)))
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }

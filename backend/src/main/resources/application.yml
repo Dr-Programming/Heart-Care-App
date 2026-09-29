@@ -29,6 +29,12 @@ app:
       # search out of reach without punishing a patient who mistypes.
       max-attempts: 5
       duration-minutes: 15
+  admin:
+    # Bootstrap account for the read-only admin panel (admin-web/). Created on startup if
+    # absent; never overwritten. Leave either unset to skip. Password must be 12+ characters.
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+    jwt-expiration-ms: 28800000  # 8 hours: admin tokens see every patient, so keep them short-lived
   cors:
     # Comma-separated. Default is local dev only; production MUST set CORS_ALLOWED_ORIGINS.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*}

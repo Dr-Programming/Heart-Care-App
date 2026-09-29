@@ -177,3 +177,20 @@ copy; `PUT /api/v1/patients/me` writes the `patient_profiles` copy. Nothing reco
 also differ — `users.preferred_language` is `VARCHAR(2)`, `patient_profiles.preferred_language` is
 `VARCHAR(5)`. This needs resolving before the mobile app ships a language toggle; see `API.md`
 under `GET /api/v1/auth/me`.
+
+### V9 — `create_admin_users`
+
+Accounts for the read-only admin panel (`admin-web/`). Deliberately a separate table from `users`:
+admins own no health data and sign in with username + password, not phone + PIN.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID PK | |
+| username | VARCHAR(64) UNIQUE NOT NULL | `admin_users_username_key` |
+| password_hash | VARCHAR(255) NOT NULL | BCrypt |
+| created_at | TIMESTAMPTZ NOT NULL | default `now()` |
+| last_login_at | TIMESTAMPTZ | nullable; stamped on each successful admin login |
+
+Rows are created only by `AdminBootstrap` from `ADMIN_USERNAME` / `ADMIN_PASSWORD` at startup, and an
+existing row is never overwritten. To rotate a password, delete the row (or choose a new username) and
+restart. Admin login lockout is held in memory, so there are no lockout columns here.
