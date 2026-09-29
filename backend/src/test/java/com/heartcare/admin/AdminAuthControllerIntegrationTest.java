@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class AdminAuthControllerIntegrationTest extends AbstractIntegrationTest {
+public class AdminAuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     static final String ADMIN_USER = "test-admin";
     static final String ADMIN_PASSWORD = "test-admin-password";
@@ -41,7 +41,7 @@ class AdminAuthControllerIntegrationTest extends AbstractIntegrationTest {
         return "{ \"username\": \"" + username + "\", \"password\": \"" + password + "\" }";
     }
 
-    static String adminToken(MockMvc mockMvc) throws Exception {
+    public static String adminToken(MockMvc mockMvc) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/admin/auth/login")
                         .contentType(APPLICATION_JSON).content(loginBody(ADMIN_USER, ADMIN_PASSWORD)))
                 .andExpect(status().isOk())
@@ -49,7 +49,7 @@ class AdminAuthControllerIntegrationTest extends AbstractIntegrationTest {
         return JsonPath.read(result.getResponse().getContentAsString(), "$.data.token");
     }
 
-    static String patientToken(MockMvc mockMvc, String name) throws Exception {
+    public static String patientToken(MockMvc mockMvc, String name) throws Exception {
         String body = "{ \"phone\": \"" + TestUsers.nextPhone() + "\", \"pin\": \"1234\", \"name\": \""
                 + name + "\", \"preferredLanguage\": \"en\" }";
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")

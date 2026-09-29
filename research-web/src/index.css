@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Same legible face as the admin console: this family of tools shares a voice. */
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/atkinson-hyperlegible/400-italic.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Lab teal, not the admin console's heart-red: a researcher should always know which tool
+   they're in. Red is kept for refusals and clinical alerts only. */
+:root {
+  --paper: #f4f7f7;
+  --surface: #ffffff;
+  --ink: #17262b;
+  --muted: #56676d;
+  --faint: #86969b;
+  --line: #d9e2e3;
+  --line-strong: #bfcccd;
+  --accent: #0e6e73;
+  --accent-soft: #e0f0f0;
+  --alert: #b42336;
+  --alert-soft: #fbe9ec;
+  --calm: #2f7a3f;
+  --calm-soft: #e5f2e7;
+  --amber: #945800;
+  --amber-soft: #fbf0dc;
+  --grid-minor: #e8eff0;
+  --grid-major: #d3e0e1;
+  --series-1: #0e6e73;
+  --series-2: #b8641b;
+  --series-3: #6a4fb3;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #10181b;
+  --surface: #172226;
+  --ink: #e4ecee;
+  --muted: #a0b1b6;
+  --faint: #738489;
+  --line: #26353a;
+  --line-strong: #37494f;
+  --accent: #45c2bb;
+  --accent-soft: #143234;
+  --alert: #f0647a;
+  --alert-soft: #3a1e25;
+  --calm: #6cc47d;
+  --calm-soft: #17301c;
+  --amber: #e8a948;
+  --amber-soft: #33291a;
+  --grid-minor: #1b272b;
+  --grid-major: #243439;
+  --series-1: #45c2bb;
+  --series-2: #e89a55;
+  --series-3: #a38bea;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-calm: var(--calm);
+  --color-calm-soft: var(--calm-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Lab-notebook graph paper behind every chart: results are read against a grid. */
+.graph-paper {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+}
+
+/* Hatched fill for suppressed cells: visibly "withheld", not "zero". */
+.withheld {
+  background-image: repeating-linear-gradient(135deg, var(--line) 0 2px, transparent 2px 7px);
+}

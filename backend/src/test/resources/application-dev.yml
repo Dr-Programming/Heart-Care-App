@@ -11,3 +11,5 @@ app:
   admin:
     username: test-admin
     password: test-admin-password
+  research:
+    pseudonym-secret: test-only-pseudonym-secret-not-used-outside-tests

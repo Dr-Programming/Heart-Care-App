@@ -35,6 +35,11 @@ app:
     username: ${ADMIN_USERNAME:}
     password: ${ADMIN_PASSWORD:}
     jwt-expiration-ms: 28800000  # 8 hours: admin tokens see every patient, so keep them short-lived
+  research:
+    jwt-expiration-ms: 28800000  # 8 hours; revoke/reset/expiry still cut sessions off immediately
+    # HMAC key for patient pseudonyms shown to researchers (P-XXXXXXXX). REQUIRED, 32+ bytes, no
+    # default. Changing it re-keys every pseudonym, so researchers' saved notes about a P-id break.
+    pseudonym-secret: ${RESEARCH_PSEUDONYM_SECRET}
   cors:
     # Comma-separated. Default is local dev only; production MUST set CORS_ALLOWED_ORIGINS.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*}

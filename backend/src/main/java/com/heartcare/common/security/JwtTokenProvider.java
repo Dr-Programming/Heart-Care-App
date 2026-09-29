@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -43,8 +44,14 @@ public class JwtTokenProvider {
 
     /** As {@link #generateToken(UUID, String)} but with its own lifetime — admin sessions are kept short. */
     public String generateToken(UUID userId, String role, long ttlMs) {
+        return generateToken(userId, role, ttlMs, Map.of());
+    }
+
+    /** With extra claims, e.g. the researcher token version that lets a revoke kill live tokens. */
+    public String generateToken(UUID userId, String role, long ttlMs, Map<String, ?> extraClaims) {
         Instant now = Instant.now();
         return Jwts.builder()
+                .claims(extraClaims)
                 .subject(userId.toString())
                 .claim("role", role)
                 .issuedAt(Date.from(now))
@@ -70,6 +77,11 @@ public class JwtTokenProvider {
     /** Precondition: token must be validated via {@link #validateToken} first; throws JwtException if invalid. */
     public String getRole(String token) {
         return parse(token).get("role", String.class);
+    }
+
+    /** Precondition: token must be validated via {@link #validateToken} first; throws JwtException if invalid. */
+    public <T> T getClaim(String token, String name, Class<T> type) {
+        return parse(token).get(name, type);
     }
 
     private Claims parse(String token) {

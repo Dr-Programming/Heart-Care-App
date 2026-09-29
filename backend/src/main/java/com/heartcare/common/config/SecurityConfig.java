@@ -31,9 +31,11 @@ public class SecurityConfig {
     }
 
     /**
-     * Admin and patient routes are role-partitioned, not merely authenticated: an admin token's
-     * subject is an admin_users id, which would be meaningless (or worse, collide) as a patient
-     * userId, and a patient must never reach the cross-patient admin views.
+     * Admin, researcher and patient routes are role-partitioned, not merely authenticated: each
+     * token's subject is an id in a different table (admin_users, researchers, users), which would
+     * be meaningless (or worse, collide) elsewhere, and neither patients nor researchers may reach
+     * the identified cross-patient admin views. Researcher requests are further re-checked against
+     * the database on every call by ResearchAccessGuard.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -46,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/auth/login").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/research/auth/login").permitAll()
+                        .requestMatchers("/api/v1/research/**").hasRole("RESEARCHER")
                         .anyRequest().hasRole("PATIENT"))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)

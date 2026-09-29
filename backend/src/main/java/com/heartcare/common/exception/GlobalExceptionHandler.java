@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -42,6 +45,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccountLocked(AccountLockedException ex) {
         return ResponseEntity.status(HttpStatus.LOCKED).body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiResponse<>(
+                false, Map.of("code", ex.getCode()), ex.getMessage(), OffsetDateTime.now(ZoneOffset.UTC)));
     }
 
     @ExceptionHandler(ConflictException.class)

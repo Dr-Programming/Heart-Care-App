@@ -6,6 +6,11 @@ import { Login } from './pages/Login'
 import { PatientDetail } from './pages/PatientDetail'
 import { Patients } from './pages/Patients'
 import { FlaggedVitals, UrgentSymptoms } from './pages/Triage'
+import { ResearchActivity } from './pages/research/ResearchActivity'
+import { ResearcherArchive } from './pages/research/ResearcherArchive'
+import { ResearcherDetail } from './pages/research/ResearcherDetail'
+import { ResearcherNew } from './pages/research/ResearcherNew'
+import { Researchers } from './pages/research/Researchers'
 
 // The overview carries the charting library; loading it on demand halves the initial bundle.
 const Overview = lazy(() => import('./pages/Overview').then((m) => ({ default: m.Overview })))
@@ -44,6 +49,11 @@ export default function App() {
         <Route path="patients/:id" element={<PatientDetail />} />
         <Route path="flagged-vitals" element={<FlaggedVitals />} />
         <Route path="urgent-symptoms" element={<UrgentSymptoms />} />
+        <Route path="researchers" element={<Researchers />} />
+        <Route path="researchers/new" element={<ResearcherNew />} />
+        <Route path="researchers/archive" element={<ResearcherArchive />} />
+        <Route path="researchers/:id" element={<ResearcherDetail />} />
+        <Route path="research-activity" element={<ResearchActivity />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

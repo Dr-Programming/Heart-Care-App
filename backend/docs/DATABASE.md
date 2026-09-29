@@ -194,3 +194,28 @@ admins own no health data and sign in with username + password, not phone + PIN.
 Rows are created only by `AdminBootstrap` from `ADMIN_USERNAME` / `ADMIN_PASSWORD` at startup, and an
 existing row is never overwritten. To rotate a password, delete the row (or choose a new username) and
 restart. Admin login lockout is held in memory, so there are no lockout columns here.
+
+### V10 — `research_access`
+
+Researcher accounts, controlled entirely by admins. Researchers never query patient tables directly;
+every research query goes through the anonymising services.
+
+| Table | Purpose |
+|---|---|
+| `researchers` | Account: username (unique, fixed), full_name, organisation, password_hash, `must_change_password`, `self_changes_remaining` (0 or 1), `status` ACTIVE/REVOKED, `token_version` (bumped on revoke, restore and reset to end live sessions), created_by_admin_id, timestamps |
+| `researcher_grants` | One per researcher: `access_level` AGGREGATE/PSEUDONYMOUS, `ds_*` dataset flags, `export_allowed`, `data_from`/`data_to`, `expires_at`, updated_by |
+| `research_settings` | Single row (`id = 1`): `min_group_size` (k), 2 to 50, default 5 |
+| `research_cohorts` | Saved cohort definitions (JSONB) per researcher |
+| `research_audit_log` | Append-only: one row per researcher request, including failed sign-ins (`researcher_id` null, `username_attempted` set). Params JSONB (passwords are never recorded), status, rows_returned, duration_ms, ip, user_agent |
+| `researcher_admin_events` | Append-only: CREATED, GRANT_UPDATED (before and after in `details`), REVOKED, RESTORED, PASSWORD_RESET, with the admin |
+
+The app never deletes researchers, only revokes them, so the audit trail keeps its subject.
+
+### V11 — `researcher_archive`
+
+Soft delete for researchers. Widens `researchers_status_check` to include `ARCHIVED` and adds
+`archived_at`, `archived_by` (admin) and `archive_reason` (required when archiving). An admin's
+"delete" archives: the row, grant, admin events and audit log all stay, the username stays reserved
+(the unique constraint is unchanged), and every live session ends via `token_version`. Unarchiving
+returns the account as REVOKED and clears the archive columns; the ARCHIVED and UNARCHIVED events
+keep the history.

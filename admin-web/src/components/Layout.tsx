@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import { adminApi } from '../api/admin'
 import { useAuth } from '../auth/AuthContext'
 import { useTheme } from '../lib/theme'
@@ -17,14 +17,17 @@ export function HeartMark({ className = 'size-7' }: { className?: string }) {
   )
 }
 
-function NavItem({ to, children, count }: { to: string; children: ReactNode; count?: number }) {
+/** `except`: a sub-path with its own nav entry, so the parent isn't highlighted there too. */
+function NavItem({ to, children, count, except }: { to: string; children: ReactNode; count?: number; except?: string }) {
+  const { pathname } = useLocation()
+  const excluded = except !== undefined && pathname.startsWith(except)
   return (
     <NavLink
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
         `flex items-center justify-between gap-2 rounded-md px-3 py-2 text-[15px] ${
-          isActive ? 'bg-surface font-bold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'
+          isActive && !excluded ? 'bg-surface font-bold text-ink ring-1 ring-line' : 'text-muted hover:text-ink'
         }`
       }
     >
@@ -50,7 +53,7 @@ export function Layout() {
           <HeartMark />
           <div className="leading-tight">
             <div className="text-[17px] font-bold">Libu Care</div>
-            <div className="text-[13px] text-muted">Patient records, read-only</div>
+            <div className="text-[13px] text-muted">Admin console</div>
           </div>
         </div>
 
@@ -63,6 +66,10 @@ export function Layout() {
           <NavItem to="/urgent-symptoms" count={stats.data?.urgentSymptoms}>
             Urgent symptoms
           </NavItem>
+          <div className="mt-3 hidden px-3 pb-1 text-[13px] text-faint md:block">Research access</div>
+          <NavItem to="/researchers" except="/researchers/archive">Researchers</NavItem>
+          <NavItem to="/research-activity">Research activity</NavItem>
+          <NavItem to="/researchers/archive">Researcher archive</NavItem>
         </nav>
 
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-line pt-4 text-[14px] md:mt-auto md:flex-col md:items-stretch">

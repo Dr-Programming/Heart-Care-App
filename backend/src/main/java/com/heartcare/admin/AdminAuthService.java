@@ -9,8 +9,10 @@ import com.heartcare.common.exception.AccountLockedException;
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.exception.UnauthorizedException;
 import com.heartcare.common.security.JwtTokenProvider;
+import com.heartcare.common.security.LoginThrottle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,7 +38,7 @@ public class AdminAuthService {
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
-    private final AdminLoginThrottle throttle;
+    private final LoginThrottle throttle;
     private final long tokenTtlMs;
 
     /** Verified against when the username is unknown, so both failure paths cost one BCrypt check. */
@@ -45,7 +47,7 @@ public class AdminAuthService {
     public AdminAuthService(AdminUserRepository adminUserRepository,
                             PasswordEncoder passwordEncoder,
                             JwtTokenProvider tokenProvider,
-                            AdminLoginThrottle throttle,
+                            @Qualifier("adminLoginThrottle") LoginThrottle throttle,
                             @Value("${app.admin.jwt-expiration-ms}") long tokenTtlMs) {
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;

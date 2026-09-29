@@ -1,8 +1,4 @@
-package com.heartcare.admin;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+package com.heartcare.common.security;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -12,15 +8,16 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Per-username lockout for admin sign-in, held in memory.
+ * Per-username lockout for the admin and researcher sign-ins, held in memory. One instance per
+ * realm (see LoginThrottleConfig) so an admin and a researcher sharing a username never share a
+ * counter.
  *
- * <p>Same policy as patient login (app.auth.lockout.*), but not stored in the database: there
- * are only a handful of admin accounts, and a restart clearing the counters is acceptable for
- * an operator-only endpoint. Keys are tracked for any submitted username, including ones that
- * do not exist, so a locked response never reveals whether an account is real.
+ * <p>Same policy as patient login (app.auth.lockout.*), but not stored in the database: these are
+ * small operator populations, and a restart clearing the counters is acceptable. Keys are tracked
+ * for any submitted username, including ones that do not exist, so a locked response never
+ * reveals whether an account is real.
  */
-@Component
-public class AdminLoginThrottle {
+public class LoginThrottle {
 
     private record State(int failures, Instant lockedUntil) {
     }
@@ -30,13 +27,7 @@ public class AdminLoginThrottle {
     private final Duration lockout;
     private final Clock clock;
 
-    @Autowired
-    public AdminLoginThrottle(@Value("${app.auth.lockout.max-attempts}") int maxAttempts,
-                              @Value("${app.auth.lockout.duration-minutes}") int lockoutMinutes) {
-        this(maxAttempts, Duration.ofMinutes(lockoutMinutes), Clock.systemUTC());
-    }
-
-    AdminLoginThrottle(int maxAttempts, Duration lockout, Clock clock) {
+    public LoginThrottle(int maxAttempts, Duration lockout, Clock clock) {
         this.maxAttempts = maxAttempts;
         this.lockout = lockout;
         this.clock = clock;

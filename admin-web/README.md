@@ -1,8 +1,9 @@
 # Libu Care Admin (`admin-web`)
 
-A read-only React console over the Heart-Care database: patients, their profile, medications, dose
-history, vitals, symptom check-ins and activity, plus cross-patient lists of out-of-range vitals and
-urgent symptom check-ins. It talks only to the backend's `/api/v1/admin/**` endpoints and never to
+A React console over the Heart-Care database. Patient data is read-only: patients, their profile,
+medications, dose history, vitals, symptom check-ins and activity, plus cross-patient lists of
+out-of-range vitals and urgent symptom check-ins. It also manages researcher access (accounts, grants,
+revoke and reset, the minimum group size) and shows the research activity log. It talks only to the backend's `/api/v1/admin/**` endpoints and never to
 Postgres directly.
 
 Stack: Vite, React, TypeScript, React Router, TanStack Query, TanStack Table, Tailwind CSS, Recharts.

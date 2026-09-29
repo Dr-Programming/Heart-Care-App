@@ -18,7 +18,8 @@ The current scope is **patient-only**. A clinician role, real-time alerting, and
 - **Mobile:** Flutter (Dart) — iOS & Android
 - **Backend:** Spring Boot (Java) — REST API
 - **Database:** PostgreSQL (hosted on Railway)
-- **Admin panel:** React + Vite (`admin-web/`) — read-only web view of the database
+- **Admin panel:** React + Vite (`admin-web/`) — database viewer and researcher management
+- **Research app:** React + Vite (`research-web/`) — anonymised analytics for approved researchers
 
 ## Key Features
 
@@ -50,3 +51,18 @@ urgent symptom check-ins. It replaces opening the database in a generic DB manag
 Admin accounts are separate from patient accounts, admin tokens last 8 hours, and every admin request is
 written to the backend log under `admin-audit`. See [`admin-web/README.md`](./admin-web/README.md) for local
 development.
+
+## Research access
+
+Researchers get anonymised access to the data through a separate app, `research-web/`
+(http://localhost:3001). Admins control everything from **Researchers** in the admin panel:
+
+- **Accounts:** only an admin can create a researcher account. The admin gets a one-time password to pass on. The researcher must replace it at first sign-in, and that is their only self-service change; after that only an admin can reset it. Researchers can't edit their name, username or organisation.
+- **Scope of access:** per researcher, the admin chooses **aggregates only** or **pseudonymous records**, which datasets are included, a date window, an expiry date and CSV download permission. Revoking, resetting or expiring access cuts the researcher off on their next request.
+- **Privacy:** patients appear only as codes (`P-7F3AKQ2M`) that differ per researcher. No names, phones, notes or exact ages are shared. Any result describing fewer than *k* patients is hidden; *k* is set by the admin and defaults to 5.
+- **Deleting:** deleting a researcher (with a reason) signs them out and moves them to the **Researcher archive**. Their access settings, admin history and activity log stay there for audits. The username can't be reused, and an admin can restore the account.
+- **Tracking:** every researcher request is logged (Research activity, with CSV export), as is every admin change to a researcher.
+- **Tools:** a cohort builder, descriptive statistics with histograms, trends comparing up to three cohorts, medication adherence against blood pressure, correlation between measures, and the symptom-severity mix over time. All of it runs as SQL inside Postgres.
+
+Setup: add `RESEARCH_PSEUDONYM_SECRET` to `.env` (see `.env.example`), then `docker compose up -d --build`.
+See [`research-web/README.md`](./research-web/README.md).

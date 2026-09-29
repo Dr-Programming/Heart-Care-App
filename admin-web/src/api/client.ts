@@ -104,3 +104,24 @@ export async function request<T>(
   }
   return envelope.data as T
 }
+
+/** Fetches an authenticated file (e.g. CSV) and hands it to the browser as a download. */
+export async function download(path: string, params?: Params): Promise<void> {
+  const token = session.get()
+  const response = await fetch(`${BASE}${path}${toQuery(params)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!response.ok) {
+    if (response.status === 401) onUnauthorized()
+    throw new ApiError(response.status, `Download failed (${response.status})`)
+  }
+  const blob = await response.blob()
+  const disposition = response.headers.get('Content-Disposition') ?? ''
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'download.csv'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  URL.revokeObjectURL(url)
+}

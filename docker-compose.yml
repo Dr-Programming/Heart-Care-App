@@ -36,6 +36,8 @@ services:
       # Bootstrap account for the admin panel. Optional: leave unset and no admin is created.
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Keys the patient pseudonyms researchers see. Required, like JWT_SECRET; see .env.example.
+      RESEARCH_PSEUDONYM_SECRET: ${RESEARCH_PSEUDONYM_SECRET:-}
     ports:
       - "8080:8080"
 
@@ -47,6 +49,15 @@ services:
     # nginx serves the React build and proxies /api to the backend over the compose network.
     ports:
       - "3000:80"
+
+  research-web:
+    build: ./research-web
+    container_name: heartcare-research-web
+    depends_on:
+      - backend
+    # Researcher-facing analytics app. Same pattern as admin-web: nginx + /api proxy.
+    ports:
+      - "3001:80"
 
 volumes:
   heartcare-pgdata:

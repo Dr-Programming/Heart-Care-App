@@ -1101,3 +1101,94 @@ counts, locked accounts, and zero-filled per-day series (`signupsPerDay`, `recor
 
 The user list returns a masked phone (`+2519••••5678`); the full number appears only on
 `/admin/users/{id}`. `pin_hash` is never returned by any endpoint.
+
+### Researcher management (admin)
+
+Admins create and control researcher accounts. Every change below is written to
+`researcher_admin_events`.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/admin/researchers` | Current (active and revoked) researchers with status, grant and last sign-in |
+| `GET /api/v1/admin/researchers/archive` | Deleted (archived) researchers, newest first, with `archivedAt`, `archivedBy`, `archiveReason` |
+| `POST /api/v1/admin/researchers/{id}/archive` | **Delete**: `{ reason }` (3 to 500 characters, required). Ends sessions immediately and moves the account to the archive |
+| `POST /api/v1/admin/researchers/{id}/unarchive` | Restore from the archive; the account returns as REVOKED |
+| `POST /api/v1/admin/researchers` | Create: `{ username, fullName, organisation?, grant }`. Returns `{ researcher, password }`; the generated password is shown **once** |
+| `GET /api/v1/admin/researchers/{id}` | One researcher |
+| `PUT /api/v1/admin/researchers/{id}/grant` | Replace the grant (see below) |
+| `POST /api/v1/admin/researchers/{id}/revoke`, `/restore` | Revoke or restore; revoking ends live sessions immediately |
+| `POST /api/v1/admin/researchers/{id}/reset-password` | New one-time password (returned once); ends sessions; allows one more self-change |
+| `GET /api/v1/admin/researchers/{id}/events` | Admin actions on this researcher |
+| `GET /api/v1/admin/research-activity` | Researcher access log. Filters: `researcherId`, `path`, `from`, `to`, `failuresOnly`; `page`, `size` (max 200) |
+| `GET /api/v1/admin/research-activity.csv` | Same filters, as CSV (up to 50,000 rows) |
+| `GET`, `PUT /api/v1/admin/research-settings` | `{ minGroupSize }`, 2 to 50, default 5 |
+
+Deleting never removes rows: an archived researcher keeps their grant, admin history and full activity log for audits (`GET /{id}`, `/{id}/events` and `research-activity?researcherId=` all still work), can't sign in, and their username stays reserved. While archived, the account is read-only: grant changes, revoke, restore and password reset return `400` until it is unarchived. Activity rows carry `researcherStatus` so archived researchers can be told apart.
+
+Grant: `{ accessLevel: AGGREGATE | PSEUDONYMOUS, datasets: [VITALS, SYMPTOMS, ACTIVITY, MEDICATIONS,
+DEMOGRAPHICS], exportAllowed, dataFrom?, dataTo?, expiresAt? }`. At least one dataset is required;
+`dataFrom`/`dataTo` are inclusive dates; access ends at `expiresAt`.
+
+## 10. Research (researcher role)
+
+Backs `research-web/`. Tokens have role `RESEARCHER` (8 h) and are rejected on patient and admin
+routes. Every request except sign-in is re-checked against the database, so revoke, reset and
+expiry take effect on the next request (`401` with `data.code` = `ACCESS_REVOKED`, `SESSION_ENDED`
+or `ACCESS_EXPIRED`). Every request that reaches the research API, including failed sign-ins and
+refusals, is written to `research_audit_log` with its parameters, status, row count, duration, IP and
+user agent. (Requests Spring Security rejects before that point, such as calls with no token or with
+an expired or non-researcher token, carry no researcher identity and are not logged there.)
+
+Errors a client must react to carry `data.code`:
+
+| Status | `data.code` | Meaning |
+|---|---|---|
+| 403 | `PASSWORD_CHANGE_REQUIRED` | The admin-issued password hasn't been replaced yet |
+| 403 | `PASSWORD_CHANGE_USED` | The one self-service change is used; an admin must reset |
+| 403 | `DATASET_NOT_GRANTED`, `RECORDS_NOT_GRANTED`, `EXPORT_NOT_GRANTED` | Outside the grant |
+| 403 | `COHORT_TOO_SMALL` | Records requested for a cohort of 1 to k-1 patients |
+| 403 | `ACCESS_REVOKED`, `ACCESS_EXPIRED` | On sign-in, after a correct password |
+
+### Account
+
+- `POST /api/v1/research/auth/login` (public). `{ username, password }` returns `{ token, expiresAt, researcher }`.
+  Five failures lock the username for 15 minutes (`423`).
+- `GET /api/v1/research/auth/me`: read-only profile and grant. There is no endpoint to edit it.
+- `POST /api/v1/research/auth/change-password`: `{ currentPassword, newPassword }` (12 to 128 characters,
+  must differ). Allowed once per admin-issued password; the first sign-in forces it.
+
+### Anonymisation
+
+- Patients appear only as `P-XXXXXXXX`: HMAC-SHA256 of researcher id and user id under
+  `RESEARCH_PSEUDONYM_SECRET`. Stable for one researcher, different between researchers.
+- Never returned: names, phones, user and record UUIDs, notes, disease history, management plan, diet
+  note, birth year. Ages are 10-year bands (`<30` to `80+`), heights are rounded to 5 cm, and record
+  timestamps are dates only.
+- Any aggregate cell, bin, trend point or band describing 1 to k-1 patients is returned as
+  `suppressed: true` with null values. Min and max are never reported; p5 and p95 are.
+- Catalogue pick-lists (CHD stages, conditions, medications) only include values shared by at least k patients.
+
+### Tools
+
+All analyses are `POST` with a JSON body; each accepts `?format=csv` when export is granted (checked
+before any query runs). `cohort` is an optional `CohortDefinition` (`ageBands`, `chdStages`,
+`comorbidities` with `comorbidityMatch` ANY or ALL, `languages`, `medicationName`, `hadFlaggedVital`,
+`minSymptomSeverity`); each filter needs the dataset it reads. `from`/`to` narrow the window but can
+never widen the grant's.
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `GET /api/v1/research/catalog` | none | Grant summary, k, available metrics, cohort pick-lists |
+| `POST /api/v1/research/cohorts/preview` | `{ definition, from?, to? }` | `{ size, suppressed, k }` |
+| `GET`, `POST /api/v1/research/cohorts`; `DELETE /api/v1/research/cohorts/{id}` | `{ name, definition }` | Saved cohorts, private to the researcher |
+| `POST /api/v1/research/analytics/describe` | `{ metric, cohort?, unit: READING or PATIENT, groupBy: NONE, AGE_BAND, CHD_STAGE or LANGUAGE, bins? }` | n, patients, mean, SD, p5/p25/median/p75/p95, histogram, per-group stats |
+| `POST /api/v1/research/analytics/trend` | `{ metric, period: WEEK or MONTH, cohorts: [{ label, definition }] (max 3) }` | Mean per period per cohort |
+| `POST /api/v1/research/analytics/adherence-outcomes` | `{ cohort? }` | Adherence bands (under 50, 50 to 79, 80+ %) with mean BP, % BP out of range, % urgent check-ins |
+| `POST /api/v1/research/analytics/correlation` | `{ metricX, metricY, cohort? }` | Pearson r of per-patient means, n, 95% CI (Fisher z); scatter points (pseudonymous) or a 5x5 grid (aggregate) |
+| `POST /api/v1/research/analytics/severity` | `{ period, cohort? }` | Check-in counts per severity per period |
+| `POST /api/v1/research/records/{dataset}` | `{ cohort?, page?, size? (max 100) }` | Pseudonymised rows; PSEUDONYMOUS grants only |
+
+Metrics: `systolic`, `diastolic`, `glucose`, `heart_rate`, `weight`, `bmi`, `ldl`, `hdl`,
+`total_cholesterol`, `vitals_out_of_range` (%), `symptom_energy`, `symptom_heart_rate`,
+`chest_pain_severity`, `symptom_severity`, `symptom_urgent` (%), `activity_minutes`, `activity_steps`,
+`activity_distance`, `dose_adherence` (%).

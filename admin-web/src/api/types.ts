@@ -169,3 +169,70 @@ export interface Medication {
   missed: number
   skipped: number
 }
+
+// ---- research access (admin side) -------------------------------------------------------
+
+export type AccessLevel = 'AGGREGATE' | 'PSEUDONYMOUS'
+export type Dataset = 'VITALS' | 'SYMPTOMS' | 'ACTIVITY' | 'MEDICATIONS' | 'DEMOGRAPHICS'
+
+export interface Grant {
+  accessLevel: AccessLevel
+  datasets: Dataset[]
+  exportAllowed: boolean
+  dataFrom: string | null
+  dataTo: string | null
+  expiresAt: string | null
+  updatedAt?: string
+}
+
+export interface Researcher {
+  id: string
+  username: string
+  fullName: string
+  organisation: string | null
+  status: 'ACTIVE' | 'REVOKED' | 'ARCHIVED'
+  expired: boolean
+  mustChangePassword: boolean
+  canChangePassword: boolean
+  passwordChangedAt: string | null
+  createdAt: string
+  createdBy: string | null
+  revokedAt: string | null
+  lastLoginAt: string | null
+  grant: Grant | null
+  archivedAt: string | null
+  archivedBy: string | null
+  archiveReason: string | null
+}
+
+export interface IssuedPassword {
+  researcher: Researcher
+  password: string
+}
+
+export interface ResearchActivity {
+  id: number
+  researcherId: string | null
+  researcherUsername: string | null
+  researcherStatus: 'ACTIVE' | 'REVOKED' | 'ARCHIVED' | null
+  usernameAttempted: string | null
+  occurredAt: string
+  method: string
+  path: string
+  paramsJson: string | null
+  status: number
+  rowsReturned: number | null
+  durationMs: number
+  ip: string | null
+  userAgent: string | null
+}
+
+export interface ResearcherEvent {
+  id: number
+  researcherId: string
+  adminId: string | null
+  adminUsername: string | null
+  action: 'CREATED' | 'GRANT_UPDATED' | 'REVOKED' | 'RESTORED' | 'PASSWORD_RESET' | 'ARCHIVED' | 'UNARCHIVED'
+  detailsJson: string | null
+  occurredAt: string
+}
