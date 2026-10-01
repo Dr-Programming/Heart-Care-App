@@ -1,8 +1,11 @@
 package com.heartcare.auth.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 /**
  * Registration is identity only — phone, PIN, name, language. Medical onboarding is a
@@ -25,5 +28,13 @@ public record RegisterRequest(
 
         @NotBlank
         @Pattern(regexp = "^(en|am)$", message = "preferredLanguage must be en or am")
-        String preferredLanguage) {
+        String preferredLanguage,
+
+        // Optional so app builds from before forgot-PIN keep registering. When present: exactly
+        // three answers to three different questions (checked in SecurityAnswerService).
+        List<@Valid SecurityAnswerInput> securityAnswers) {
+
+    public RegisterRequest(String phone, String pin, String name, String preferredLanguage) {
+        this(phone, pin, name, preferredLanguage, null);
+    }
 }

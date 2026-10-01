@@ -58,6 +58,14 @@ class SymptomsControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    private void postCheckInInUtc(String token, String json) throws Exception {
+        mockMvc.perform(post("/api/v1/symptoms")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "UTC")
+                        .contentType(APPLICATION_JSON).content(json))
+                .andExpect(status().isOk());
+    }
+
     private static final String BENIGN = """
             { "data": {
                 "chestPain": { "present": false },
@@ -116,11 +124,12 @@ class SymptomsControllerIntegrationTest extends AbstractIntegrationTest {
     void historyFiltersByDateRangeInUtc() throws Exception {
         String token = registerAndGetToken();
         // 23:30Z on 2026-07-10 is still 2026-07-10 in UTC; 00:30Z on 2026-07-11 is 2026-07-11.
-        postCheckIn(token, withMeasuredAt("2026-07-10T23:30:00Z"));
-        postCheckIn(token, withMeasuredAt("2026-07-11T00:30:00Z"));
+        postCheckInInUtc(token, withMeasuredAt("2026-07-10T23:30:00Z"));
+        postCheckInInUtc(token, withMeasuredAt("2026-07-11T00:30:00Z"));
 
         mockMvc.perform(get("/api/v1/symptoms?from=2026-07-11&to=2026-07-11")
-                        .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "UTC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].measuredAt").value(org.hamcrest.Matchers.startsWith("2026-07-11")));
@@ -209,5 +218,63 @@ class SymptomsControllerIntegrationTest extends AbstractIntegrationTest {
                                     "energyLevel": 8
                                 } }"""))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void secondCheckInOnSameLocalDayReturns400() throws Exception {
+        // T-SYM-02: 08:00 and 20:00 on Sep 29 in Addis Ababa are the same calendar day.
+        String token = registerAndGetToken();
+        postCheckIn(token, withMeasuredAt("2026-09-29T08:00:00+03:00"));
+
+        mockMvc.perform(post("/api/v1/symptoms")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "Africa/Addis_Ababa")
+                        .contentType(APPLICATION_JSON).content(withMeasuredAt("2026-09-29T20:00:00+03:00")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("A symptom check-in already exists for 2026-09-29"));
+
+        mockMvc.perform(get("/api/v1/symptoms").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void checkInsEitherSideOfLocalMidnightAreBothAccepted() throws Exception {
+        // 20:30Z is 23:30 on Sep 28 in Addis Ababa; 21:30Z is 00:30 on Sep 29 — two local days,
+        // even though both instants fall on the same UTC day.
+        String token = registerAndGetToken();
+        postCheckIn(token, withMeasuredAt("2026-09-28T20:30:00Z"));
+        postCheckIn(token, withMeasuredAt("2026-09-28T21:30:00Z"));
+
+        mockMvc.perform(get("/api/v1/symptoms?from=2026-09-29&to=2026-09-29")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void secondCheckInSameDayViaSyncIsRejectedNotFailed() throws Exception {
+        String token = registerAndGetToken();
+        postCheckIn(token, withMeasuredAt("2026-09-29T08:00:00+03:00"));
+        String crid = UUID.randomUUID().toString();
+        String batch = """
+                { "records": [ { "entityType": "SYMPTOM", "clientRecordId": "%s", "payload": %s } ] }"""
+                .formatted(crid, withMeasuredAt("2026-09-29T20:00:00+03:00"));
+
+        mockMvc.perform(post("/api/v1/sync")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON).content(batch))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.results[0].status").value("REJECTED"))
+                .andExpect(jsonPath("$.data.results[0].reason").value("A symptom check-in already exists for 2026-09-29"));
+    }
+
+    @Test
+    void futureMeasuredAtReturns400() throws Exception {
+        // T-SYM-03
+        String token = registerAndGetToken();
+        mockMvc.perform(post("/api/v1/symptoms")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON).content(withMeasuredAt("2099-01-01T09:00:00Z")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("measuredAt must not be in the future"));
     }
 }

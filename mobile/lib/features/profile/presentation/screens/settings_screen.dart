@@ -10,6 +10,8 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../auth/auth_providers.dart';
+import '../../../auth/domain/security_question.dart';
 import '../../profile_providers.dart';
 import '../controllers/settings_controller.dart';
 
@@ -28,11 +30,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _isDirty = false;
   bool _loading = true;
+  bool _hasSecurityQuestions = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadSecurityQuestions();
+  }
+
+  Future<void> _loadSecurityQuestions() async {
+    final List<SecurityQuestion> configured =
+        await ref.read(pinRepositoryProvider).configuredQuestions();
+    if (mounted) setState(() => _hasSecurityQuestions = configured.isNotEmpty);
+  }
+
+  Future<void> _openSecurityQuestions() async {
+    await context.pushNamed(AppRoutes.securityQuestions);
+    // Re-read on return: the patient may just have set them up.
+    await _loadSecurityQuestions();
   }
 
   Future<void> _load() async {
@@ -209,6 +225,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onPressed: _onSendNow,
                         )
                       : null,
+                ),
+                const Divider(height: 1, color: AppColors.border),
+                ListTile(
+                  key: const Key('settings_change_pin_row'),
+                  leading: const Icon(Icons.pin_outlined),
+                  title: Text('profile.settings.changePin.title'.tr()),
+                  subtitle: Text('profile.settings.changePin.subtitle'.tr()),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.pushNamed(AppRoutes.changePin),
+                ),
+                const Divider(height: 1, color: AppColors.border),
+                ListTile(
+                  key: const Key('settings_security_questions_row'),
+                  leading: const Icon(Icons.help_outline),
+                  title: Text('profile.settings.securityQuestions.title'.tr()),
+                  subtitle: Text(
+                    _hasSecurityQuestions
+                        ? 'profile.settings.securityQuestions.set'.tr()
+                        : 'profile.settings.securityQuestions.notSet'.tr(),
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _openSecurityQuestions,
                 ),
                 const Divider(height: 1, color: AppColors.border),
                 ListTile(

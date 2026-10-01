@@ -9,6 +9,7 @@ import 'package:libu_care/features/auth/data/repositories/auth_repository_impl.d
 
 import '../../../../helpers/fake_dio.dart';
 import '../../../../helpers/test_database.dart';
+import '../../../../helpers/auth_fakes.dart';
 
 const _validJson = <String, dynamic>{
   'token': 'header.payload.signature',
@@ -36,6 +37,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -58,6 +60,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => false,
       );
 
@@ -82,6 +85,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -108,6 +112,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -136,6 +141,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -166,6 +172,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -193,6 +200,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -222,6 +230,7 @@ void main() {
         ),
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -245,6 +254,7 @@ void main() {
         local: local,
         offline: _MemoryCredentialStore(),
         session: OfflineSession(),
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => true,
       );
 
@@ -282,6 +292,7 @@ void main() {
         ),
         offline: remembered,
         session: session,
+        pending: MemoryPendingPinChangeStore(),
         isOnline: () async => online,
       );
     });

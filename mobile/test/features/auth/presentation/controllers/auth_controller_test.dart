@@ -10,6 +10,7 @@ import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart
 import 'package:libu_care/features/auth/presentation/controllers/auth_controller.dart';
 
 import '../../../../helpers/test_database.dart';
+import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const _user = AuthUser(
   id: 'u1',
@@ -22,6 +23,7 @@ const _user = AuthUser(
 class _FakeAuthRepository implements AuthRepository {
   AuthUser? stored;
   Object? loginError;
+  List<SecurityAnswer>? registeredAnswers;
 
   @override
   Future<AuthUser> login({required String phone, required String pin}) async {
@@ -36,7 +38,9 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async {
+    registeredAnswers = securityAnswers;
     stored = _user;
     return _user;
   }
@@ -177,5 +181,27 @@ void main() {
     await controller.login(phone: '+251911234567', pin: '0000');
 
     expect(container.read(realAuthGateProvider).isSignedIn, isFalse);
+  });
+
+  test('register passes the security answers to the repository', () async {
+    final repo = _FakeAuthRepository();
+    final container = makeContainer(repo);
+    await container.read(authControllerProvider.future);
+    const List<SecurityAnswer> answers = <SecurityAnswer>[
+      SecurityAnswer(SecurityQuestion.firstSchool, 'Bole Primary'),
+      SecurityAnswer(SecurityQuestion.childhoodFriend, 'Dawit'),
+      SecurityAnswer(SecurityQuestion.favoriteTeacher, 'Ato Kebede'),
+    ];
+
+    await container.read(authControllerProvider.notifier).register(
+      phone: '+251911234567',
+      pin: '1234',
+      name: 'Abebe Girma',
+      preferredLanguage: 'en',
+      securityAnswers: answers,
+    );
+
+    expect(repo.registeredAnswers, answers);
+    expect(container.read(authControllerProvider).value!.isAuthenticated, isTrue);
   });
 }

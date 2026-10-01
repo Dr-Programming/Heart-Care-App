@@ -2,6 +2,7 @@ package com.heartcare.medication;
 
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.medication.dto.DoseLogRequest;
 import com.heartcare.medication.dto.DoseLogResponse;
 import com.heartcare.medication.model.DoseLog;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -42,6 +44,11 @@ class DoseLogServiceTest {
 
     @Mock
     IdempotentSaver saver;
+
+    // Real, not mocked: outside a request it resolves to the default zone, which is all these
+    // tests need.
+    @Spy
+    ClientZone clientZone = new ClientZone("Africa/Addis_Ababa", 300);
 
     @InjectMocks
     DoseLogService service;

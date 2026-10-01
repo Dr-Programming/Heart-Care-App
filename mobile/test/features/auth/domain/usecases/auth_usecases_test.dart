@@ -5,6 +5,7 @@ import 'package:libu_care/features/auth/domain/usecases/get_me.dart';
 import 'package:libu_care/features/auth/domain/usecases/login.dart';
 import 'package:libu_care/features/auth/domain/usecases/logout.dart';
 import 'package:libu_care/features/auth/domain/usecases/register.dart';
+import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const _user = AuthUser(
   id: 'u1',
@@ -31,6 +32,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async {
     registerArgs = (phone: phone, pin: pin, name: name, preferredLanguage: preferredLanguage);
     return _user;

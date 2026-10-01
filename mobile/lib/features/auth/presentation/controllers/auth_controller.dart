@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth_providers.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../domain/repositories/pin_repository.dart';
+import '../../domain/security_question.dart';
 
 class AuthState {
   const AuthState({this.user});
@@ -25,7 +27,13 @@ class AuthController extends AsyncNotifier<AuthState> {
       final user = await repo.login(phone: phone, pin: pin);
       return AuthState(user: user);
     });
+    // Sending a PIN change queued offline may have found the PIN changed on
+    // another device; tell the patient why their new PIN didn't work.
+    if (repo case final PinRepository pins) {
+      ref.read(signOutNoticeProvider.notifier).show(pins.takeSignOutReason());
+    }
     if (state.hasValue) {
+      ref.read(signOutNoticeProvider.notifier).clear();
       await ref.read(realAuthGateProvider.notifier).refresh();
     }
   }
@@ -35,6 +43,7 @@ class AuthController extends AsyncNotifier<AuthState> {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async {
     final repo = ref.read(authRepositoryProvider);
     state = const AsyncValue<AuthState>.loading();
@@ -44,6 +53,7 @@ class AuthController extends AsyncNotifier<AuthState> {
         pin: pin,
         name: name,
         preferredLanguage: preferredLanguage,
+        securityAnswers: securityAnswers,
       );
       return AuthState(user: user);
     });

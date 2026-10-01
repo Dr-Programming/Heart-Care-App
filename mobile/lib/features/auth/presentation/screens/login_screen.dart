@@ -8,6 +8,8 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../auth_providers.dart';
+import '../../domain/repositories/pin_repository.dart';
 import '../../domain/validators.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/pin_field.dart';
@@ -73,6 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final AsyncValue<AuthState> asyncState = ref.watch(authControllerProvider);
     final bool isLoading = asyncState.isLoading;
     final String? formError = _errorMessage(asyncState);
+    final SignOutReason? notice = ref.watch(signOutNoticeProvider);
     final TextTheme text = Theme.of(context).textTheme;
 
     return AppScaffold.banded(
@@ -90,6 +93,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const SizedBox(height: AppSpacing.xl),
+          if (notice == SignOutReason.pinChangedElsewhere) ...<Widget>[
+            Text(
+              'auth.errors.pinChangedElsewhere'.tr(),
+              key: const Key('loginPinChangedElsewhere'),
+              style: text.bodyMedium?.copyWith(color: AppColors.critical),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           AppTextField(
             label: 'auth.login.phone'.tr(),
             controller: _phoneController,

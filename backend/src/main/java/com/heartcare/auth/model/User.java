@@ -45,6 +45,18 @@ public class User {
     @Column(name = "locked_until")
     private OffsetDateTime lockedUntil;
 
+    /** Consecutive wrong recovery attempts (forgot PIN). Separate from the PIN counter. */
+    @Column(name = "recovery_failed_attempts", nullable = false)
+    private int recoveryFailedAttempts;
+
+    /** When non-null and in the future, PIN recovery is refused with 423. */
+    @Column(name = "recovery_locked_until")
+    private OffsetDateTime recoveryLockedUntil;
+
+    /** The changeId of the last applied PIN change or reset; lets a retried request be answered again. */
+    @Column(name = "last_pin_change_id")
+    private UUID lastPinChangeId;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -79,6 +91,20 @@ public class User {
         return pinHash;
     }
 
+    public void changePinHash(String pinHash) {
+        this.pinHash = pinHash;
+    }
+
+    /** A PIN change that came with a changeId (see V16__pin_change_id.sql). */
+    public void changePinHash(String pinHash, UUID changeId) {
+        this.pinHash = pinHash;
+        this.lastPinChangeId = changeId;
+    }
+
+    public UUID getLastPinChangeId() {
+        return lastPinChangeId;
+    }
+
     public String getFullName() {
         return fullName;
     }
@@ -97,6 +123,14 @@ public class User {
 
     public OffsetDateTime getLockedUntil() {
         return lockedUntil;
+    }
+
+    public int getRecoveryFailedAttempts() {
+        return recoveryFailedAttempts;
+    }
+
+    public OffsetDateTime getRecoveryLockedUntil() {
+        return recoveryLockedUntil;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -23,5 +23,8 @@ public record DoseLogRequest(
         @Size(max = 500, message = "note must be at most 500 characters")
         String note,
 
+        // Required: the idempotency key is the only thing that stops a retried request (or a
+        // replayed sync) from logging the same dose twice and inflating adherence (Issue 4).
+        @NotNull(message = "clientRecordId is required")
         UUID clientRecordId) {
 }

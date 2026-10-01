@@ -1,4 +1,5 @@
 import '../entities/auth_user.dart';
+import '../security_question.dart';
 
 abstract interface class AuthRepository {
   Future<AuthUser> login({required String phone, required String pin});
@@ -8,6 +9,10 @@ abstract interface class AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+
+    /// Sent with the new account. The app always asks for them at sign-up;
+    /// the server keeps them optional for older app builds.
+    List<SecurityAnswer>? securityAnswers,
   });
 
   Future<AuthUser> getMe();

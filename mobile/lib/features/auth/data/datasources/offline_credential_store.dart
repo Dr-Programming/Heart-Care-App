@@ -5,7 +5,9 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../domain/answer_normalizer.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../domain/security_question.dart';
 
 /// Result of checking a phone + PIN against the account remembered on this
 /// phone.
@@ -34,6 +36,11 @@ enum OfflineCheck {
 ///
 /// Mirrors the backend's lockout (5 wrong PINs, 15 minutes), because a 4-digit
 /// PIN checked locally with no limit could simply be counted through.
+///
+/// It also keeps PBKDF2 hashes of the patient's security answers (never the
+/// answers), so a forgotten PIN can be reset with no connection. That check has
+/// its own lockout, matching the server's recovery lockout (5 tries, 60
+/// minutes), because a patient who forgot the PIN has often just locked it.
 class OfflineCredentialStore {
   OfflineCredentialStore(this._storage, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
@@ -45,6 +52,8 @@ class OfflineCredentialStore {
   static const int _iterations = 10000;
   static const int maxAttempts = 5;
   static const Duration lockout = Duration(minutes: 15);
+  static const int recoveryMaxAttempts = 5;
+  static const Duration recoveryLockout = Duration(minutes: 60);
 
   Future<String?> readRaw(String key) => _storage.read(key: key);
 
@@ -54,10 +63,15 @@ class OfflineCredentialStore {
   Future<void> deleteRaw(String key) => _storage.delete(key: key);
 
   /// Remembers [user] with [pin] as the credential for the next offline
-  /// sign-in, replacing whatever account was remembered before.
+  /// sign-in, replacing whatever account was remembered before. The security
+  /// answers survive when it is the same user signing in again.
   Future<void> remember({required AuthUser user, required String pin}) async {
+    final Map<String, dynamic>? previous = await _read();
+    final bool sameUser =
+        previous != null && (previous['user'] as Map<Object?, Object?>)['id'] == user.id;
     final Uint8List salt = _randomSalt();
     await _write(<String, dynamic>{
+      if (sameUser && previous['answers'] != null) 'answers': previous['answers'],
       'user': <String, dynamic>{
         'id': user.id,
         'name': user.name,
@@ -137,6 +151,138 @@ class OfflineCredentialStore {
   /// Forgets the remembered account entirely.
   Future<void> forget() => deleteRaw(_key);
 
+  /// Replaces the remembered PIN, keeping the user and the security answers.
+  /// Clears the PIN lockout: the patient just proved who they are.
+  ///
+  /// Throws [StateError] when no account is remembered.
+  Future<void> changePin(String newPin) async {
+    final Map<String, dynamic>? record = await _read();
+    if (record == null) throw StateError('No remembered account to change the PIN of');
+    final Uint8List salt = _randomSalt();
+    record
+      ..['salt'] = base64Encode(salt)
+      ..['hash'] = base64Encode(_derive(newPin, salt))
+      ..['failures'] = 0
+      ..remove('lockedUntil');
+    await _write(record);
+  }
+
+  /// Stores hashes of [answers] for the remembered account, replacing any
+  /// earlier ones. Does nothing when no account is remembered.
+  Future<void> rememberAnswers(List<SecurityAnswer> answers) async {
+    final Map<String, dynamic>? record = await _read();
+    if (record == null) return;
+    record
+      ..['answers'] = <Map<String, String>>[
+        for (final SecurityAnswer answer in answers) _hashAnswer(answer),
+      ]
+      ..['recoveryFailures'] = 0
+      ..remove('recoveryLockedUntil');
+    await _write(record);
+  }
+
+  /// The questions stored for [phone]; empty when this phone has none for it.
+  Future<List<SecurityQuestion>> rememberedQuestions(String phone) async {
+    final Map<String, dynamic>? record = await _read();
+    if (record == null || (record['user'] as Map<Object?, Object?>)['phone'] != phone) {
+      return const <SecurityQuestion>[];
+    }
+    return <SecurityQuestion>[
+      for (final _StoredAnswer stored in _storedAnswers(record)) stored.question,
+    ];
+  }
+
+  /// Checks [answers] against the stored hashes for [phone], counting a wrong
+  /// set towards the recovery lockout. [OfflineCheck.wrongPin] here means "the
+  /// answers don't match". Every stored answer is always checked.
+  Future<OfflineCheck> verifyAnswers({
+    required String phone,
+    required List<SecurityAnswer> answers,
+  }) async {
+    final Map<String, dynamic>? record = await _read();
+    if (record == null || (record['user'] as Map<Object?, Object?>)['phone'] != phone) {
+      return OfflineCheck.unknownAccount;
+    }
+    final List<_StoredAnswer> stored = _storedAnswers(record);
+    if (stored.isEmpty) return OfflineCheck.unknownAccount;
+
+    if (_recoveryLockedUntil(record)?.isAfter(_clock()) ?? false) {
+      return OfflineCheck.locked;
+    }
+
+    final Map<SecurityQuestion, String> given = <SecurityQuestion, String>{
+      for (final SecurityAnswer answer in answers) answer.question: answer.answer,
+    };
+    bool allMatch = given.length == answers.length && answers.length == stored.length;
+    for (final _StoredAnswer expected in stored) {
+      final String? candidate = given[expected.question];
+      final bool match = candidate != null &&
+          isValidAnswer(candidate) &&
+          _constantTimeEquals(_derive(normalizeAnswer(candidate), expected.salt), expected.hash);
+      allMatch = allMatch && match;
+    }
+
+    if (allMatch) {
+      record
+        ..['recoveryFailures'] = 0
+        ..remove('recoveryLockedUntil');
+      await _write(record);
+      return OfflineCheck.match;
+    }
+
+    final int failures = ((record['recoveryFailures'] as int?) ?? 0) + 1;
+    if (failures >= recoveryMaxAttempts) {
+      record
+        ..['recoveryFailures'] = 0
+        ..['recoveryLockedUntil'] = _clock().add(recoveryLockout).toUtc().toIso8601String();
+      await _write(record);
+      return OfflineCheck.locked;
+    }
+    record['recoveryFailures'] = failures;
+    await _write(record);
+    return OfflineCheck.wrongPin;
+  }
+
+  /// Whole minutes left on the recovery lockout, rounded up; `null` when not locked.
+  Future<int?> recoveryLockedFor() async {
+    final Map<String, dynamic>? record = await _read();
+    if (record == null) return null;
+    final DateTime? until = _recoveryLockedUntil(record);
+    if (until == null) return null;
+    final Duration left = until.difference(_clock());
+    if (left <= Duration.zero) return null;
+    return (left.inSeconds / 60).ceil();
+  }
+
+  Map<String, String> _hashAnswer(SecurityAnswer answer) {
+    final Uint8List salt = _randomSalt();
+    return <String, String>{
+      'question': answer.question.id,
+      'salt': base64Encode(salt),
+      'hash': base64Encode(_derive(normalizeAnswer(answer.answer), salt)),
+    };
+  }
+
+  List<_StoredAnswer> _storedAnswers(Map<String, dynamic> record) {
+    final Object? raw = record['answers'];
+    if (raw is! List) return const <_StoredAnswer>[];
+    return <_StoredAnswer>[
+      for (final Object? entry in raw)
+        if (entry is Map)
+          if (SecurityQuestion.fromId(entry['question'] as String? ?? '') case final SecurityQuestion q)
+            _StoredAnswer(
+              q,
+              base64Decode(entry['salt'] as String),
+              base64Decode(entry['hash'] as String),
+            ),
+    ];
+  }
+
+  DateTime? _recoveryLockedUntil(Map<String, dynamic> record) {
+    final Object? raw = record['recoveryLockedUntil'];
+    return raw is String ? DateTime.tryParse(raw) : null;
+  }
+
   DateTime? _lockedUntil(Map<String, dynamic> record) {
     final Object? raw = record['lockedUntil'];
     return raw is String ? DateTime.tryParse(raw) : null;
@@ -193,6 +339,14 @@ class OfflineCredentialStore {
     }
     return diff == 0;
   }
+}
+
+class _StoredAnswer {
+  const _StoredAnswer(this.question, this.salt, this.hash);
+
+  final SecurityQuestion question;
+  final Uint8List salt;
+  final Uint8List hash;
 }
 
 /// The patient signed in against [OfflineCredentialStore] rather than the

@@ -53,6 +53,11 @@ public class MedicationService {
         return medications.stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public MedicationResponse get(UUID userId, UUID id) {
+        return toResponse(getOwned(userId, id));
+    }
+
     @Transactional
     public MedicationResponse update(UUID userId, UUID id, MedicationRequest request) {
         Medication medication = getOwned(userId, id);
@@ -91,6 +96,7 @@ public class MedicationService {
                 m.getFrequency(),
                 m.getScheduleTimes(),
                 m.isActive(),
+                m.getDeactivatedAt(),
                 m.getClientRecordId() == null ? null : m.getClientRecordId().toString(),
                 m.getCreatedAt(),
                 m.getUpdatedAt());

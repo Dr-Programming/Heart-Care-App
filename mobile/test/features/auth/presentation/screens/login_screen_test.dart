@@ -12,6 +12,7 @@ import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart
 import 'package:libu_care/features/auth/presentation/screens/login_screen.dart';
 
 import '../../../../helpers/pump_app.dart';
+import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const AuthUser _user = AuthUser(
   id: 'u1',
@@ -46,6 +47,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async => _user;
 
   @override

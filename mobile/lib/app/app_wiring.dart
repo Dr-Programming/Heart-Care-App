@@ -10,10 +10,13 @@ import '../core/router/auth_gate.dart';
 import '../core/router/routes.dart';
 import '../core/shell/home_card.dart';
 import '../features/auth/auth_providers.dart';
+import '../features/auth/presentation/screens/change_pin_screen.dart';
 import '../features/auth/presentation/screens/forgot_pin_screen.dart';
 import '../features/auth/presentation/screens/language_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
+import '../features/auth/presentation/screens/security_questions_screen.dart';
+import '../features/auth/presentation/widgets/security_questions_prompt.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/education/presentation/screens/learn_screen.dart';
 import '../features/education/presentation/screens/quiz_screen.dart';
@@ -93,6 +96,16 @@ FeatureRoutes buildFeatureRoutes() {
         path: AppRoutes.settingsPath,
         name: AppRoutes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.changePinPath,
+        name: AppRoutes.changePin,
+        builder: (context, state) => const ChangePinScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.securityQuestionsPath,
+        name: AppRoutes.securityQuestions,
+        builder: (context, state) => const SecurityQuestionsScreen(),
       ),
     ],
 
@@ -195,6 +208,11 @@ FeatureRoutes buildFeatureRoutes() {
 }
 
 final List<HomeCard> _homeCards = <HomeCard>[
+  HomeCard(
+    id: 'securityQuestionsPrompt',
+    order: -1,
+    builder: (BuildContext context) => const SecurityQuestionsPrompt(),
+  ),
   todaysDosesHomeCard(),
   checkInHomeCard(),
   latestVitalsHomeCard(),

@@ -105,11 +105,24 @@
       "preferredLanguage": "Preferred language",
       "submit": "Create account",
       "haveAccount": "Already have an account?",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "next": "Next",
+      "back": "Back",
+      "securityTitle": "Security questions",
+      "securitySubtitle": "Choose three questions and answer them. If you ever forget your PIN, answering them lets you set a new one, even without internet. Pick answers family members won't know."
     },
     "forgotPin": {
       "title": "Forgot your PIN?",
-      "body": "For your security, a PIN cannot be reset inside the app yet.\n\nPlease contact your clinic to have your account restored. They can verify your identity and help you get back in.\n\nIf you entered the wrong PIN five times, your account is locked for 15 minutes. Nothing is lost — just wait and try again.",
+      "intro": "Enter your phone number. You'll answer your security questions and choose a new PIN. This works without internet on a phone where you set up your questions.",
+      "answerIntro": "Answer your security questions, then choose a new PIN.",
+      "continue": "Continue",
+      "newPin": "New PIN",
+      "confirmPin": "Confirm new PIN",
+      "submit": "Reset PIN",
+      "success": "Your PIN has been reset.",
+      "queued": "Your new PIN works on this phone now. It will be saved to your account when you're back online.",
+      "answersDontMatch": "The answers don't match",
+      "needsConnection": "Connect to the internet to reset your PIN. Offline reset only works on a phone where you set up your security questions.",
       "back": "Back to sign in"
     },
     "errors": {
@@ -122,7 +135,49 @@
       "locked": "Too many attempts. Try again in {minutes} min.",
       "lockedNoTime": "Too many attempts. Please wait and try again.",
       "invalidCredentials": "Invalid phone or PIN",
-      "phoneTaken": "That phone number is already registered"
+      "phoneTaken": "That phone number is already registered",
+      "pinChangedElsewhere": "Your PIN was changed on another device. Sign in with your current PIN."
+    },
+    "changePin": {
+      "title": "Change PIN",
+      "subtitle": "This works without internet. If you're offline, the new PIN works on this phone straight away and is saved to your account when you're back online.",
+      "current": "Current PIN",
+      "new": "New PIN",
+      "confirm": "Confirm new PIN",
+      "submit": "Change PIN",
+      "success": "Your PIN has been changed.",
+      "queued": "PIN changed on this phone. It will be saved to your account when you're back online.",
+      "wrongCurrent": "Current PIN is incorrect",
+      "sameAsCurrent": "The new PIN must be different from the current one"
+    },
+    "securityQuestions": {
+      "title": "Security questions",
+      "intro": "Choose three questions and answer them. If you forget your PIN, you can answer them to set a new one, even without internet. Pick answers that family members won't know.",
+      "replaceIntro": "Your security questions are set. Fill this in again to replace them.",
+      "question": "Question {n}",
+      "answer": "Your answer",
+      "currentPin": "Your current PIN",
+      "submit": "Save",
+      "saved": "Security questions saved.",
+      "distinct": "Choose three different questions",
+      "answerLength": "Each answer must be 2 to 100 characters",
+      "needsConnection": "Connect to the internet to save your security questions.",
+      "items": {
+        "FIRST_SCHOOL": "What was the name of your first school?",
+        "CHILDHOOD_FRIEND": "What was the name of your best childhood friend?",
+        "FAVORITE_TEACHER": "What was the name of your favourite teacher?",
+        "CHILDHOOD_STREET": "What was the name of the street or area you grew up in?",
+        "FIRST_JOB_PLACE": "Where was your first job?",
+        "FAVORITE_CHILDHOOD_FOOD": "What was your favourite food as a child?",
+        "FIRST_PHONE_BRAND": "What brand was your first mobile phone?",
+        "CHILDHOOD_HERO": "Who was your hero when you were a child?"
+      }
+    },
+    "securityPrompt": {
+      "title": "Set up security questions",
+      "body": "Without them you can't reset a forgotten PIN. It takes a minute.",
+      "setUp": "Set up",
+      "later": "Later"
     }
   },
 
@@ -193,6 +248,15 @@
         "confirmTitle": "Sign out?",
         "confirmMessage": "You'll need to sign in again to use the app.",
         "confirmLabel": "Sign out"
+      },
+      "changePin": {
+        "title": "Change PIN",
+        "subtitle": "Works offline"
+      },
+      "securityQuestions": {
+        "title": "Security questions",
+        "set": "Set. You can reset a forgotten PIN",
+        "notSet": "Not set. Needed to reset a forgotten PIN"
       }
     },
     "onboarding": {

@@ -7,8 +7,10 @@ import '../../core/router/auth_gate.dart';
 import 'data/datasources/auth_local_datasource.dart';
 import 'data/datasources/auth_remote_datasource.dart';
 import 'data/datasources/offline_credential_store.dart';
+import 'data/datasources/pending_pin_change_store.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'domain/repositories/auth_repository.dart';
+import 'domain/repositories/pin_repository.dart';
 
 final Provider<OfflineCredentialStore> offlineCredentialStoreProvider =
     Provider<OfflineCredentialStore>(
@@ -19,8 +21,15 @@ final Provider<OfflineCredentialStore> offlineCredentialStoreProvider =
 final Provider<OfflineSession> offlineSessionProvider =
     Provider<OfflineSession>((ref) => OfflineSession());
 
-final Provider<AuthRepository> authRepositoryProvider =
-    Provider<AuthRepository>((ref) {
+final Provider<PendingPinChangeStore> pendingPinChangeStoreProvider =
+    Provider<PendingPinChangeStore>(
+      (ref) => PendingPinChangeStore(ref.watch(secureStorageProvider)),
+    );
+
+/// The one implementation behind both [authRepositoryProvider] and
+/// [pinRepositoryProvider], so sign-in and PIN changes share the same stores.
+final Provider<AuthRepositoryImpl> authRepositoryImplProvider =
+    Provider<AuthRepositoryImpl>((ref) {
       final db = ref.watch(appDatabaseProvider);
       return AuthRepositoryImpl(
         remote: AuthRemoteDataSource(ref.watch(dioProvider)),
@@ -31,9 +40,33 @@ final Provider<AuthRepository> authRepositoryProvider =
         ),
         offline: ref.watch(offlineCredentialStoreProvider),
         session: ref.watch(offlineSessionProvider),
+        pending: ref.watch(pendingPinChangeStoreProvider),
         isOnline: ref.watch(isOnlineProvider),
       );
     });
+
+final Provider<AuthRepository> authRepositoryProvider =
+    Provider<AuthRepository>((ref) => ref.watch(authRepositoryImplProvider));
+
+/// PIN change and forgot-PIN (both work offline).
+final Provider<PinRepository> pinRepositoryProvider =
+    Provider<PinRepository>((ref) => ref.watch(authRepositoryImplProvider));
+
+/// Why the app last signed the patient out by itself, shown once on the
+/// sign-in screen. Set from [PinRepository.takeSignOutReason].
+class SignOutNoticeNotifier extends Notifier<SignOutReason?> {
+  @override
+  SignOutReason? build() => null;
+
+  void show(SignOutReason? reason) {
+    if (reason != null) state = reason;
+  }
+
+  void clear() => state = null;
+}
+
+final NotifierProvider<SignOutNoticeNotifier, SignOutReason?> signOutNoticeProvider =
+    NotifierProvider<SignOutNoticeNotifier, SignOutReason?>(SignOutNoticeNotifier.new);
 
 /// Plugged into the sync engine as [sessionRefresherProvider]: before each
 /// sync, an offline sign-in is traded for a server session, and a patient
@@ -45,6 +78,10 @@ final Provider<Future<bool> Function()> authSessionRefresherProvider =
             .read(authRepositoryProvider)
             .refreshSession();
         if (!stillValid) {
+          final AuthRepository repo = ref.read(authRepositoryProvider);
+          if (repo case final PinRepository pins) {
+            ref.read(signOutNoticeProvider.notifier).show(pins.takeSignOutReason());
+          }
           await ref.read(realAuthGateProvider.notifier).refresh();
         }
         return stillValid;

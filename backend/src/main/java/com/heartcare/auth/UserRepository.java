@@ -38,4 +38,23 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query(value = "UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = :id",
             nativeQuery = true)
     void resetFailedAttempts(@Param("id") UUID id);
+
+    /** Same single-statement pattern as {@link #recordFailedAttempt}, for the recovery lockout. */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+            UPDATE users
+               SET recovery_failed_attempts = recovery_failed_attempts + 1,
+                   recovery_locked_until = CASE WHEN recovery_failed_attempts + 1 >= :maxAttempts
+                                                THEN :lockUntil
+                                                ELSE recovery_locked_until END
+             WHERE id = :id
+            """, nativeQuery = true)
+    void recordFailedRecovery(@Param("id") UUID id,
+                              @Param("maxAttempts") int maxAttempts,
+                              @Param("lockUntil") OffsetDateTime lockUntil);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE users SET recovery_failed_attempts = 0, recovery_locked_until = NULL WHERE id = :id",
+            nativeQuery = true)
+    void resetRecoveryAttempts(@Param("id") UUID id);
 }

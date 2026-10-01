@@ -217,9 +217,62 @@ class VitalsControllerIntegrationTest extends AbstractIntegrationTest {
 
         // Filtering to just 2026-07-11 must return only the 00:30Z reading under UTC bucketing.
         mockMvc.perform(get("/api/v1/vitals?from=2026-07-11&to=2026-07-11")
-                        .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "UTC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].values.glucose").value(6.6));
+    }
+
+    @Test
+    void historyBucketsByClientTimezoneHeader() throws Exception {
+        // T-VIT-10/11: 01:00 on Sep 29 in Addis Ababa is 22:00Z on Sep 28.
+        String token = registerAndGetToken();
+        postVital(token, "{ \"type\": \"HEART_RATE\", \"values\": { \"heartRate\": 72 }, \"measuredAt\": \"2026-09-29T01:00:00+03:00\" }");
+
+        mockMvc.perform(get("/api/v1/vitals?from=2026-09-29&to=2026-09-29")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "Africa/Addis_Ababa"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+        mockMvc.perform(get("/api/v1/vitals?from=2026-09-28&to=2026-09-28")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "Africa/Addis_Ababa"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void historyDefaultsToEthiopianCalendarDayWithoutHeader() throws Exception {
+        String token = registerAndGetToken();
+        postVital(token, "{ \"type\": \"HEART_RATE\", \"values\": { \"heartRate\": 72 }, \"measuredAt\": \"2026-09-28T22:00:00Z\" }");
+
+        mockMvc.perform(get("/api/v1/vitals?from=2026-09-29&to=2026-09-29")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void futureMeasuredAtReturns400() throws Exception {
+        // T-VIT-09
+        String token = registerAndGetToken();
+        mockMvc.perform(post("/api/v1/vitals")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{ \"type\": \"HEART_RATE\", \"values\": { \"heartRate\": 72 }, \"measuredAt\": \"2099-12-31T09:00:00Z\" }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("measuredAt must not be in the future"));
+    }
+
+    @Test
+    void zeroWeightReturns400() throws Exception {
+        // T-VIT-08
+        String token = registerAndGetToken();
+        mockMvc.perform(post("/api/v1/vitals")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{ \"type\": \"WEIGHT\", \"values\": { \"weight\": 0 } }"))
+                .andExpect(status().isBadRequest());
     }
 }

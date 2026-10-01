@@ -2,10 +2,12 @@ package com.heartcare.symptoms;
 
 import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.symptoms.SymptomAssessment.Assessment;
 import com.heartcare.symptoms.dto.SymptomLogRequest;
 import com.heartcare.symptoms.dto.SymptomLogResponse;
 import com.heartcare.symptoms.model.SymptomLog;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,12 +38,14 @@ public class SymptomsService {
     private final SymptomsRepository symptomsRepository;
     private final SymptomAssessment assessment;
     private final IdempotentSaver saver;
+    private final ClientZone clientZone;
 
     public SymptomsService(SymptomsRepository symptomsRepository, SymptomAssessment assessment,
-                            IdempotentSaver saver) {
+                            IdempotentSaver saver, ClientZone clientZone) {
         this.symptomsRepository = symptomsRepository;
         this.assessment = assessment;
         this.saver = saver;
+        this.clientZone = clientZone;
     }
 
     // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
@@ -55,27 +59,51 @@ public class SymptomsService {
             return toResponse(existing.get());
         }
 
+        clientZone.assertNotFuture(request.measuredAt(), "measuredAt");
         Map<String, Object> data = validate(request.data());
         Assessment result = assessment.assess(data);
+
+        OffsetDateTime measuredAt = request.measuredAt() == null
+                ? OffsetDateTime.now(ZoneOffset.UTC) : request.measuredAt();
+        LocalDate checkInDate = clientZone.localDateOf(measuredAt);
+        // BadRequest, not Conflict: SyncService maps only BadRequest/NotFound to REJECTED, and
+        // anything else to a 500 that would fail the patient's whole sync batch on every retry.
+        if (symptomsRepository.existsByUserIdAndCheckInDate(userId, checkInDate)) {
+            // The row for today may be this very request's twin, committed by a concurrent
+            // retry since the finder ran above. A resend must get its record back, not a 400.
+            return finder.get().map(this::toResponse).orElseThrow(() -> alreadyCheckedIn(checkInDate));
+        }
 
         SymptomLog log = new SymptomLog();
         log.setUserId(userId);
         log.setData(data);
         log.setAssessment(toAssessmentMap(result));
         log.setOverallSeverity(result.overall());
-        log.setMeasuredAt(request.measuredAt() == null
-                ? OffsetDateTime.now(ZoneOffset.UTC) : request.measuredAt());
+        log.setMeasuredAt(measuredAt);
+        log.setCheckInDate(checkInDate);
         log.setNote(request.note());
         log.setClientRecordId(request.clientRecordId());
 
-        return toResponse(saver.saveOrGetExisting(symptomsRepository, finder, log));
+        try {
+            return toResponse(saver.saveOrGetExisting(symptomsRepository, finder, log));
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent check-in for the same day won the race past the exists() check above
+            // and uq_symptom_user_check_in_date caught it. (A lost clientRecordId race never
+            // lands here: IdempotentSaver resolves that one to the winner's row.)
+            throw alreadyCheckedIn(checkInDate);
+        }
+    }
+
+    private BadRequestException alreadyCheckedIn(LocalDate date) {
+        return new BadRequestException("A symptom check-in already exists for " + date);
     }
 
     @Transactional(readOnly = true)
     public List<SymptomLogResponse> history(UUID userId, LocalDate from, LocalDate to) {
-        // Bucket calendar-date filters by UTC day; the query range is half-open [fromTs, toTs).
-        OffsetDateTime fromTs = from == null ? MIN_INSTANT : from.atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
-        OffsetDateTime toTs = to == null ? MAX_INSTANT : to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        // Bucket calendar-date filters by the patient's local day (ClientZone); the query range
+        // is half-open [fromTs, toTs).
+        OffsetDateTime fromTs = from == null ? MIN_INSTANT : clientZone.startOfDay(from);
+        OffsetDateTime toTs = to == null ? MAX_INSTANT : clientZone.startOfDay(to.plusDays(1));
         return symptomsRepository.findHistory(userId, fromTs, toTs)
                 .stream().map(this::toResponse).toList();
     }

@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -44,6 +45,12 @@ class AuthServiceTest {
     @Mock
     UserRepository userRepository;
 
+    @Mock
+    RefreshTokenService refreshTokenService;
+
+    @Mock
+    SecurityAnswerService securityAnswerService;
+
     PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     JwtTokenProvider tokenProvider =
             new JwtTokenProvider("test-secret-key-that-is-at-least-32-bytes-long!!", 604800000L);
@@ -52,7 +59,9 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, tokenProvider, 5, 15);
+        lenient().when(refreshTokenService.issue(any())).thenReturn(
+                new RefreshTokenService.Issued("refresh-token", OffsetDateTime.now().plusDays(60)));
+        authService = new AuthService(userRepository, passwordEncoder, tokenProvider, refreshTokenService, securityAnswerService, 5, 15);
     }
 
     private User existingUser(String pin) {
@@ -143,7 +152,7 @@ class AuthServiceTest {
         // the same work. Asserting the call rather than the wall-clock keeps this deterministic —
         // a timing assertion would be flaky on CI.
         PasswordEncoder spyEncoder = spy(passwordEncoder);
-        AuthService service = new AuthService(userRepository, spyEncoder, tokenProvider, 5, 15);
+        AuthService service = new AuthService(userRepository, spyEncoder, tokenProvider, refreshTokenService, securityAnswerService, 5, 15);
         clearInvocations(spyEncoder);   // discard the constructor's one-off encode()
         when(userRepository.findByPhone(PHONE)).thenReturn(Optional.empty());
 
@@ -159,12 +168,12 @@ class AuthServiceTest {
         // max-attempts below 1 makes every first failure trip the lock; duration-minutes below 1
         // stamps an already-expired lock, disabling the lockout without any visible symptom.
         assertThatThrownBy(() ->
-                new AuthService(userRepository, passwordEncoder, tokenProvider, 0, 15))
+                new AuthService(userRepository, passwordEncoder, tokenProvider, refreshTokenService, securityAnswerService, 0, 15))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("max-attempts");
 
         assertThatThrownBy(() ->
-                new AuthService(userRepository, passwordEncoder, tokenProvider, 5, 0))
+                new AuthService(userRepository, passwordEncoder, tokenProvider, refreshTokenService, securityAnswerService, 5, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("duration-minutes");
     }

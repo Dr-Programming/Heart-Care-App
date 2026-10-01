@@ -5,14 +5,17 @@ import com.heartcare.TestUsers;
 import com.heartcare.symptoms.model.Severity;
 import com.heartcare.symptoms.model.SymptomLog;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SymptomsRepositoryTest extends AbstractIntegrationTest {
 
@@ -47,6 +50,7 @@ class SymptomsRepositoryTest extends AbstractIntegrationTest {
                 "symptoms", Map.of("chestPain", "EMERGENCY", "heartRate", "NONE")));
         log.setOverallSeverity(Severity.EMERGENCY);
         log.setMeasuredAt(OffsetDateTime.now());
+        log.setCheckInDate(LocalDate.now());
 
         SymptomLog saved = symptomsRepository.saveAndFlush(log);
 
@@ -73,10 +77,34 @@ class SymptomsRepositoryTest extends AbstractIntegrationTest {
         log.setAssessment(Map.of("overall", "NONE"));
         log.setOverallSeverity(Severity.NONE);
         log.setMeasuredAt(OffsetDateTime.now());
+        log.setCheckInDate(LocalDate.now());
         log.setClientRecordId(crid);
         symptomsRepository.saveAndFlush(log);
 
         assertThat(symptomsRepository.findByUserIdAndClientRecordId(userId, crid)).isPresent();
         assertThat(symptomsRepository.findByUserIdAndClientRecordId(userId, UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void secondCheckInForSameUserAndDayViolatesConstraint() {
+        UUID userId = seedUser();
+        LocalDate day = LocalDate.of(2026, 9, 29);
+        symptomsRepository.saveAndFlush(checkIn(userId, day));
+
+        assertThatThrownBy(() -> symptomsRepository.saveAndFlush(checkIn(userId, day)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(symptomsRepository.existsByUserIdAndCheckInDate(userId, day)).isTrue();
+        assertThat(symptomsRepository.existsByUserIdAndCheckInDate(userId, day.plusDays(1))).isFalse();
+    }
+
+    private SymptomLog checkIn(UUID userId, LocalDate day) {
+        SymptomLog log = new SymptomLog();
+        log.setUserId(userId);
+        log.setData(Map.of("swelling", false));
+        log.setAssessment(Map.of("overall", "NONE"));
+        log.setOverallSeverity(Severity.NONE);
+        log.setMeasuredAt(OffsetDateTime.now());
+        log.setCheckInDate(day);
+        return log;
     }
 }

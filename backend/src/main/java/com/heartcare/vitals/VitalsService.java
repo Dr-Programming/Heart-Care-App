@@ -2,6 +2,7 @@ package com.heartcare.vitals;
 
 import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.patient.PatientProfileRepository;
 import com.heartcare.patient.model.PatientProfile;
 import com.heartcare.vitals.dto.VitalLogRequest;
@@ -40,7 +41,7 @@ public class VitalsService {
             "diastolic", range(40, 300),
             "glucose", range(0, 50),
             "heartRate", range(20, 300),
-            "weight", range(0, 500),
+            "weight", range(1, 500),   // 0 kg is a typo, not a reading (T-VIT-08)
             "ldl", range(0, 30),
             "hdl", range(0, 30),
             "total", range(0, 30));
@@ -53,15 +54,18 @@ public class VitalsService {
     private final PatientProfileRepository profileRepository;
     private final VitalThresholds thresholds;
     private final IdempotentSaver saver;
+    private final ClientZone clientZone;
 
     public VitalsService(VitalsRepository vitalsRepository,
                          PatientProfileRepository profileRepository,
                          VitalThresholds thresholds,
-                         IdempotentSaver saver) {
+                         IdempotentSaver saver,
+                         ClientZone clientZone) {
         this.vitalsRepository = vitalsRepository;
         this.profileRepository = profileRepository;
         this.thresholds = thresholds;
         this.saver = saver;
+        this.clientZone = clientZone;
     }
 
     // Deliberately NOT @Transactional: the insert runs in IdempotentWriter's REQUIRES_NEW
@@ -77,6 +81,7 @@ public class VitalsService {
             return toResponse(existing.get());
         }
 
+        clientZone.assertNotFuture(request.measuredAt(), "measuredAt");
         Map<String, BigDecimal> values = validateAndClean(request.type(), request.values());
 
         if (request.type() == VitalType.WEIGHT) {
@@ -103,10 +108,11 @@ public class VitalsService {
 
     @Transactional(readOnly = true)
     public List<VitalLogResponse> history(UUID userId, VitalType type, LocalDate from, LocalDate to) {
-        // Bucket calendar-date filters by UTC day; the query range is half-open [fromTs, toTs).
-        // 'to' is inclusive of the whole day, so the exclusive upper bound is the start of the next day.
-        OffsetDateTime fromTs = from == null ? MIN_INSTANT : from.atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
-        OffsetDateTime toTs = to == null ? MAX_INSTANT : to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        // Bucket calendar-date filters by the patient's local day (ClientZone); the query range is
+        // half-open [fromTs, toTs). 'to' is inclusive of the whole day, so the exclusive upper
+        // bound is the start of the next day.
+        OffsetDateTime fromTs = from == null ? MIN_INSTANT : clientZone.startOfDay(from);
+        OffsetDateTime toTs = to == null ? MAX_INSTANT : clientZone.startOfDay(to.plusDays(1));
         return vitalsRepository.findHistory(userId, fromTs, toTs, type)
                 .stream().map(this::toResponse).toList();
     }

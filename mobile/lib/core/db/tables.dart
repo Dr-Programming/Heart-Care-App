@@ -24,6 +24,7 @@ abstract final class PreferenceKeys {
   static const String languageChosen = 'language_chosen';
 
   static const String notificationsEnabled = 'notifications_enabled';
+  static const String securityQuestionsPromptDismissed = 'security_questions_prompt_dismissed';
   static const String symptomPromptTime = 'symptom_prompt_time';
 
   static const String lastSyncAt = 'last_sync_at';

@@ -8,6 +8,10 @@ abstract final class ApiEndpoints {
   static const String register = '$_v1/auth/register';
   static const String login = '$_v1/auth/login';
   static const String me = '$_v1/auth/me';
+  static const String pinChange = '$_v1/auth/pin-change';
+  static const String resetPin = '$_v1/auth/reset-pin';
+  static const String recoveryQuestions = '$_v1/auth/recovery/questions';
+  static const String securityAnswers = '$_v1/auth/security-answers';
 
   static const String patientMe = '$_v1/patients/me';
 

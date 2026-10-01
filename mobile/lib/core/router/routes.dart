@@ -29,6 +29,12 @@ abstract final class AppRoutes {
   static const String settings = 'settings';
   static const String settingsPath = '/settings';
 
+  static const String changePin = 'changePin';
+  static const String changePinPath = '/settings/change-pin';
+
+  static const String securityQuestions = 'securityQuestions';
+  static const String securityQuestionsPath = '/settings/security-questions';
+
   static const String home = 'home';
   static const String homePath = '/home';
 
