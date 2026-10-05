@@ -142,7 +142,9 @@ void main() {
       scheduleTimes: const <String>['08:00'],
     );
 
-    final Medication? stored = await local.findMedication(created.clientRecordId);
+    final Medication? stored = await local.findMedication(
+      created.clientRecordId,
+    );
     expect(stored, isNotNull);
     expect(stored!.name, 'Aspirin');
 
@@ -174,71 +176,71 @@ void main() {
     expect(doseCall.payload.containsKey('medicationId'), isFalse);
   });
 
+  test('logging the same dose slot twice keeps one row, with the second status '
+      'winning (I8)', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    final DoseLog first = await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+    );
+    final DoseLog second = await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.missed,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      note: 'ran out',
+    );
+
+    final List<DoseLog> stored = await local.doseLogsForDate('2026-08-25');
+    expect(stored, hasLength(1));
+    expect(stored.single.status, DoseStatus.missed);
+    expect(stored.single.note, 'ran out');
+
+    expect(second.clientRecordId, first.clientRecordId);
+  });
+
   test(
-    'logging the same dose slot twice keeps one row, with the second status '
-    'winning (I8)',
+    'a different slot of the same medication is still its own row (I8)',
     () async {
       final Medication med = await repository.add(
         name: 'Aspirin',
         doseMg: 75,
-        frequency: MedicationFrequency.onceDaily,
-        scheduleTimes: const <String>['08:00'],
+        frequency: MedicationFrequency.bid,
+        scheduleTimes: const <String>['08:00', '20:00'],
       );
 
-      final DoseLog first = await repository.logDose(
+      await repository.logDose(
         medicationClientRecordId: med.clientRecordId,
         status: DoseStatus.taken,
         scheduledDate: '2026-08-25',
         scheduledTime: '08:00',
       );
-      final DoseLog second = await repository.logDose(
+      await repository.logDose(
         medicationClientRecordId: med.clientRecordId,
-        status: DoseStatus.missed,
+        status: DoseStatus.taken,
         scheduledDate: '2026-08-25',
-        scheduledTime: '08:00',
-        note: 'ran out',
+        scheduledTime: '20:00',
       );
 
-      final List<DoseLog> stored = await local.doseLogsForDate('2026-08-25');
-      expect(stored, hasLength(1));
-      expect(stored.single.status, DoseStatus.missed);
-      expect(stored.single.note, 'ran out');
+      await repository.logDose(
+        medicationClientRecordId: med.clientRecordId,
+        status: DoseStatus.taken,
+        scheduledDate: '2026-08-26',
+        scheduledTime: '08:00',
+      );
 
-      expect(second.clientRecordId, first.clientRecordId);
+      expect(await local.doseLogsForDate('2026-08-25'), hasLength(2));
+      expect(await local.doseLogsForDate('2026-08-26'), hasLength(1));
     },
   );
-
-  test('a different slot of the same medication is still its own row (I8)', () async {
-    final Medication med = await repository.add(
-      name: 'Aspirin',
-      doseMg: 75,
-      frequency: MedicationFrequency.bid,
-      scheduleTimes: const <String>['08:00', '20:00'],
-    );
-
-    await repository.logDose(
-      medicationClientRecordId: med.clientRecordId,
-      status: DoseStatus.taken,
-      scheduledDate: '2026-08-25',
-      scheduledTime: '08:00',
-    );
-    await repository.logDose(
-      medicationClientRecordId: med.clientRecordId,
-      status: DoseStatus.taken,
-      scheduledDate: '2026-08-25',
-      scheduledTime: '20:00',
-    );
-
-    await repository.logDose(
-      medicationClientRecordId: med.clientRecordId,
-      status: DoseStatus.taken,
-      scheduledDate: '2026-08-26',
-      scheduledTime: '08:00',
-    );
-
-    expect(await local.doseLogsForDate('2026-08-25'), hasLength(2));
-    expect(await local.doseLogsForDate('2026-08-26'), hasLength(1));
-  });
 
   test('an untimed dose does not collide with a timed one (I8)', () async {
     final Medication med = await repository.add(
@@ -263,66 +265,45 @@ void main() {
     expect(await local.doseLogsForDate('2026-08-25'), hasLength(2));
   });
 
-  test('doseHistory orders same-day rows by their slot, latest first (I5)', () async {
-    final Medication med = await repository.add(
-      name: 'Aspirin',
-      doseMg: 75,
-      frequency: MedicationFrequency.tid,
-      scheduleTimes: const <String>['08:00', '14:00', '20:00'],
-    );
-
-    for (final String time in <String>['14:00', '08:00', '20:00']) {
-      await repository.logDose(
-        medicationClientRecordId: med.clientRecordId,
-        status: DoseStatus.taken,
-        scheduledDate: '2026-08-25',
-        scheduledTime: time,
+  test(
+    'doseHistory orders same-day rows by their slot, latest first (I5)',
+    () async {
+      final Medication med = await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.tid,
+        scheduleTimes: const <String>['08:00', '14:00', '20:00'],
       );
-    }
 
-    final List<DoseLog> history = await repository.doseHistory();
+      for (final String time in <String>['14:00', '08:00', '20:00']) {
+        await repository.logDose(
+          medicationClientRecordId: med.clientRecordId,
+          status: DoseStatus.taken,
+          scheduledDate: '2026-08-25',
+          scheduledTime: time,
+        );
+      }
 
-    expect(
-      history.map((DoseLog l) => l.scheduledTime).toList(),
-      <String>['20:00', '14:00', '08:00'],
-    );
-  });
+      final List<DoseLog> history = await repository.doseHistory();
 
-  test('logging a dose enqueues medicationId once the medication has a server id', () async {
-    final Medication med = await repository.add(
-      name: 'Aspirin',
-      doseMg: 75,
-      frequency: MedicationFrequency.onceDaily,
-      scheduleTimes: const <String>['08:00'],
-    );
-    await local.setServerId(med.clientRecordId, 'srv-1');
-
-    await repository.logDose(
-      medicationClientRecordId: med.clientRecordId,
-      status: DoseStatus.taken,
-      scheduledDate: '2026-08-25',
-      scheduledTime: '08:00',
-    );
-
-    final _RecordedEnqueue doseCall = enqueuer.calls.firstWhere(
-      (_RecordedEnqueue c) => c.entityType == SyncEntityType.doseLog,
-    );
-    expect(doseCall.payload['medicationId'], 'srv-1');
-    expect(doseCall.payload.containsKey('medicationClientRecordId'), isFalse);
-  });
+      expect(history.map((DoseLog l) => l.scheduledTime).toList(), <String>[
+        '20:00',
+        '14:00',
+        '08:00',
+      ]);
+    },
+  );
 
   test(
-    'logDose harvests a server id the sync engine resolved and sends '
-    'medicationId — without anyone calling setServerId by hand',
+    'logging a dose enqueues medicationId once the medication has a server id',
     () async {
-
       final Medication med = await repository.add(
         name: 'Aspirin',
         doseMg: 75,
         frequency: MedicationFrequency.onceDaily,
         scheduleTimes: const <String>['08:00'],
       );
-      await resolveInQueue(med.clientRecordId, 'srv-9');
+      await local.setServerId(med.clientRecordId, 'srv-1');
 
       await repository.logDose(
         medicationClientRecordId: med.clientRecordId,
@@ -331,14 +312,38 @@ void main() {
         scheduledTime: '08:00',
       );
 
-      expect((await local.findMedication(med.clientRecordId))!.serverId, 'srv-9');
       final _RecordedEnqueue doseCall = enqueuer.calls.firstWhere(
         (_RecordedEnqueue c) => c.entityType == SyncEntityType.doseLog,
       );
-      expect(doseCall.payload['medicationId'], 'srv-9');
+      expect(doseCall.payload['medicationId'], 'srv-1');
       expect(doseCall.payload.containsKey('medicationClientRecordId'), isFalse);
     },
   );
+
+  test('logDose harvests a server id the sync engine resolved and sends '
+      'medicationId — without anyone calling setServerId by hand', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+    await resolveInQueue(med.clientRecordId, 'srv-9');
+
+    await repository.logDose(
+      medicationClientRecordId: med.clientRecordId,
+      status: DoseStatus.taken,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+    );
+
+    expect((await local.findMedication(med.clientRecordId))!.serverId, 'srv-9');
+    final _RecordedEnqueue doseCall = enqueuer.calls.firstWhere(
+      (_RecordedEnqueue c) => c.entityType == SyncEntityType.doseLog,
+    );
+    expect(doseCall.payload['medicationId'], 'srv-9');
+    expect(doseCall.payload.containsKey('medicationClientRecordId'), isFalse);
+  });
 
   test(
     'replayPendingEdits harvests the resolved server id and PUTs the edit',
@@ -375,20 +380,64 @@ void main() {
     },
   );
 
-  test('upserting the same dose log client id twice does not produce two rows', () async {
-    final DoseLogModel model = DoseLogModel(
-      medicationId: '',
-      status: 'TAKEN',
-      scheduledDate: '2026-08-25',
-      scheduledTime: '08:00',
-      clientRecordId: 'dose-1',
-      loggedAt: DateTime.utc(2026, 8, 25, 8),
-    );
-    await local.upsertDoseLog(model, medicationClientRecordId: 'm1');
-    await local.upsertDoseLog(model, medicationClientRecordId: 'm1');
+  test(
+    'upserting the same dose log client id twice does not produce two rows',
+    () async {
+      final DoseLogModel model = DoseLogModel(
+        medicationId: '',
+        status: 'TAKEN',
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        clientRecordId: 'dose-1',
+        loggedAt: DateTime.utc(2026, 8, 25, 8),
+      );
+      await local.upsertDoseLog(model, medicationClientRecordId: 'm1');
+      await local.upsertDoseLog(model, medicationClientRecordId: 'm1');
 
-    final List<DoseLog> logs = await local.doseLogsInRange(medicationClientRecordId: 'm1');
-    expect(logs, hasLength(1));
+      final List<DoseLog> logs = await local.doseLogsInRange(
+        medicationClientRecordId: 'm1',
+      );
+      expect(logs, hasLength(1));
+    },
+  );
+
+  test('deactivating records the day, and a later edit keeps it', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    final Medication off = await repository.deactivate(med.clientRecordId);
+    expect(off.deactivatedAt, isNotNull);
+
+    await repository.edit(off.copyWith(name: 'Aspirin 100mg'));
+
+    final Medication? stored = await local.findMedication(med.clientRecordId);
+    // Drift stores whole seconds.
+    expect(
+      stored!.deactivatedAt!.difference(off.deactivatedAt!).inSeconds.abs(),
+      lessThan(1),
+    );
+  });
+
+  test('turning a medication back on clears the deactivation day', () async {
+    final Medication med = await repository.add(
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+    final Medication off = await repository.deactivate(med.clientRecordId);
+
+    final Medication on = await repository.edit(off.copyWith(active: true));
+
+    expect(on.deactivatedAt, isNull);
+    expect(
+      (await local.findMedication(med.clientRecordId))!.deactivatedAt,
+      isNull,
+    );
   });
 
   test('an offline edit is tracked pending and not sent until online with a server id', () async {
@@ -449,80 +498,78 @@ void main() {
     expect(fakeDio.requests, hasLength(1));
   });
 
-  test('a transient server failure (500) stays pending and is retried', () async {
-    final Medication med = await repository.add(
-      name: 'Aspirin',
-      doseMg: 75,
-      frequency: MedicationFrequency.onceDaily,
-      scheduleTimes: const <String>['08:00'],
-    );
-
-    await repository.edit(med.copyWith(name: 'Aspirin 100mg'));
-    await local.setServerId(med.clientRecordId, 'srv-1');
-    online = true;
-    fakeDio.stub(
-      '/api/v1/medications/srv-1',
-      FakeResponse.error(500, 'Internal server error'),
-    );
-
-    await repository.replayPendingEdits();
-    expect(fakeDio.requests, hasLength(1));
-
-    await repository.replayPendingEdits();
-    expect(fakeDio.requests, hasLength(2));
-  });
-
   test(
-    'a transient preferences failure does not permanently wedge the '
-    'pending-edits lock for later, unrelated edits',
+    'a transient server failure (500) stays pending and is retried',
     () async {
-
-      final _FlakyPreferencesDao flakyPreferences = _FlakyPreferencesDao(db);
-      final MedicationRepositoryImpl flakyRepository = MedicationRepositoryImpl(
-        local: local,
-        remote: remote,
-        syncEnqueuer: enqueuer,
-        syncQueueDao: syncQueueDao,
-        preferences: flakyPreferences,
-        isOnline: () async => online,
-      );
-
-      final Medication medA = await flakyRepository.add(
-        name: 'Medication A',
-        doseMg: 10,
+      final Medication med = await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
         frequency: MedicationFrequency.onceDaily,
         scheduleTimes: const <String>['08:00'],
       );
 
-      await expectLater(
-        () => flakyRepository.edit(medA.copyWith(name: 'Medication A updated')),
-        throwsStateError,
+      await repository.edit(med.copyWith(name: 'Aspirin 100mg'));
+      await local.setServerId(med.clientRecordId, 'srv-1');
+      online = true;
+      fakeDio.stub(
+        '/api/v1/medications/srv-1',
+        FakeResponse.error(500, 'Internal server error'),
       );
 
-      final Medication medB = await flakyRepository.add(
-        name: 'Medication B',
-        doseMg: 20,
-        frequency: MedicationFrequency.onceDaily,
-        scheduleTimes: const <String>['09:00'],
-      );
+      await repository.replayPendingEdits();
+      expect(fakeDio.requests, hasLength(1));
 
-      await flakyRepository.edit(medB.copyWith(name: 'Medication B updated'));
-
-      final String? raw = await db.preferencesDao.get(
-        'm3_pending_medication_edits',
-      );
-      final Set<String> remaining = raw == null
-          ? <String>{}
-          : (jsonDecode(raw) as List<dynamic>).cast<String>().toSet();
-      expect(remaining, <String>{medB.clientRecordId});
+      await repository.replayPendingEdits();
+      expect(fakeDio.requests, hasLength(2));
     },
   );
+
+  test('a transient preferences failure does not permanently wedge the '
+      'pending-edits lock for later, unrelated edits', () async {
+    final _FlakyPreferencesDao flakyPreferences = _FlakyPreferencesDao(db);
+    final MedicationRepositoryImpl flakyRepository = MedicationRepositoryImpl(
+      local: local,
+      remote: remote,
+      syncEnqueuer: enqueuer,
+      syncQueueDao: syncQueueDao,
+      preferences: flakyPreferences,
+      isOnline: () async => online,
+    );
+
+    final Medication medA = await flakyRepository.add(
+      name: 'Medication A',
+      doseMg: 10,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+    );
+
+    await expectLater(
+      () => flakyRepository.edit(medA.copyWith(name: 'Medication A updated')),
+      throwsStateError,
+    );
+
+    final Medication medB = await flakyRepository.add(
+      name: 'Medication B',
+      doseMg: 20,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['09:00'],
+    );
+
+    await flakyRepository.edit(medB.copyWith(name: 'Medication B updated'));
+
+    final String? raw = await db.preferencesDao.get(
+      'm3_pending_medication_edits',
+    );
+    final Set<String> remaining = raw == null
+        ? <String>{}
+        : (jsonDecode(raw) as List<dynamic>).cast<String>().toSet();
+    expect(remaining, <String>{medB.clientRecordId});
+  });
 
   test(
     'a second edit for a different medication does not lose its pending marker '
     'to a concurrent stale-read write',
     () async {
-
       final _RaceInducingPreferencesDao raceDao = _RaceInducingPreferencesDao(
         db,
       );
@@ -595,18 +642,134 @@ void main() {
     },
   );
 
-  test('todaysDoses derives from active medications and today\'s logs', () async {
-    await repository.add(
-      name: 'Aspirin',
-      doseMg: 75,
-      frequency: MedicationFrequency.onceDaily,
-      scheduleTimes: const <String>['08:00'],
+  test(
+    'todaysDoses derives from active medications and today\'s logs',
+    () async {
+      await repository.add(
+        name: 'Aspirin',
+        doseMg: 75,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+
+      final List<dynamic> doses = await repository.todaysDoses(
+        now: DateTime.now(),
+      );
+
+      expect(doses, isNotEmpty);
+    },
+  );
+  group('restoreFromServer', () {
+    Map<String, dynamic> serverMed({
+      String? clientRecordId,
+      bool active = true,
+    }) => <String, dynamic>{
+      'id': 'srv-m1',
+      'name': 'Metoprolol',
+      'doseMg': 50,
+      'frequency': 'BID',
+      'scheduleTimes': <String>['08:00', '20:00'],
+      'active': active,
+      if (!active) 'deactivatedAt': '2026-09-20T10:00:00Z',
+      'clientRecordId': ?clientRecordId,
+      'createdAt': '2026-09-01T10:00:00Z',
+      'updatedAt': '2026-09-01T10:00:00Z',
+    };
+
+    test('brings back medications and their doses from the server', () async {
+      online = true;
+      fakeDio
+        ..stub(
+          '/api/v1/medications',
+          FakeResponse.ok(<dynamic>[serverMed(clientRecordId: 'm1')]),
+        )
+        ..stub(
+          '/api/v1/dose-logs',
+          FakeResponse.ok(<dynamic>[
+            <String, dynamic>{
+              'id': 'srv-d1',
+              'medicationId': 'srv-m1',
+              'scheduledDate': '2026-09-30',
+              'scheduledTime': '08:00:00',
+              'status': 'TAKEN',
+              'loggedAt': '2026-09-30T05:10:00Z',
+              'clientRecordId': 'd1',
+            },
+          ]),
+        );
+
+      await repository.restoreFromServer();
+
+      final Medication med = (await local.allMedications(includeInactive: true))
+          .single;
+      expect(med.clientRecordId, 'm1');
+      expect(med.serverId, 'srv-m1');
+      final DoseLog dose = (await local.doseLogsForDate('2026-09-30')).single;
+      expect(dose.medicationClientRecordId, 'm1');
+      expect(dose.scheduledTime, '08:00');
+      expect(dose.status, DoseStatus.taken);
+      expect(
+        enqueuer.calls,
+        isEmpty,
+        reason: 'restored records are not re-sent',
+      );
+    });
+
+    test(
+      'keeps the deactivation day of a medication turned off elsewhere',
+      () async {
+        online = true;
+        fakeDio
+          ..stub(
+            '/api/v1/medications',
+            FakeResponse.ok(<dynamic>[
+              serverMed(clientRecordId: 'm1', active: false),
+            ]),
+          )
+          ..stub('/api/v1/dose-logs', FakeResponse.ok(<dynamic>[]));
+
+        await repository.restoreFromServer();
+
+        final Medication med = (await local.allMedications(
+          includeInactive: true,
+        )).single;
+        expect(med.active, isFalse);
+        expect(
+          med.deactivatedAt!.isAtSameMomentAs(DateTime.utc(2026, 9, 20, 10)),
+          isTrue,
+        );
+      },
     );
 
-    final List<dynamic> doses = await repository.todaysDoses(
-      now: DateTime.now(),
-    );
+    test('never overwrites a medication already on the phone', () async {
+      final Medication mine = await repository.add(
+        name: 'Edited here',
+        doseMg: 25,
+        frequency: MedicationFrequency.onceDaily,
+        scheduleTimes: const <String>['08:00'],
+      );
+      online = true;
+      fakeDio
+        ..stub(
+          '/api/v1/medications',
+          FakeResponse.ok(<dynamic>[
+            serverMed(clientRecordId: mine.clientRecordId),
+          ]),
+        )
+        ..stub('/api/v1/dose-logs', FakeResponse.ok(<dynamic>[]));
 
-    expect(doses, isNotEmpty);
+      await repository.restoreFromServer();
+
+      final Medication med = (await local.allMedications(includeInactive: true))
+          .single;
+      expect(med.name, 'Edited here');
+      expect(med.serverId, 'srv-m1', reason: 'but it learns its server id');
+    });
+
+    test('does nothing offline', () async {
+      online = false;
+      await repository.restoreFromServer();
+      expect(fakeDio.requests, isEmpty);
+    });
   });
 }

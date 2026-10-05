@@ -45,7 +45,9 @@ class _ChangePinScreenState extends ConsumerState<ChangePinScreen> {
     if (nextKey == null && _next.text == _current.text) {
       nextKey = 'auth.changePin.sameAsCurrent';
     }
-    final String? confirmKey = _confirm.text == _next.text ? null : 'auth.errors.pinMismatch';
+    final String? confirmKey = _confirm.text == _next.text
+        ? null
+        : 'auth.errors.pinMismatch';
     setState(() {
       _currentErrorKey = currentKey;
       _nextErrorKey = nextKey;
@@ -77,7 +79,9 @@ class _ChangePinScreenState extends ConsumerState<ChangePinScreen> {
     } finally {
       // A change sent at once may have found the PIN changed elsewhere, which
       // signs the patient out; the gate then routes to sign-in.
-      ref.read(signOutNoticeProvider.notifier).show(ref.read(pinRepositoryProvider).takeSignOutReason());
+      ref
+          .read(signOutNoticeProvider.notifier)
+          .show(ref.read(pinRepositoryProvider).takeSignOutReason());
       await ref.read(realAuthGateProvider.notifier).refresh();
       if (mounted) setState(() => _busy = false);
     }
@@ -86,9 +90,12 @@ class _ChangePinScreenState extends ConsumerState<ChangePinScreen> {
   String _messageFor(Failure failure) {
     return switch (failure) {
       InvalidCredentialsFailure() => 'auth.changePin.wrongCurrent'.tr(),
-      AccountLockedFailure(:final int? minutesRemaining) => minutesRemaining != null
-          ? 'auth.errors.locked'.tr(namedArgs: <String, String>{'minutes': '$minutesRemaining'})
-          : 'auth.errors.lockedNoTime'.tr(),
+      AccountLockedFailure(:final int? minutesRemaining) =>
+        minutesRemaining != null
+            ? 'auth.errors.locked'.tr(
+                namedArgs: <String, String>{'minutes': '$minutesRemaining'},
+              )
+            : 'auth.errors.lockedNoTime'.tr(),
       _ => 'errors.generic'.tr(),
     };
   }
@@ -124,7 +131,10 @@ class _ChangePinScreenState extends ConsumerState<ChangePinScreen> {
             ),
             if (_formError != null) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
-              Text(_formError!, style: text.bodyMedium?.copyWith(color: AppColors.critical)),
+              Text(
+                _formError!,
+                style: text.bodyMedium?.copyWith(color: AppColors.critical),
+              ),
             ],
             const SizedBox(height: AppSpacing.lg),
             AppButton(

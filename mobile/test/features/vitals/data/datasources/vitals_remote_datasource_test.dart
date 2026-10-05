@@ -26,30 +26,41 @@ void main() {
     );
 
     final Map<String, dynamic> sent = fake.requests.single.json;
-    expect(sent.keys, containsAll(<String>['type', 'values', 'measuredAt', 'clientRecordId']));
+    expect(
+      sent.keys,
+      containsAll(<String>['type', 'values', 'measuredAt', 'clientRecordId']),
+    );
     expect(sent['values'], <String, double>{'systolic': 128, 'diastolic': 82});
   });
 
-  test('measuredAt is sent exactly as given (UTC ISO-8601 by the caller)', () async {
-    final FakeDio fake = FakeDio()
-      ..stub(
-        '/api/v1/vitals',
-        FakeResponse.ok(<String, dynamic>{
-          'type': 'GLUCOSE',
-          'values': <String, dynamic>{'glucose': 5.5},
-          'measuredAt': '2026-08-22T06:30:00Z',
-        }),
+  test(
+    'measuredAt is sent exactly as given (UTC ISO-8601 by the caller)',
+    () async {
+      final FakeDio fake = FakeDio()
+        ..stub(
+          '/api/v1/vitals',
+          FakeResponse.ok(<String, dynamic>{
+            'type': 'GLUCOSE',
+            'values': <String, dynamic>{'glucose': 5.5},
+            'measuredAt': '2026-08-22T06:30:00Z',
+          }),
+        );
+      final VitalsRemoteDataSource datasource = VitalsRemoteDataSource(
+        fake.dio,
       );
-    final VitalsRemoteDataSource datasource = VitalsRemoteDataSource(fake.dio);
 
-    await datasource.create(
-      type: 'GLUCOSE',
-      values: <String, double>{'glucose': 5.5},
-      measuredAt: '2026-08-22T06:30:00.000Z',
-    );
+      await datasource.create(
+        type: 'GLUCOSE',
+        values: <String, double>{'glucose': 5.5},
+        measuredAt: '2026-08-22T06:30:00.000Z',
+      );
 
-    expect(fake.requests.single.json['measuredAt'], '2026-08-22T06:30:00.000Z');
-  });
+      expect(
+        fake.requests.single.json['measuredAt'],
+        '2026-08-22T06:30:00.000Z',
+      );
+    },
+  );
 
   test('unwraps a 200', () async {
     final FakeDio fake = FakeDio()

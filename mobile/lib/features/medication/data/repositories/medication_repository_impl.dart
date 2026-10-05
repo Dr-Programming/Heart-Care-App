@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../../../../core/sync/history_window.dart';
 import '../../../../core/db/app_database.dart' hide Medication, DoseLog;
 import '../../../../core/db/daos/preferences_dao.dart';
 import '../../../../core/sync/sync_queue_dao.dart';
@@ -86,9 +87,13 @@ class MedicationRepositoryImpl implements MedicationRepository {
 
   @override
   Future<Medication> edit(Medication updated) async {
-    final Medication withTimestamp = updated.copyWith(
-      updatedAt: DateTime.now().toUtc(),
-    );
+    final DateTime now = DateTime.now().toUtc();
+    Medication withTimestamp = updated.copyWith(updatedAt: now);
+    if (withTimestamp.active) {
+      withTimestamp = withTimestamp.withDeactivatedAt(null);
+    } else if (withTimestamp.deactivatedAt == null) {
+      withTimestamp = withTimestamp.withDeactivatedAt(now);
+    }
     await local.upsertMedication(MedicationModel.fromEntity(withTimestamp));
     await _markPendingEdit(withTimestamp.clientRecordId);
     unawaited(_tryReplaySingle(withTimestamp.clientRecordId));
@@ -112,7 +117,6 @@ class MedicationRepositoryImpl implements MedicationRepository {
     String? scheduledTime,
     String? note,
   }) async {
-
     await _harvestServerIds(<String>[medicationClientRecordId]);
     final Medication? medication = await local.findMedication(
       medicationClientRecordId,
@@ -229,6 +233,59 @@ class MedicationRepositoryImpl implements MedicationRepository {
     );
   }
 
+  /// Brings back this patient's medications and dose history from the server
+  /// — after signing in on a new phone, or after another patient used this
+  /// one. Only adds what the phone doesn't have: a record already here may
+  /// hold edits that haven't synced yet, so it is never overwritten.
+  Future<void> restoreFromServer() async {
+    if (!await isOnline()) return;
+
+    final Map<String, String> clientIdByServerId = <String, String>{};
+    for (final MedicationModel server in await remote.list(
+      includeInactive: true,
+    )) {
+      final String? serverId = server.id;
+      if (serverId == null) continue;
+      final String clientRecordId = server.clientRecordId ?? serverId;
+      clientIdByServerId[serverId] = clientRecordId;
+      final Medication? existing = await local.findMedication(clientRecordId);
+      if (existing == null) {
+        await local.upsertMedication(
+          server.copyWith(clientRecordId: clientRecordId),
+        );
+      } else if (existing.serverId == null) {
+        await local.setServerId(clientRecordId, serverId);
+      }
+    }
+
+    // Newest week first, then the rest of the month kept on the phone.
+    for (final DayRange range in restoreRanges()) {
+      for (final DoseLogModel server in await remote.doseLogs(
+        from: range.fromParam,
+        to: range.toParam,
+      )) {
+        final String? medicationClientRecordId =
+            clientIdByServerId[server.medicationId];
+        final String? clientRecordId = server.clientRecordId ?? server.id;
+        if (medicationClientRecordId == null || clientRecordId == null) {
+          continue;
+        }
+        if (await local.hasDoseLog(clientRecordId)) continue;
+        await local.upsertDoseLog(
+          server.copyWith(
+            clientRecordId: clientRecordId,
+            // The server sends "08:00:00"; schedules here are "08:00".
+            scheduledTime:
+                server.scheduledTime == null || server.scheduledTime!.length < 5
+                ? server.scheduledTime
+                : server.scheduledTime!.substring(0, 5),
+          ),
+          medicationClientRecordId: medicationClientRecordId,
+        );
+      }
+    }
+  }
+
   @override
   Future<void> replayPendingEdits() async {
     if (!await isOnline()) return;
@@ -258,7 +315,6 @@ class MedicationRepositoryImpl implements MedicationRepository {
       return;
     }
     if (medication.serverId == null) {
-
       await _harvestServerIds(<String>[clientRecordId]);
       medication = await local.findMedication(clientRecordId);
       if (medication == null) {
@@ -282,7 +338,6 @@ class MedicationRepositoryImpl implements MedicationRepository {
       await _clearPendingEdit(clientRecordId);
     } on DioException catch (e) {
       if (_isRetryableFailure(e)) {
-
         return;
       }
 
@@ -304,7 +359,8 @@ class MedicationRepositoryImpl implements MedicationRepository {
 
   Future<void> _markPendingEdit(String clientRecordId) {
     final Future<void> result = _pendingEditsLock.then((_) async {
-      final Set<String> ids = await _pendingEditIds()..add(clientRecordId);
+      final Set<String> ids = await _pendingEditIds()
+        ..add(clientRecordId);
       await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
     });
 
@@ -314,7 +370,8 @@ class MedicationRepositoryImpl implements MedicationRepository {
 
   Future<void> _clearPendingEdit(String clientRecordId) {
     final Future<void> result = _pendingEditsLock.then((_) async {
-      final Set<String> ids = await _pendingEditIds()..remove(clientRecordId);
+      final Set<String> ids = await _pendingEditIds()
+        ..remove(clientRecordId);
       await preferences.set(_pendingEditsKey, jsonEncode(ids.toList()));
     });
     _pendingEditsLock = result.catchError((_) {});

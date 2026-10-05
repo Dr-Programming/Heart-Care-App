@@ -5,7 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/db/tables.dart';
 import '../../../../core/localization/language.dart';
+import '../../../../core/caregiver/caregiver_contact.dart';
+import '../../../../core/caregiver/caregiver_editor.dart';
+import '../../../../core/clinic/clinic_call.dart';
+import '../../../../core/clinic/clinic_contact.dart';
+import '../../../../core/clinic/urgent_pattern.dart';
 import '../../../../core/providers/core_providers.dart';
+import '../../../../core/sync/history_window.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -31,18 +37,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isDirty = false;
   bool _loading = true;
   bool _hasSecurityQuestions = false;
+  CaregiverContact? _caregiver;
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadSecurityQuestions();
+    _loadCaregiver();
+  }
+
+  Future<void> _loadCaregiver() async {
+    final CaregiverContact? contact = await ref
+        .read(caregiverContactStoreProvider)
+        .read();
+    if (mounted) setState(() => _caregiver = contact);
+  }
+
+  Future<void> _editCaregiver() async {
+    final CaregiverContact? contact = await showCaregiverEditor(
+      context,
+      ref.read(caregiverContactStoreProvider),
+    );
+    if (mounted) setState(() => _caregiver = contact);
   }
 
   Future<void> _loadSecurityQuestions() async {
-    final List<SecurityQuestion> configured =
-        await ref.read(pinRepositoryProvider).configuredQuestions();
-    if (mounted) setState(() => _hasSecurityQuestions = configured.isNotEmpty);
+    final List<SecurityQuestion> configured = await ref
+        .read(pinRepositoryProvider)
+        .configuredQuestions();
+    // This phone may have no copy (another patient used it in between) while
+    // the account does: ask the server before saying "not set".
+    final bool set =
+        configured.isNotEmpty ||
+        (await ref.read(pinRepositoryProvider).securityQuestionsStatus() ??
+            false);
+    if (mounted) setState(() => _hasSecurityQuestions = set);
   }
 
   Future<void> _openSecurityQuestions() async {
@@ -151,10 +181,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _onSignOut() async {
+    // Records the server hasn't received stay on the phone after sign-out;
+    // until they are sent, another patient can't sign in here.
+    final int unsent = await ref.read(appDatabaseProvider).unsentRecordCount();
+    if (!mounted) return;
     final bool confirmed = await ConfirmSheet.show(
       context,
       title: 'profile.settings.signOut.confirmTitle'.tr(),
-      message: 'profile.settings.signOut.confirmMessage'.tr(),
+      message: unsent == 0
+          ? 'profile.settings.signOut.confirmMessage'.tr()
+          : '${'profile.settings.signOut.confirmMessage'.tr()}\n\n'
+                '${plural('profile.settings.signOut.unsent', unsent)}',
       confirmLabel: 'profile.settings.signOut.confirmLabel'.tr(),
       isDestructive: true,
     );
@@ -225,6 +262,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onPressed: _onSendNow,
                         )
                       : null,
+                ),
+                const Divider(height: 1, color: AppColors.border),
+                ListTile(
+                  key: const Key('settings_caregiver_row'),
+                  leading: const Icon(Icons.contact_phone_outlined),
+                  title: Text('profile.caregiver.title'.tr()),
+                  subtitle: Text(
+                    _caregiver == null
+                        ? 'profile.caregiver.notSet'.tr()
+                        : '${_caregiver!.name.isEmpty ? '' : '${_caregiver!.name} · '}${_caregiver!.phone}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _editCaregiver,
+                ),
+                const Divider(height: 1, color: AppColors.border),
+                Builder(
+                  builder: (BuildContext context) {
+                    final ClinicContact? clinic = ref
+                        .watch(clinicContactProvider)
+                        .value;
+                    return ListTile(
+                      key: const Key('settings_clinic_row'),
+                      leading: const Icon(Icons.local_hospital_outlined),
+                      title: Text('profile.clinic.title'.tr()),
+                      subtitle: Text(
+                        clinic == null
+                            ? 'profile.clinic.notSet'.tr()
+                            : '${clinic.name.isEmpty ? '' : '${clinic.name} · '}${clinic.phone}',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => showClinicEditor(
+                        context,
+                        ref.read(clinicContactStoreProvider),
+                      ),
+                    );
+                  },
                 ),
                 const Divider(height: 1, color: AppColors.border),
                 ListTile(

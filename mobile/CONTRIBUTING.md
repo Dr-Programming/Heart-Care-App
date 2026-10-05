@@ -110,47 +110,6 @@ Status column there current as you go.
 Build **only** what your spec covers. Needing something from another slice is
 a signal you are about to break rule 1 below.
 
-### Your first session
-
-Before writing any code, get your assistant oriented. Ask the maintainer for
-the plugin configuration, then open the repository and start with something
-like this — substituting your own slice number, name, branch and spec file:
-
-```text
-I am building slice M4 (Vitals & Trend Charts) of the Libu Care Flutter app,
-on branch feature/mobile/vitals. Five developers are each building one slice
-in parallel off the `mobile` branch.
-
-Before anything else, read these three files in full:
-  - mobile/CONTRIBUTING.md                                   (the rules I must follow)
-  - docs/design/2026-08-22-mobile-frontend-program.md        (how the slices fit together)
-  - docs/design/2026-08-22-mobile-m4-vitals-trends-design.md (my slice spec)
-
-Then explore lib/core/ so you know what the foundation already provides —
-especially core/db/tables.dart, core/sync/, core/clinical/, core/widgets/,
-core/router/routes.dart and test/helpers/.
-
-Then write a CLAUDE.md at the repository root capturing what a future session
-needs: the architecture rules, the shared files I may not edit, the
-offline-first write path, the API contract traps, the testing helpers and
-toolchain gotchas, and — most importantly — the specifics of MY slice: which
-tables, endpoints, routes, translation namespace and core helpers are mine,
-and what belongs to other slices. Keep it concise; it is loaded into every
-prompt.
-
-Do not write any feature code yet. After CLAUDE.md, stop and confirm your
-understanding of my slice's scope and boundaries.
-```
-
-`CLAUDE.md` is gitignored at every depth, so the file this produces stays on
-your machine and cannot be committed by accident. Write your own rather than
-copying someone else's: a file that says *"`VitalsLogs` is yours; `SymptomLogs`
-belongs to M5 — read the table directly, never import their code"* is what
-actually stops boundary violations.
-
-Regenerate it if your understanding of the slice changes materially. It is
-notes to your future self, not a deliverable.
-
 ---
 
 ## 4. Architecture — the rules
@@ -246,16 +205,14 @@ overflow layouts tuned to English.
 Your spec is a design document. Turning it into a plan is your first task, and
 it is where your judgement shows.
 
-With Claude Code and the plugin set the maintainer shares with you:
+The steps:
 
-1. `/superpowers:brainstorming` — work through the spec, settle what it leaves
-   open, record decisions.
-2. `/superpowers:writing-plans` — produce
-   `docs/plans/2026-XX-XX-mobile-m<N>-<slice>.md`. Bite-sized TDD tasks, each
-   ending green and committed.
-3. `/superpowers:subagent-driven-development` — execute it task by task.
-4. `/superpowers:requesting-code-review` — review your own branch first.
-5. `/superpowers:finishing-a-development-branch` — push and open the PR.
+1. **Review the spec**: settle what it leaves open, record decisions.
+2. **Write the plan**: `docs/plans/2026-XX-XX-mobile-m<N>-<slice>.md`.
+   Bite-sized TDD tasks, each ending green and committed.
+3. **Carry out the plan** task by task.
+4. **Review your own branch** first.
+5. **Finish the branch**: push and open the PR.
 
 ### Order of work
 
@@ -412,8 +369,7 @@ flutter test                         # must be all green
 Conventional commits, scope `mobile`: `feat(mobile): …`, `test(mobile): …`,
 `fix(mobile): …`, `chore(mobile): …`.
 
-**Never add an AI co-author trailer to a commit.** The author is the human
-whose branch it is.
+The commit author is the developer whose branch it is.
 
 ---
 
@@ -432,7 +388,6 @@ Before you open it:
 - [ ] you ran the app and used the feature, including with the radio off
 - [ ] no edits to shared files outside your marked region
 - [ ] nothing under `backend/` or `database/` changed
-- [ ] no AI co-author trailer on any commit
 
 Request review from the maintainer plus `j444cky`. The maintainer merges.
 

@@ -27,7 +27,9 @@ void main() {
     expect(find.byType(TextField), findsNWidgets(2));
   });
 
-  testWidgets('shows three fields for cholesterol', (WidgetTester tester) async {
+  testWidgets('shows three fields for cholesterol', (
+    WidgetTester tester,
+  ) async {
     await pumpApp(
       tester,
       Scaffold(

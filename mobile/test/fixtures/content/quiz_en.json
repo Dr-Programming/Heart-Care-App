@@ -1,0 +1,14 @@
+[
+  {
+    "topicId": "fixture-topic",
+    "questions": [
+      {
+        "question": "A fixture question?",
+        "options": [
+          { "text": "Right", "correct": true, "explanation": "This is the right one." },
+          { "text": "Wrong", "correct": false, "explanation": "This is not it." }
+        ]
+      }
+    ]
+  }
+]

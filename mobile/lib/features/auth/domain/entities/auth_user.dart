@@ -1,5 +1,3 @@
-
-
 class AuthUser {
   const AuthUser({
     required this.id,

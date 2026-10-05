@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:libu_care/core/clinic/clinic_contact.dart';
+import 'package:libu_care/core/db/app_database.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
@@ -205,4 +207,94 @@ void main() {
       expect(find.text('HOME_SCREEN_MARKER'), findsOneWidget);
     },
   );
+
+  Future<void> goToStep3(WidgetTester tester) async {
+    await tapButton(tester, find.text('common.next'.tr()));
+    await tester.pumpAndSettle();
+    await tapButton(tester, find.text('common.next'.tr()));
+    await tester.pumpAndSettle();
+  }
+
+  Finder field(String key) => find.descendant(
+    of: find.byKey(Key(key)),
+    matching: find.byType(TextField),
+  );
+
+  testWidgets('the clinic entered on step 3 is saved on this phone', (
+    tester,
+  ) async {
+    final AppDatabase db = testDatabase();
+    await pumpOnboardingWithRouter(
+      tester,
+      overrides: <Override>[
+        appDatabaseProvider.overrideWithValue(db),
+        dioProvider.overrideWithValue(FakeDio().dio),
+        isOnlineProvider.overrideWithValue(() async => false),
+      ],
+    );
+    await goToStep3(tester);
+
+    await tester.ensureVisible(field('onboarding_clinic_phone'));
+    await tester.enterText(field('onboarding_clinic_name'), 'Black Lion');
+    await tester.enterText(field('onboarding_clinic_phone'), '0911223344');
+    await tapButton(tester, find.text('profile.onboarding.finish'.tr()));
+    await tester.pumpAndSettle();
+
+    final ClinicContact? clinic = await tester.runAsync<ClinicContact?>(
+      () => ClinicContactStore(db.preferencesDao).read(),
+    );
+    expect(
+      clinic,
+      const ClinicContact(name: 'Black Lion', phone: '0911223344'),
+    );
+    expect(find.text('HOME_SCREEN_MARKER'), findsOneWidget);
+  });
+
+  testWidgets('an invalid clinic number blocks finishing', (tester) async {
+    await pumpOnboardingWithRouter(tester, overrides: baseOverrides());
+    await goToStep3(tester);
+
+    await tester.ensureVisible(field('onboarding_clinic_phone'));
+    await tester.enterText(field('onboarding_clinic_phone'), '12');
+    await tapButton(tester, find.text('profile.onboarding.finish'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('profile.caregiver.phoneInvalid'.tr()), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsOneWidget);
+  });
+
+  testWidgets('finishing tells the sign-in gate that setup is done', (
+    tester,
+  ) async {
+    int calls = 0;
+    await pumpOnboardingWithRouter(
+      tester,
+      overrides: <Override>[
+        ...baseOverrides(),
+        onboardingDoneHandlerProvider.overrideWithValue(() async => calls++),
+      ],
+    );
+    await goToStep3(tester);
+    await tapButton(tester, find.text('profile.onboarding.finish'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+  });
+
+  testWidgets('skipping tells the sign-in gate that setup is done', (
+    tester,
+  ) async {
+    int calls = 0;
+    await pumpOnboardingWithRouter(
+      tester,
+      overrides: <Override>[
+        ...baseOverrides(),
+        onboardingDoneHandlerProvider.overrideWithValue(() async => calls++),
+      ],
+    );
+    await tapButton(tester, find.text('common.skip'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+  });
 }

@@ -1,4 +1,3 @@
-
 class Adherence {
   const Adherence({
     required this.taken,

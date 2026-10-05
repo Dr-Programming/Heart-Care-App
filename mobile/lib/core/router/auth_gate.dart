@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 abstract interface class AuthGate {
-
   bool get isSignedIn;
 
   bool get isResolved;

@@ -52,22 +52,25 @@ final Provider<MedicationNotifications> medicationNotificationsProvider =
 
 final Provider<CaregiverNotifyStore> caregiverNotifyStoreProvider =
     Provider<CaregiverNotifyStore>(
-      (Ref ref) => CaregiverNotifyStore(ref.watch(appDatabaseProvider).preferencesDao),
+      (Ref ref) =>
+          CaregiverNotifyStore(ref.watch(appDatabaseProvider).preferencesDao),
     );
 
-final Provider<MedicationInstructionsStore> medicationInstructionsStoreProvider =
-    Provider<MedicationInstructionsStore>(
-      (Ref ref) => MedicationInstructionsStore(ref.watch(appDatabaseProvider).preferencesDao),
-    );
+final Provider<MedicationInstructionsStore>
+medicationInstructionsStoreProvider = Provider<MedicationInstructionsStore>(
+  (Ref ref) => MedicationInstructionsStore(
+    ref.watch(appDatabaseProvider).preferencesDao,
+  ),
+);
 
-final Provider<MedicationReminderBootstrap> medicationReminderBootstrapProvider =
-    Provider<MedicationReminderBootstrap>(
-      (Ref ref) => MedicationReminderBootstrap(
-        scheduler: ref.watch(notificationSchedulerProvider),
-        notifications: ref.watch(medicationNotificationsProvider),
-        repository: ref.watch(medicationRepositoryProvider),
-      ),
-    );
+final Provider<MedicationReminderBootstrap>
+medicationReminderBootstrapProvider = Provider<MedicationReminderBootstrap>(
+  (Ref ref) => MedicationReminderBootstrap(
+    scheduler: ref.watch(notificationSchedulerProvider),
+    notifications: ref.watch(medicationNotificationsProvider),
+    repository: ref.watch(medicationRepositoryProvider),
+  ),
+);
 
 final Provider<void> medicationRemindersStartupProvider = Provider<void>((
   Ref ref,

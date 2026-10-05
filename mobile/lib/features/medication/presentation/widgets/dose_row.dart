@@ -26,7 +26,6 @@ class DoseRow extends StatelessWidget {
 
     return Row(
       children: <Widget>[
-
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 180),
           child: Column(
@@ -35,7 +34,10 @@ class DoseRow extends StatelessWidget {
             children: <Widget>[
               Text(dose.medicationName, style: text.titleMedium),
               const SizedBox(height: AppSpacing.xs),
-              Text('${dose.scheduledTime} · $doseLabel mg', style: text.bodySmall),
+              Text(
+                '${dose.scheduledTime} · $doseLabel mg',
+                style: text.bodySmall,
+              ),
             ],
           ),
         ),
@@ -44,7 +46,9 @@ class DoseRow extends StatelessWidget {
         Flexible(
           child: dose.status == ScheduledDoseStatus.logged
               ? _LoggedDose(dose: dose, onLog: onLog)
-              : StatusSelector(onSelected: (DoseStatus status) => onLog(status)),
+              : StatusSelector(
+                  onSelected: (DoseStatus status) => onLog(status),
+                ),
         ),
       ],
     );
@@ -60,7 +64,9 @@ class _LoggedDose extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DoseLog log = dose.doseLog!;
-    final String? note = (log.note ?? '').trim().isEmpty ? null : log.note!.trim();
+    final String? note = (log.note ?? '').trim().isEmpty
+        ? null
+        : log.note!.trim();
 
     return Wrap(
       alignment: WrapAlignment.end,
@@ -69,7 +75,9 @@ class _LoggedDose extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         StatusChip(
-          severity: log.status == DoseStatus.taken ? Severity.none : Severity.monitor,
+          severity: log.status == DoseStatus.taken
+              ? Severity.none
+              : Severity.monitor,
           label: 'meds.status.${log.status.name}'.tr(),
         ),
         if (note != null)
@@ -88,7 +96,10 @@ class _LoggedDose extends StatelessWidget {
   }
 
   Future<void> _editNote(BuildContext context, DoseLog log) async {
-    final String? entered = await DoseNoteSheet.show(context, initialNote: log.note);
+    final String? entered = await DoseNoteSheet.show(
+      context,
+      initialNote: log.note,
+    );
     if (entered == null) return;
     onLog(log.status, note: entered.isEmpty ? null : entered);
   }

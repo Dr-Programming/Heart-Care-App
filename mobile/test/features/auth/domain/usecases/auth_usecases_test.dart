@@ -18,7 +18,8 @@ const _user = AuthUser(
 class _FakeAuthRepository implements AuthRepository {
   bool loggedOut = false;
   ({String phone, String pin})? loginArgs;
-  ({String phone, String pin, String name, String preferredLanguage})? registerArgs;
+  ({String phone, String pin, String name, String preferredLanguage})?
+  registerArgs;
 
   @override
   Future<AuthUser> login({required String phone, required String pin}) async {
@@ -34,7 +35,12 @@ class _FakeAuthRepository implements AuthRepository {
     required String preferredLanguage,
     List<SecurityAnswer>? securityAnswers,
   }) async {
-    registerArgs = (phone: phone, pin: pin, name: name, preferredLanguage: preferredLanguage);
+    registerArgs = (
+      phone: phone,
+      pin: pin,
+      name: name,
+      preferredLanguage: preferredLanguage,
+    );
     return _user;
   }
 
@@ -74,10 +80,12 @@ void main() {
       preferredLanguage: 'en',
     );
     expect(result, _user);
-    expect(
-      repo.registerArgs,
-      (phone: '+251911234567', pin: '1234', name: 'Abebe Girma', preferredLanguage: 'en'),
-    );
+    expect(repo.registerArgs, (
+      phone: '+251911234567',
+      pin: '1234',
+      name: 'Abebe Girma',
+      preferredLanguage: 'en',
+    ));
   });
 
   test('GetMe forwards to the repository', () async {

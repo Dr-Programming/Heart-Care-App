@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/clinical/alert_evaluator.dart';
+
+import '../../domain/entities/vital_reading.dart';
 import '../../domain/entities/vital_type.dart';
 import '../../domain/validators.dart';
 import '../../vitals_providers.dart';
@@ -16,6 +19,7 @@ class VitalFormState {
     this.isSaving = false,
     this.generalError,
     this.saved = false,
+    this.worstSeverity = Severity.none,
   }) : _measuredAt = measuredAt;
 
   final Map<VitalType, Map<String, double?>> valuesByType;
@@ -26,9 +30,21 @@ class VitalFormState {
   final String? generalError;
   final bool saved;
 
+  /// The most serious level among the readings just saved, so the screen
+  /// can warn straight away about a dangerous one.
+  final Severity worstSeverity;
+
   DateTime get measuredAt => _measuredAt ?? DateTime.now();
 
   double? valueFor(VitalType type, String key) => valuesByType[type]?[key];
+
+  /// A value was entered and not yet saved.
+  bool get isDirty =>
+      !saved &&
+      (valuesByType.values.any(
+            (Map<String, double?> v) => v.values.any((double? x) => x != null),
+          ) ||
+          (note?.isNotEmpty ?? false));
 
   VitalFormState copyWith({
     Map<VitalType, Map<String, double?>>? valuesByType,
@@ -38,6 +54,7 @@ class VitalFormState {
     bool? isSaving,
     String? generalError,
     bool? saved,
+    Severity? worstSeverity,
     bool clearGeneralError = false,
   }) {
     return VitalFormState(
@@ -50,6 +67,7 @@ class VitalFormState {
           ? null
           : (generalError ?? this.generalError),
       saved: saved ?? this.saved,
+      worstSeverity: worstSeverity ?? this.worstSeverity,
     );
   }
 }
@@ -119,13 +137,14 @@ class VitalFormController extends Notifier<VitalFormState> {
     state = state.copyWith(isSaving: true, clearGeneralError: true);
     try {
       final String? note = (state.note?.isEmpty ?? true) ? null : state.note;
+      Severity worst = Severity.none;
       for (final VitalType type in typesToSubmit) {
         final Map<String, double?> raw = state.valuesByType[type]!;
         final Map<String, double> values = raw.map(
           (String key, double? value) => MapEntry<String, double>(key, value!),
         );
 
-        await ref
+        final VitalReading saved = await ref
             .read(logVitalProvider)
             .call(
               type: type,
@@ -133,6 +152,9 @@ class VitalFormController extends Notifier<VitalFormState> {
               measuredAt: state.measuredAt,
               note: note,
             );
+        worst = worst.coalesce(
+          severityForVital(type: type.wire, values: values, bmi: saved.bmi),
+        );
       }
 
       ref.invalidate(vitalsListControllerProvider);
@@ -140,7 +162,7 @@ class VitalFormController extends Notifier<VitalFormState> {
       for (final VitalType type in typesToSubmit) {
         ref.invalidate(vitalsTrendControllerProvider(type));
       }
-      state = state.copyWith(saved: true);
+      state = state.copyWith(saved: true, worstSeverity: worst);
       return true;
     } finally {
       state = state.copyWith(isSaving: false);

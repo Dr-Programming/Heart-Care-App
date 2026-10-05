@@ -7,6 +7,7 @@ import '../../../../core/clinical/alert_evaluator.dart';
 
 import '../../../../core/db/app_database.dart' hide DoseLog, Medication;
 import '../../../../core/error/failure.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/dose_log.dart';
@@ -30,7 +31,9 @@ class DoseHistoryContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<DoseHistoryState> state = ref.watch(doseHistoryControllerProvider);
+    final AsyncValue<DoseHistoryState> state = ref.watch(
+      doseHistoryControllerProvider,
+    );
 
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -75,7 +78,9 @@ class _FilterBar extends ConsumerWidget {
     void select(String? clientRecordId) {
       ref
           .read(doseHistoryControllerProvider.notifier)
-          .setFilter(DoseHistoryFilter(medicationClientRecordId: clientRecordId));
+          .setFilter(
+            DoseHistoryFilter(medicationClientRecordId: clientRecordId),
+          );
     }
 
     return Padding(
@@ -87,6 +92,10 @@ class _FilterBar extends ConsumerWidget {
             ChoiceChip(
               label: Text('meds.history.filterAll'.tr()),
               selected: selected == null,
+              showCheckmark: false,
+              labelStyle: TextStyle(
+                color: selected == null ? AppColors.surface : AppColors.ink,
+              ),
               onSelected: (_) => select(null),
             ),
             for (final Medication medication in state.medications) ...<Widget>[
@@ -94,6 +103,12 @@ class _FilterBar extends ConsumerWidget {
               ChoiceChip(
                 label: Text(medication.name),
                 selected: selected == medication.clientRecordId,
+                showCheckmark: false,
+                labelStyle: TextStyle(
+                  color: selected == medication.clientRecordId
+                      ? AppColors.surface
+                      : AppColors.ink,
+                ),
                 onSelected: (_) => select(medication.clientRecordId),
               ),
             ],
@@ -123,7 +138,6 @@ class _HistoryRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-
                 Text(
                   entry.medicationName ?? 'common.noValue'.tr(),
                   style: text.titleMedium,
@@ -133,13 +147,14 @@ class _HistoryRow extends StatelessWidget {
                   style: text.bodySmall,
                 ),
                 if (log.note != null) Text(log.note!, style: text.bodySmall),
-                if (syncLabel != null)
-                  Text(syncLabel, style: text.bodySmall),
+                if (syncLabel != null) Text(syncLabel, style: text.bodySmall),
               ],
             ),
           ),
           StatusChip(
-            severity: log.status == DoseStatus.taken ? Severity.none : Severity.monitor,
+            severity: log.status == DoseStatus.taken
+                ? Severity.none
+                : Severity.monitor,
             label: 'meds.status.${log.status.name}'.tr(),
           ),
         ],

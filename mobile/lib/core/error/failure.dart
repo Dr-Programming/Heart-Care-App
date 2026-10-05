@@ -1,5 +1,3 @@
-
-
 sealed class Failure implements Exception {
   const Failure(this.message);
   final String message;
@@ -35,6 +33,27 @@ final class SessionExpiredFailure extends Failure {
 
 final class ServerFailure extends Failure {
   const ServerFailure(super.message);
+}
+
+/// A different patient tried to sign in on this phone while that would
+/// lose the previous patient's records: offline (their data can't be swapped
+/// for the new patient's), or with records the server hasn't received yet.
+final class PatientSwitchFailure extends Failure {
+  const PatientSwitchFailure(
+    super.message, {
+    required this.needsConnection,
+    this.previousPatient,
+    this.unsentRecords = 0,
+  });
+
+  /// Offline: switching patients waits for a connection.
+  final bool needsConnection;
+
+  /// The name of the patient whose data is on the phone, when known.
+  final String? previousPatient;
+
+  /// Records of [previousPatient] not yet on the server.
+  final int unsentRecords;
 }
 
 final class UnknownFailure extends Failure {

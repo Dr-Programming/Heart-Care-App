@@ -73,16 +73,17 @@ abstract class VitalModel with _$VitalModel {
     note: note,
   );
 
-  drift_db.VitalsLogsCompanion toCompanion() => drift_db.VitalsLogsCompanion.insert(
-    clientRecordId: clientRecordId,
-    serverId: Value<String?>(serverId),
-    type: type,
-    valuesJson: jsonEncode(values),
-    flagged: Value<bool?>(flagged),
-    bmi: Value<double?>(bmi),
-    measuredAt: measuredAt,
-    note: Value<String?>(note),
-  );
+  drift_db.VitalsLogsCompanion toCompanion() =>
+      drift_db.VitalsLogsCompanion.insert(
+        clientRecordId: clientRecordId,
+        serverId: Value<String?>(serverId),
+        type: type,
+        valuesJson: jsonEncode(values),
+        flagged: Value<bool?>(flagged),
+        bmi: Value<double?>(bmi),
+        measuredAt: measuredAt,
+        note: Value<String?>(note),
+      );
 
   factory VitalModel.fromRow(drift_db.VitalsLog row) => VitalModel(
     clientRecordId: row.clientRecordId,

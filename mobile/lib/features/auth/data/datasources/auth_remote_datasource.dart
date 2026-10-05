@@ -26,13 +26,18 @@ class AuthRemoteDataSource {
         'name': name,
         'preferredLanguage': preferredLanguage,
         if (securityAnswers != null)
-          'securityAnswers': securityAnswers.map((SecurityAnswer a) => a.toJson()).toList(),
+          'securityAnswers': securityAnswers
+              .map((SecurityAnswer a) => a.toJson())
+              .toList(),
       },
     );
     return _unwrap(response, AuthResponseModel.fromJson);
   }
 
-  Future<AuthResponseModel> login({required String phone, required String pin}) async {
+  Future<AuthResponseModel> login({
+    required String phone,
+    required String pin,
+  }) async {
     final Response<dynamic> response = await _dio.post<dynamic>(
       ApiEndpoints.login,
       data: <String, dynamic>{'phone': phone, 'pin': pin},
@@ -89,8 +94,13 @@ class AuthRemoteDataSource {
 
   /// Whether the signed-in patient has security questions set on the server.
   Future<bool> securityAnswersConfigured() async {
-    final Response<dynamic> response = await _dio.get<dynamic>(ApiEndpoints.securityAnswers);
-    return _unwrap(response, (Map<String, dynamic> json) => json['configured'] == true);
+    final Response<dynamic> response = await _dio.get<dynamic>(
+      ApiEndpoints.securityAnswers,
+    );
+    return _unwrap(
+      response,
+      (Map<String, dynamic> json) => json['configured'] == true,
+    );
   }
 
   Future<void> setSecurityAnswers({
@@ -108,9 +118,18 @@ class AuthRemoteDataSource {
 
   static List<SecurityQuestion> _questionsFrom(Map<String, dynamic> json) {
     return <SecurityQuestion>[
-      for (final Object? id in (json['questions'] as List<Object?>?) ?? <Object?>[])
+      for (final Object? id
+          in (json['questions'] as List<Object?>?) ?? <Object?>[])
         if (id is String) ?SecurityQuestion.fromId(id),
     ];
+  }
+
+  /// Revokes [refreshToken] on the server so it can't be used again.
+  Future<void> logout(String refreshToken) async {
+    await _dio.post<dynamic>(
+      ApiEndpoints.logout,
+      data: <String, dynamic>{'refreshToken': refreshToken},
+    );
   }
 
   Future<UserModel> me() async {

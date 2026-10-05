@@ -11,6 +11,14 @@ class SymptomLocalDataSource {
 
   final drift_db.AppDatabase _db;
 
+  Future<bool> exists(String clientRecordId) async =>
+      await (_db.select(_db.symptomLogs)..where(
+            (drift_db.$SymptomLogsTable t) =>
+                t.clientRecordId.equals(clientRecordId),
+          ))
+          .getSingleOrNull() !=
+      null;
+
   Future<void> insert(SymptomCheckIn entity) => _db
       .into(_db.symptomLogs)
       .insert(

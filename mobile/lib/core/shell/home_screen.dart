@@ -44,10 +44,12 @@ class HomeScreen extends ConsumerWidget {
             else
               for (final HomeCard card in cards) ...<Widget>[
                 KeyedSubtree(
-                  key: ValueKey<String>(card.id),
+                  // Keyed by language too: a card's text is looked up when it
+                  // builds, so switching language must rebuild every card.
+                  key: ValueKey<String>('${card.id}-${context.locale}'),
                   child: Builder(builder: card.builder),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                if (card.spaced) const SizedBox(height: AppSpacing.lg),
               ],
           ],
         ),

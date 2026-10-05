@@ -84,7 +84,9 @@ class _FakeMedicationListController extends MedicationListController {
 void main() {
   setUpWidgetTests();
 
-  testWidgets('DoseHistoryScreen shows an empty state with no logs', (tester) async {
+  testWidgets('DoseHistoryScreen shows an empty state with no logs', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       const DoseHistoryScreen(),
@@ -183,60 +185,84 @@ void main() {
     expect(controller.requestedFilter?.medicationClientRecordId, 'm2');
   });
 
-  testWidgets('AdherenceScreen shows honest no-data text for a zero-due window', (tester) async {
-    await pumpApp(
-      tester,
-      const AdherenceScreen(),
-      overrides: <Override>[
-        adherenceControllerProvider.overrideWith(
-          () => _FakeAdherenceController(
-            const AdherenceState(
-              overall7: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 7),
-              overall30: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 30),
-              perMedication7: <String, Adherence>{},
-              perMedication30: <String, Adherence>{},
+  testWidgets(
+    'AdherenceScreen shows honest no-data text for a zero-due window',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const AdherenceScreen(),
+        overrides: <Override>[
+          adherenceControllerProvider.overrideWith(
+            () => _FakeAdherenceController(
+              const AdherenceState(
+                overall7: Adherence(
+                  taken: 0,
+                  due: 0,
+                  skipped: 0,
+                  windowDays: 7,
+                ),
+                overall30: Adherence(
+                  taken: 0,
+                  due: 0,
+                  skipped: 0,
+                  windowDays: 30,
+                ),
+                perMedication7: <String, Adherence>{},
+                perMedication30: <String, Adherence>{},
+              ),
             ),
           ),
-        ),
-      ],
-    );
-    expect(find.text('meds.adherence.noData'.tr()), findsWidgets);
-  });
+        ],
+      );
+      expect(find.text('meds.adherence.noData'.tr()), findsWidgets);
+    },
+  );
 
-  testWidgets('AdherenceScreen shows the percentage alongside the counts (I4)', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      const AdherenceScreen(),
-      overrides: <Override>[
-        adherenceControllerProvider.overrideWith(
-          () => _FakeAdherenceController(
-            const AdherenceState(
-              overall7: Adherence(taken: 12, due: 14, skipped: 1, windowDays: 7),
-              overall30: Adherence(taken: 30, due: 60, skipped: 0, windowDays: 30),
-              perMedication7: <String, Adherence>{},
-              perMedication30: <String, Adherence>{},
+  testWidgets(
+    'AdherenceScreen shows the percentage alongside the counts (I4)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const AdherenceScreen(),
+        overrides: <Override>[
+          adherenceControllerProvider.overrideWith(
+            () => _FakeAdherenceController(
+              const AdherenceState(
+                overall7: Adherence(
+                  taken: 12,
+                  due: 14,
+                  skipped: 1,
+                  windowDays: 7,
+                ),
+                overall30: Adherence(
+                  taken: 30,
+                  due: 60,
+                  skipped: 0,
+                  windowDays: 30,
+                ),
+                perMedication7: <String, Adherence>{},
+                perMedication30: <String, Adherence>{},
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
 
-    expect(
-      find.text(
-        'meds.adherence.countWithPercent'.tr(
-          namedArgs: const <String, String>{
-            'taken': '12',
-            'due': '14',
-            'percent': '86',
-          },
+      expect(
+        find.text(
+          'meds.adherence.countWithPercent'.tr(
+            namedArgs: const <String, String>{
+              'taken': '12',
+              'due': '14',
+              'percent': '86',
+            },
+          ),
         ),
-      ),
-      findsOneWidget,
-    );
-    expect(find.textContaining('50%'), findsOneWidget);
-  });
+        findsOneWidget,
+      );
+      expect(find.textContaining('50%'), findsOneWidget);
+    },
+  );
 
   testWidgets('AdherenceScreen breaks the figures down per medication (I4)', (
     tester,
@@ -248,8 +274,18 @@ void main() {
         adherenceControllerProvider.overrideWith(
           () => _FakeAdherenceController(
             AdherenceState(
-              overall7: const Adherence(taken: 5, due: 10, skipped: 0, windowDays: 7),
-              overall30: const Adherence(taken: 5, due: 10, skipped: 0, windowDays: 30),
+              overall7: const Adherence(
+                taken: 5,
+                due: 10,
+                skipped: 0,
+                windowDays: 7,
+              ),
+              overall30: const Adherence(
+                taken: 5,
+                due: 10,
+                skipped: 0,
+                windowDays: 30,
+              ),
               perMedication7: const <String, Adherence>{
                 'm1': Adherence(taken: 5, due: 5, skipped: 0, windowDays: 7),
                 'm2': Adherence(taken: 0, due: 5, skipped: 0, windowDays: 7),
@@ -276,34 +312,53 @@ void main() {
     expect(find.textContaining('0%'), findsWidgets);
   });
 
-  testWidgets('AdherenceScreen renders no per-medication section with no medications (I4)', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      const AdherenceScreen(),
-      overrides: <Override>[
-        adherenceControllerProvider.overrideWith(
-          () => _FakeAdherenceController(
-            const AdherenceState(
-              overall7: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 7),
-              overall30: Adherence(taken: 0, due: 0, skipped: 0, windowDays: 30),
-              perMedication7: <String, Adherence>{},
-              perMedication30: <String, Adherence>{},
+  testWidgets(
+    'AdherenceScreen renders no per-medication section with no medications (I4)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const AdherenceScreen(),
+        overrides: <Override>[
+          adherenceControllerProvider.overrideWith(
+            () => _FakeAdherenceController(
+              const AdherenceState(
+                overall7: Adherence(
+                  taken: 0,
+                  due: 0,
+                  skipped: 0,
+                  windowDays: 7,
+                ),
+                overall30: Adherence(
+                  taken: 0,
+                  due: 0,
+                  skipped: 0,
+                  windowDays: 30,
+                ),
+                perMedication7: <String, Adherence>{},
+                perMedication30: <String, Adherence>{},
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
 
-    expect(find.text('meds.adherence.perMedication'.tr()), findsNothing);
-  });
+      expect(find.text('meds.adherence.perMedication'.tr()), findsNothing);
+    },
+  );
 
-  testWidgets('ReminderSettingsScreen lists each medication\'s times', (tester) async {
+  testWidgets('ReminderSettingsScreen lists each medication\'s times', (
+    tester,
+  ) async {
     final Medication med = Medication(
-      clientRecordId: 'm1', serverId: null, name: 'Aspirin', doseMg: 75,
-      frequency: MedicationFrequency.onceDaily, scheduleTimes: const <String>['08:00'],
-      active: true, createdAt: DateTime(2026, 8, 1), updatedAt: DateTime(2026, 8, 1),
+      clientRecordId: 'm1',
+      serverId: null,
+      name: 'Aspirin',
+      doseMg: 75,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+      active: true,
+      createdAt: DateTime(2026, 8, 1),
+      updatedAt: DateTime(2026, 8, 1),
     );
     await pumpApp(
       tester,
@@ -311,7 +366,10 @@ void main() {
       overrides: <Override>[
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            MedicationListState(todaysDoses: const <ScheduledDose>[], medications: <Medication>[med]),
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[],
+              medications: <Medication>[med],
+            ),
           ),
         ),
       ],
@@ -348,9 +406,7 @@ void main() {
             () => _FakeMedicationListController(
               MedicationListState(
                 todaysDoses: const <ScheduledDose>[],
-                medications: <Medication>[
-                  fakeMedication(clientRecordId: 'm1'),
-                ],
+                medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
               ),
             ),
           ),
@@ -386,7 +442,10 @@ void main() {
         medicationReminderBootstrapProvider.overrideWithValue(
           MedicationReminderBootstrap(
             scheduler: scheduler,
-            notifications: MedicationNotifications(scheduler, db.preferencesDao),
+            notifications: MedicationNotifications(
+              scheduler,
+              db.preferencesDao,
+            ),
             repository: repository,
           ),
         ),

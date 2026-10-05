@@ -39,7 +39,10 @@ void main() {
       'FIRST_PHONE_BRAND',
       'CHILDHOOD_HERO',
     ]);
-    expect(SecurityQuestion.fromId('CHILDHOOD_HERO'), SecurityQuestion.childhoodHero);
+    expect(
+      SecurityQuestion.fromId('CHILDHOOD_HERO'),
+      SecurityQuestion.childhoodHero,
+    );
     expect(SecurityQuestion.fromId('MOTHERS_NAME'), isNull);
   });
 }

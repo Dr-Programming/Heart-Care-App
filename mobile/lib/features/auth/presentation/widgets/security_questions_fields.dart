@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/answer_normalizer.dart';
@@ -28,18 +29,28 @@ class SecurityQuestionsFieldsController {
   /// Translation key of the current error, if any.
   String? errorKey;
 
+  /// Which question/answer pair the error is about, so it shows there.
+  int? errorIndex;
+
   /// Checks the rules (three different questions, each answer 2–100
   /// characters) and returns the answers, or null with [errorKey] set.
   List<SecurityAnswer>? validate() {
-    if (chosen.toSet().length != chosen.length) {
-      errorKey = 'auth.securityQuestions.distinct';
-      return null;
+    for (int i = 1; i < chosen.length; i++) {
+      if (chosen.sublist(0, i).contains(chosen[i])) {
+        errorKey = 'auth.securityQuestions.distinct';
+        errorIndex = i;
+        return null;
+      }
     }
-    if (!answers.every((TextEditingController c) => isValidAnswer(c.text))) {
-      errorKey = 'auth.securityQuestions.answerLength';
-      return null;
+    for (int i = 0; i < answers.length; i++) {
+      if (!isValidAnswer(answers[i].text)) {
+        errorKey = 'auth.securityQuestions.answerLength';
+        errorIndex = i;
+        return null;
+      }
     }
     errorKey = null;
+    errorIndex = null;
     return <SecurityAnswer>[
       for (int i = 0; i < 3; i++) SecurityAnswer(chosen[i], answers[i].text),
     ];
@@ -77,7 +88,8 @@ class SecurityQuestionsFields extends StatefulWidget {
   final bool enabled;
 
   @override
-  State<SecurityQuestionsFields> createState() => _SecurityQuestionsFieldsState();
+  State<SecurityQuestionsFields> createState() =>
+      _SecurityQuestionsFieldsState();
 }
 
 class _SecurityQuestionsFieldsState extends State<SecurityQuestionsFields> {
@@ -88,35 +100,88 @@ class _SecurityQuestionsFieldsState extends State<SecurityQuestionsFields> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         for (int i = 0; i < 3; i++) ...<Widget>[
-          DropdownButtonFormField<SecurityQuestion>(
+          _QuestionPicker(
             key: Key('securityQuestionPicker$i'),
-            initialValue: c.chosen[i],
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'auth.securityQuestions.question'.tr(
-                namedArgs: <String, String>{'n': '${i + 1}'},
-              ),
+            label: 'auth.securityQuestions.question'.tr(
+              namedArgs: <String, String>{'n': '${i + 1}'},
             ),
-            items: <DropdownMenuItem<SecurityQuestion>>[
-              for (final SecurityQuestion q in SecurityQuestion.values)
-                DropdownMenuItem<SecurityQuestion>(value: q, child: Text(q.labelKey.tr())),
-            ],
-            onChanged: widget.enabled
-                ? (SecurityQuestion? q) {
-                    if (q != null) setState(() => c.chosen[i] = q);
-                  }
-                : null,
+            value: c.chosen[i],
+            enabled: widget.enabled,
+            onChanged: (SecurityQuestion q) => setState(() => c.chosen[i] = q),
           ),
           const SizedBox(height: AppSpacing.sm),
           AppTextField(
             label: 'auth.securityQuestions.answer'.tr(),
             controller: c.answers[i],
             enabled: widget.enabled,
-            errorText: i == 0 ? c.errorKey?.tr() : null,
+            errorText: i == c.errorIndex ? c.errorKey?.tr() : null,
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
       ],
+    );
+  }
+}
+
+/// Shows the chosen question in full, wrapping onto as many lines as it
+/// needs (a dropdown keeps it to one line and cuts long questions off, in
+/// Amharic especially). Tapping opens the list of questions.
+class _QuestionPicker extends StatelessWidget {
+  const _QuestionPicker({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String label;
+  final SecurityQuestion value;
+  final bool enabled;
+  final ValueChanged<SecurityQuestion> onChanged;
+
+  Future<void> _choose(BuildContext context) async {
+    final SecurityQuestion? picked =
+        await showModalBottomSheet<SecurityQuestion>(
+          context: context,
+          showDragHandle: true,
+          isScrollControlled: true,
+          builder: (BuildContext sheet) => SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                for (final SecurityQuestion q in SecurityQuestion.values)
+                  ListTile(
+                    title: Text(q.labelKey.tr()),
+                    trailing: q == value ? const Icon(Icons.check) : null,
+                    onTap: () => Navigator.of(sheet).pop(q),
+                  ),
+              ],
+            ),
+          ),
+        );
+    if (picked != null) onChanged(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? () => _choose(context) : null,
+      borderRadius: BorderRadius.circular(AppSpacing.fieldRadius),
+      child: InputDecorator(
+        isEmpty: false,
+        decoration: InputDecoration(
+          labelText: label,
+          enabled: enabled,
+          suffixIcon: const Icon(Icons.arrow_drop_down),
+        ),
+        child: Text(
+          value.labelKey.tr(),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: enabled ? AppColors.ink : AppColors.textTertiary,
+          ),
+        ),
+      ),
     );
   }
 }

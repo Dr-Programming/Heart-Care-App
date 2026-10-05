@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -47,8 +47,35 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(activityLogs);
         await m.createTable(syncQueueEntries);
       }
+      if (from == 2) {
+        await m.addColumn(medications, medications.deactivatedAt);
+        // Best guess for medications already off: the last edit, which is
+        // what the app used as the deactivation day until now.
+        await customStatement(
+          'UPDATE medications SET deactivated_at = updated_at WHERE active = 0',
+        );
+      }
     },
   );
+}
+
+extension PatientDataReset on AppDatabase {
+  /// Removes everything recorded for the current patient — health records,
+  /// the unsent sync queue and per-patient settings — so the next patient on
+  /// this phone starts clean. Device settings such as the language stay.
+  Future<void> clearPatientData() => transaction(() async {
+    await delete(doseLogs).go();
+    await delete(medications).go();
+    await delete(vitalsLogs).go();
+    await delete(symptomLogs).go();
+    await delete(activityLogs).go();
+    await delete(patientProfiles).go();
+    await delete(syncQueueEntries).go();
+    await (delete(preferences)..where(
+          ($PreferencesTable t) => t.key.isNotIn(PreferenceKeys.deviceScoped),
+        ))
+        .go();
+  });
 }
 
 QueryExecutor openDatabaseConnection() {

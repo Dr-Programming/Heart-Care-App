@@ -1,6 +1,6 @@
 # Slice 5 — Symptom Monitoring Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a daily symptom check-in feature: a patient logs one composite check-in, the server computes an authoritative per-symptom + overall severity assessment, and the patient reads back check-in history filtered by date.
 
@@ -12,7 +12,7 @@
 
 - **Spec:** `docs/design/2026-07-13-symptoms-design.md` is the source of truth. This plan implements it.
 - **`ddl-auto=validate`** — the entity MUST match the `V6` migration exactly (column names, types, nullability), or the context fails to start.
-- **Commits: NO AI co-author trailer.** Author is Prince Khakhariya. Never add a `Co-Authored-By: Claude` line.
+- **Commits:** the author is Prince Khakhariya.
 - **Migration column names:** PostgreSQL reserved-word caution — `data` and `assessment` are non-reserved and safe as column names (contrast `vital_values`, renamed because `values` is reserved).
 - **All endpoints require a Bearer JWT** and are scoped to `UserPrincipal.userId()`. `SecurityConfig` already gates everything except register/login with `.anyRequest().authenticated()`; new `/symptoms` routes are protected automatically — **no SecurityConfig change**.
 - **Responses use `com.heartcare.common.response.ApiResponse`**: `ApiResponse.ok(data)`, `ApiResponse.ok(data, msg)`, `ApiResponse.error(msg)`.

@@ -17,11 +17,7 @@ void main() {
   });
 
   testWidgets('renders correctly in Amharic', (WidgetTester tester) async {
-    await pumpApp(
-      tester,
-      const LearnScreen(),
-      language: AppLanguage.am,
-    );
+    await pumpApp(tester, const LearnScreen(), language: AppLanguage.am);
     await tester.pumpAndSettle();
     expect(find.text('የልብ ደም ስር በሽታን መረዳት'), findsOneWidget);
   });

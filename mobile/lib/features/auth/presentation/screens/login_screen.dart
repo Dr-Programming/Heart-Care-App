@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/failure.dart';
+import '../widgets/patient_switch.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -12,7 +13,7 @@ import '../../auth_providers.dart';
 import '../../domain/repositories/pin_repository.dart';
 import '../../domain/validators.dart';
 import '../controllers/auth_controller.dart';
-import '../widgets/pin_field.dart';
+import '../widgets/pin_box_input.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -47,6 +48,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(authControllerProvider.notifier)
         .login(phone: _phoneController.text.trim(), pin: _pinController.text);
+
+    // The previous patient has records the server hasn't received: offer to
+    // delete them, then try again.
+    if (!mounted) return;
+    final Object? error = ref.read(authControllerProvider).error;
+    if (error is PatientSwitchFailure &&
+        await offerToDiscardUnsent(context, ref, error) &&
+        mounted) {
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(phone: _phoneController.text.trim(), pin: _pinController.text);
+    }
   }
 
   String? _errorMessage(AsyncValue<AuthState> asyncState) {
@@ -64,6 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             )
           : 'auth.errors.lockedNoTime'.tr();
     }
+    if (error is PatientSwitchFailure) return patientSwitchMessage(error);
     if (error is NetworkFailure) {
       return 'errors.offline'.tr();
     }
@@ -80,14 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return AppScaffold.banded(
       showBack: false,
-      bandChild: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('auth.login.title'.tr(), style: text.headlineLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text('auth.login.subtitle'.tr(), style: text.bodyMedium),
-        ],
+      bandChild: BandHeader(
+        title: 'auth.login.title'.tr(),
+        subtitle: 'auth.login.subtitle'.tr(),
+        showBack: false,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,13 +124,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
           const SizedBox(height: AppSpacing.lg),
-          PinField(
-            controller: _pinController,
-            label: 'auth.login.pin'.tr(),
+          Text(
+            'auth.login.pin'.tr(),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Four boxes, as at sign-up, so the PIN looks the same everywhere.
+          PinBoxInput(
             errorText: _pinErrorKey?.tr(),
-            onChanged: (_) {
+            onCompleted: (String pin) {
+              _pinController.text = pin;
               if (_pinErrorKey != null) setState(() => _pinErrorKey = null);
             },
+            onIncomplete: () => _pinController.clear(),
           ),
           const SizedBox(height: AppSpacing.sm),
           Align(
@@ -151,9 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: <Widget>[
               const Expanded(child: Divider(color: AppColors.border)),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                 child: Text('auth.login.or'.tr(), style: text.bodySmall),
               ),
               const Expanded(child: Divider(color: AppColors.border)),

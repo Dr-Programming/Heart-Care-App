@@ -12,11 +12,10 @@
 
 This is a design document, not a plan. Your first task is to turn it into one.
 
-1. `/superpowers:brainstorming` — settle what is left open below.
-2. `/superpowers:writing-plans` → `docs/plans/2026-XX-XX-mobile-m1-auth.md`.
-3. `/superpowers:subagent-driven-development` — execute task by task.
-4. `/superpowers:requesting-code-review`, then
-   `/superpowers:finishing-a-development-branch` — PR into `mobile`.
+1. Review the spec and settle what is left open below.
+2. Write the plan: `docs/plans/2026-XX-XX-mobile-m1-auth.md`.
+3. Carry out the plan task by task.
+4. Review your own branch, then open the PR into `mobile`.
 
 Read `mobile/CONTRIBUTING.md` first. Build bottom-up:
 domain → data → presentation.
@@ -332,6 +331,5 @@ At least one screen asserted in Amharic.
       offline relaunch
 - [ ] No edits to shared files outside the marked regions
 - [ ] Screenshots in the PR, English and Amharic
-- [ ] No AI co-author trailer on any commit
 - [ ] PR into `mobile`, title `feat(mobile): M1 — Auth & session`
 - [ ] Noted in the PR whether `needsOnboarding` is wired, so M2 knows

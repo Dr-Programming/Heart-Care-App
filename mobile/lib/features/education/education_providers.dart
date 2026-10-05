@@ -7,7 +7,9 @@ import 'domain/entities/topic.dart';
 import 'domain/repositories/education_repository.dart';
 
 final Provider<ContentLocalDataSource> contentLocalDataSourceProvider =
-    Provider<ContentLocalDataSource>((Ref ref) => const ContentLocalDataSource());
+    Provider<ContentLocalDataSource>(
+      (Ref ref) => const ContentLocalDataSource(),
+    );
 
 final Provider<EducationRepository> educationRepositoryProvider =
     Provider<EducationRepository>(

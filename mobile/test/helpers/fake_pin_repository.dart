@@ -19,15 +19,19 @@ class FakePinRepository implements PinRepository {
   /// What [securityQuestionsStatus] answers: null means "unknown" (offline).
   bool? status;
 
-  final List<({String currentPin, String newPin})> changes = <({String currentPin, String newPin})>[];
-  final List<({String phone, List<SecurityAnswer> answers, String newPin})> resets =
-      <({String phone, List<SecurityAnswer> answers, String newPin})>[];
+  final List<({String currentPin, String newPin})> changes =
+      <({String currentPin, String newPin})>[];
+  final List<({String phone, List<SecurityAnswer> answers, String newPin})>
+  resets = <({String phone, List<SecurityAnswer> answers, String newPin})>[];
   final List<({String currentPin, List<SecurityAnswer> answers})> answerSets =
       <({String currentPin, List<SecurityAnswer> answers})>[];
   final List<String> questionLookups = <String>[];
 
   @override
-  Future<PinChangeOutcome> changePin({required String currentPin, required String newPin}) async {
+  Future<PinChangeOutcome> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
     changes.add((currentPin: currentPin, newPin: newPin));
     if (error != null) throw error!;
     return outcome;
@@ -45,10 +49,48 @@ class FakePinRepository implements PinRepository {
     required String phone,
     required List<SecurityAnswer> answers,
     required String newPin,
+    String? customAnswer,
   }) async {
     resets.add((phone: phone, answers: answers, newPin: newPin));
+    customAnswers.add(customAnswer);
     if (error != null) throw error!;
     return outcome;
+  }
+
+  /// What [customRecoveryQuestion] answers.
+  String? customQuestion;
+  final List<String?> customAnswers = <String?>[];
+  final List<({String currentPin, String? question, String? answer})>
+  customQuestionSets =
+      <({String currentPin, String? question, String? answer})>[];
+
+  @override
+  Future<String?> customRecoveryQuestion(String phone) async => customQuestion;
+
+  @override
+  Future<void> setCustomQuestion({
+    required String currentPin,
+    required String question,
+    required String answer,
+  }) async {
+    customQuestionSets.add((
+      currentPin: currentPin,
+      question: question,
+      answer: answer,
+    ));
+    if (error != null) throw error!;
+    customQuestion = question;
+  }
+
+  @override
+  Future<void> clearCustomQuestion({required String currentPin}) async {
+    customQuestionSets.add((
+      currentPin: currentPin,
+      question: null,
+      answer: null,
+    ));
+    if (error != null) throw error!;
+    customQuestion = null;
   }
 
   @override
@@ -70,7 +112,8 @@ class FakePinRepository implements PinRepository {
   Future<bool> hasPendingPinChange() async => false;
 
   @override
-  Future<PinSyncResult> flushPendingPinChange() async => PinSyncResult.nothingPending;
+  Future<PinSyncResult> flushPendingPinChange() async =>
+      PinSyncResult.nothingPending;
 
   @override
   SignOutReason? takeSignOutReason() => null;
@@ -88,7 +131,8 @@ class StubAuthRepository implements AuthRepository {
   );
 
   @override
-  Future<AuthUser> login({required String phone, required String pin}) async => user;
+  Future<AuthUser> login({required String phone, required String pin}) async =>
+      user;
 
   @override
   Future<AuthUser> register({

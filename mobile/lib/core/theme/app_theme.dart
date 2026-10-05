@@ -49,6 +49,26 @@ abstract final class AppTheme {
           borderSide: const BorderSide(color: AppColors.critical),
         ),
       ),
+      // Every selectable chip looks the same: a pill, black when selected.
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceAlt,
+        selectedColor: AppColors.ink,
+        checkmarkColor: AppColors.surface,
+        side: const BorderSide(color: AppColors.border),
+        shape: const StadiumBorder(),
+        labelStyle: text.bodyMedium?.copyWith(color: AppColors.ink),
+        secondaryLabelStyle: text.bodyMedium?.copyWith(
+          color: AppColors.surface,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+      ),
+      // Text links are the app's blue everywhere, not the orange primary.
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,

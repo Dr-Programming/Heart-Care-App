@@ -1,6 +1,6 @@
 # Phone+PIN Auth (Backend Half) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the backend's email+password authentication with phone (`+251…`) + 4-digit PIN, and add per-account login lockout (closing SecurityReview M-1).
 
@@ -12,7 +12,7 @@
 
 - **Spec:** `docs/design/2026-08-02-phone-pin-auth-and-mobile-foundation-design.md` §2 (backend half only — §3 frontend is a separate plan).
 - **Branch:** `feature/phone-pin-auth` (already published, tracking `origin/feature/phone-pin-auth`). PR base is `dev`.
-- **Commits:** no AI co-author trailer. Conventional-commit subjects.
+- **Commits:** conventional-commit subjects.
 - **Phone format:** `^\+251\d{9}$` — literal `+251` then exactly 9 digits (13 chars total).
 - **PIN format:** `^\d{4}$` — exactly 4 digits. Stored **only** as a BCrypt hash, never logged.
 - **Language codes:** `en` | `am` only.

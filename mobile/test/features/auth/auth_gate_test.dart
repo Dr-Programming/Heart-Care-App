@@ -9,6 +9,7 @@ import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 
 import '../../helpers/test_database.dart';
+
 import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const _user = AuthUser(
@@ -18,11 +19,6 @@ const _user = AuthUser(
   preferredLanguage: 'en',
   role: 'PATIENT',
 );
-
-
-
-
-
 
 class _FakeAuthRepository implements AuthRepository {
   bool _signedIn = true;
@@ -37,7 +33,8 @@ class _FakeAuthRepository implements AuthRepository {
   void setNeedsOnboarding(bool value) => _needsOnboarding = value;
 
   @override
-  Future<AuthUser> login({required String phone, required String pin}) async => _user;
+  Future<AuthUser> login({required String phone, required String pin}) async =>
+      _user;
 
   @override
   Future<AuthUser> register({
@@ -74,9 +71,6 @@ class _FakeAuthRepository implements AuthRepository {
     return _needsOnboarding;
   }
 }
-
-
-
 
 class _ThrowingAuthRepository implements AuthRepository {
   @override
@@ -138,30 +132,24 @@ void main() {
     expect(gate.needsOnboarding, isFalse);
   });
 
-  test(
-    'after resolution the gate reflects the repository and language store, '
-    'with no network call made',
-    () async {
-      fakeRepo
-        ..setSignedIn(true)
-        ..setNeedsOnboarding(true);
-      await container.read(languageStoreProvider).write(AppLanguage.en);
+  test('after resolution the gate reflects the repository and language store, '
+      'with no network call made', () async {
+    fakeRepo
+      ..setSignedIn(true)
+      ..setNeedsOnboarding(true);
+    await container.read(languageStoreProvider).write(AppLanguage.en);
 
-      
-      
-      await container.read(realAuthGateProvider.notifier).refresh();
-      final AuthGate gate = container.read(realAuthGateProvider);
+    await container.read(realAuthGateProvider.notifier).refresh();
+    final AuthGate gate = container.read(realAuthGateProvider);
 
-      expect(gate.isResolved, isTrue);
-      expect(gate.isSignedIn, isTrue);
-      expect(gate.hasChosenLanguage, isTrue);
-      expect(gate.needsOnboarding, isTrue);
-      
-      
-      expect(fakeRepo.isSignedInCalls, greaterThan(0));
-      expect(fakeRepo.needsOnboardingCalls, greaterThan(0));
-    },
-  );
+    expect(gate.isResolved, isTrue);
+    expect(gate.isSignedIn, isTrue);
+    expect(gate.hasChosenLanguage, isTrue);
+    expect(gate.needsOnboarding, isTrue);
+
+    expect(fakeRepo.isSignedInCalls, greaterThan(0));
+    expect(fakeRepo.needsOnboardingCalls, greaterThan(0));
+  });
 
   test('a signed-out fake repository resolves to isSignedIn: false', () async {
     fakeRepo.setSignedIn(false);
@@ -171,8 +159,7 @@ void main() {
 
     expect(gate.isResolved, isTrue);
     expect(gate.isSignedIn, isFalse);
-    
-    
+
     expect(gate.needsOnboarding, isFalse);
   });
 
@@ -181,8 +168,6 @@ void main() {
     await container.read(realAuthGateProvider.notifier).refresh();
     expect(container.read(realAuthGateProvider).isSignedIn, isFalse);
 
-    
-    
     fakeRepo
       ..setSignedIn(true)
       ..setNeedsOnboarding(true);
@@ -194,29 +179,22 @@ void main() {
     expect(gate.needsOnboarding, isTrue);
   });
 
-  
-  
-  
-  
-  test(
-    'a repository that throws on isSignedIn resolves to a signed-out, '
-    'resolved gate rather than staying unresolved',
-    () async {
-      final ProviderContainer throwingContainer = ProviderContainer(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(db),
-          authRepositoryProvider.overrideWithValue(_ThrowingAuthRepository()),
-        ],
-      );
-      addTearDown(throwingContainer.dispose);
+  test('a repository that throws on isSignedIn resolves to a signed-out, '
+      'resolved gate rather than staying unresolved', () async {
+    final ProviderContainer throwingContainer = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        authRepositoryProvider.overrideWithValue(_ThrowingAuthRepository()),
+      ],
+    );
+    addTearDown(throwingContainer.dispose);
 
-      await throwingContainer.read(realAuthGateProvider.notifier).refresh();
-      final AuthGate gate = throwingContainer.read(realAuthGateProvider);
+    await throwingContainer.read(realAuthGateProvider.notifier).refresh();
+    final AuthGate gate = throwingContainer.read(realAuthGateProvider);
 
-      expect(gate.isResolved, isTrue);
-      expect(gate.isSignedIn, isFalse);
-      expect(gate.hasChosenLanguage, isFalse);
-      expect(gate.needsOnboarding, isFalse);
-    },
-  );
+    expect(gate.isResolved, isTrue);
+    expect(gate.isSignedIn, isFalse);
+    expect(gate.hasChosenLanguage, isFalse);
+    expect(gate.needsOnboarding, isFalse);
+  });
 }

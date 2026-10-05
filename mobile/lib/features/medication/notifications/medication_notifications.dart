@@ -27,7 +27,11 @@ class MedicationNotifications {
           namedArgs: <String, String>{'name': medication.name},
         ),
         when: first,
-        payload: _payloadFor(medication.clientRecordId, time, isFollowUp: false),
+        payload: _payloadFor(
+          medication.clientRecordId,
+          time,
+          isFollowUp: false,
+        ),
       );
       await _scheduler.zonedSchedule(
         id: _idFor(medication.clientRecordId, time, isFollowUp: true),
@@ -44,7 +48,8 @@ class MedicationNotifications {
   Future<void> cancelFor(String medicationClientRecordId) async {
     final List<PendingScheduledNotification> all = await _scheduler.pending();
     for (final PendingScheduledNotification n in all) {
-      if (n.payload != null && n.payload!.startsWith('$medicationClientRecordId|')) {
+      if (n.payload != null &&
+          n.payload!.startsWith('$medicationClientRecordId|')) {
         await _scheduler.cancel(n.id);
       }
     }
@@ -62,12 +67,24 @@ class MedicationNotifications {
     return raw != 'false';
   }
 
-  int _idFor(String medicationClientRecordId, String time, {required bool isFollowUp}) {
-    return _payloadFor(medicationClientRecordId, time, isFollowUp: isFollowUp).hashCode &
+  int _idFor(
+    String medicationClientRecordId,
+    String time, {
+    required bool isFollowUp,
+  }) {
+    return _payloadFor(
+          medicationClientRecordId,
+          time,
+          isFollowUp: isFollowUp,
+        ).hashCode &
         0x7fffffff;
   }
 
-  String _payloadFor(String medicationClientRecordId, String time, {required bool isFollowUp}) {
+  String _payloadFor(
+    String medicationClientRecordId,
+    String time, {
+    required bool isFollowUp,
+  }) {
     return '$medicationClientRecordId|$time|${isFollowUp ? 'follow' : 'main'}';
   }
 
@@ -77,7 +94,9 @@ class MedicationNotifications {
     final int minute = int.parse(parts[1]);
     final DateTime now = DateTime.now();
     DateTime candidate = DateTime(now.year, now.month, now.day, hour, minute);
-    if (!candidate.isAfter(now)) candidate = candidate.add(const Duration(days: 1));
+    if (!candidate.isAfter(now)) {
+      candidate = candidate.add(const Duration(days: 1));
+    }
     return candidate;
   }
 }

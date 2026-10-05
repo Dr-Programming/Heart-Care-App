@@ -21,10 +21,12 @@ class SecurityQuestionsPrompt extends ConsumerStatefulWidget {
   const SecurityQuestionsPrompt({super.key});
 
   @override
-  ConsumerState<SecurityQuestionsPrompt> createState() => _SecurityQuestionsPromptState();
+  ConsumerState<SecurityQuestionsPrompt> createState() =>
+      _SecurityQuestionsPromptState();
 }
 
-class _SecurityQuestionsPromptState extends ConsumerState<SecurityQuestionsPrompt> {
+class _SecurityQuestionsPromptState
+    extends ConsumerState<SecurityQuestionsPrompt> {
   bool _visible = false;
 
   @override
@@ -42,7 +44,9 @@ class _SecurityQuestionsPromptState extends ConsumerState<SecurityQuestionsPromp
       if (mounted) setState(() => _visible = false);
       return;
     }
-    final bool? configured = await ref.read(pinRepositoryProvider).securityQuestionsStatus();
+    final bool? configured = await ref
+        .read(pinRepositoryProvider)
+        .securityQuestionsStatus();
     if (mounted) setState(() => _visible = configured == false);
   }
 
@@ -77,7 +81,12 @@ class _SecurityQuestionsPromptState extends ConsumerState<SecurityQuestionsPromp
             children: <Widget>[
               const Icon(Icons.help_outline, color: AppColors.accent),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Text('auth.securityPrompt.title'.tr(), style: text.titleMedium)),
+              Expanded(
+                child: Text(
+                  'auth.securityPrompt.title'.tr(),
+                  style: text.titleMedium,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),

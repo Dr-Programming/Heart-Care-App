@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/clinical/activity_guidance.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/symptom_check_in.dart';
 import '../controllers/check_in_hub_controller.dart';
+import '../widgets/activity_guidance_card.dart';
 
 class CheckInHubScreen extends ConsumerWidget {
   const CheckInHubScreen({super.key});
@@ -43,6 +46,10 @@ class CheckInHubScreen extends ConsumerWidget {
         data: (SymptomCheckIn? today) => ListView(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           children: <Widget>[
+            if (today == null) ...<Widget>[
+              const _CheckInFirstTip(),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             SectionCard(
               child: today == null
                   ? Column(
@@ -86,6 +93,47 @@ class CheckInHubScreen extends ConsumerWidget {
                       ],
                     ),
             ),
+            if (today != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              ActivityGuidanceCard(
+                guidance: activityGuidanceFor(
+                  overall: today.overall,
+                  perSymptom: today.perSymptom,
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            SectionCard(
+              onTap: () => context.pushNamed(AppRoutes.activity),
+              child: Row(
+                children: <Widget>[
+                  const IconCircle(
+                    icon: Icons.directions_run_rounded,
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'symptoms.hub.activityTitle'.tr(),
+                          style: text.titleMedium,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'symptoms.hub.activityBody'.tr(),
+                          style: text.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            const HealthyExercisesLink(),
             const SizedBox(height: AppSpacing.lg),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -99,6 +147,37 @@ class CheckInHubScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Shown until today's check-in is done: check in first, then exercise.
+class _CheckInFirstTip extends StatelessWidget {
+  const _CheckInFirstTip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('checkInFirstTip'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.accentBg,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(Icons.lightbulb_outline, color: AppColors.accent),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              'symptoms.hub.checkInFirstTip'.tr(),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.ink),
+            ),
+          ),
+        ],
       ),
     );
   }

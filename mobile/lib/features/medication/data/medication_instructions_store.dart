@@ -21,7 +21,8 @@ class MedicationInstructionsStore {
 
   final PreferencesDao _prefs;
 
-  String _keyFor(String medicationClientRecordId) => 'm3_instructions_$medicationClientRecordId';
+  String _keyFor(String medicationClientRecordId) =>
+      'm3_instructions_$medicationClientRecordId';
 
   Future<MedicationInstructions> get(String medicationClientRecordId) async {
     final String? raw = await _prefs.get(_keyFor(medicationClientRecordId));
@@ -30,7 +31,10 @@ class MedicationInstructionsStore {
     return MedicationInstructions.fromWire(json['instructions'] as String?);
   }
 
-  Future<void> set(String medicationClientRecordId, MedicationInstructions value) {
+  Future<void> set(
+    String medicationClientRecordId,
+    MedicationInstructions value,
+  ) {
     return _prefs.set(
       _keyFor(medicationClientRecordId),
       jsonEncode(<String, dynamic>{'instructions': value.name}),

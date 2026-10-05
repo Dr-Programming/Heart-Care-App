@@ -21,7 +21,10 @@ void main() {
         builder: (BuildContext context) => Material(
           child: TextButton(
             onPressed: () async {
-              captured.value = await SimpleTimePicker.show(context, initialTime: initialTime);
+              captured.value = await SimpleTimePicker.show(
+                context,
+                initialTime: initialTime,
+              );
             },
             child: const Text('open'),
           ),
@@ -33,8 +36,13 @@ void main() {
     return captured;
   }
 
-  testWidgets('opens showing the given initial time in 12-hour form', (tester) async {
-    await openPicker(tester, initialTime: const TimeOfDay(hour: 14, minute: 30));
+  testWidgets('opens showing the given initial time in 12-hour form', (
+    tester,
+  ) async {
+    await openPicker(
+      tester,
+      initialTime: const TimeOfDay(hour: 14, minute: 30),
+    );
 
     expect(find.text('02'), findsOneWidget);
     expect(find.text('30'), findsOneWidget);
@@ -68,7 +76,9 @@ void main() {
     },
   );
 
-  testWidgets('confirming with the default fields returns 00:00 (12:00 AM)', (tester) async {
+  testWidgets('confirming with the default fields returns 00:00 (12:00 AM)', (
+    tester,
+  ) async {
     final _Captured captured = await openPicker(tester);
 
     await tester.tap(find.text('common.confirm'.tr()));
@@ -77,7 +87,9 @@ void main() {
     expect(captured.value, const TimeOfDay(hour: 0, minute: 0));
   });
 
-  testWidgets('switching to PM with the default hour returns 12:00 (noon)', (tester) async {
+  testWidgets('switching to PM with the default hour returns 12:00 (noon)', (
+    tester,
+  ) async {
     final _Captured captured = await openPicker(tester);
 
     await tester.tap(find.text('meds.form.pm'.tr()));

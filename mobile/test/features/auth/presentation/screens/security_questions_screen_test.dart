@@ -33,40 +33,70 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> fillAndSubmit(WidgetTester tester, List<String> answers, String pin) async {
+  Future<void> fillAndSubmit(
+    WidgetTester tester,
+    List<String> answers,
+    String pin,
+  ) async {
     final Finder fields = find.byType(TextField);
     for (int i = 0; i < 3; i++) {
       await tester.enterText(fields.at(i), answers[i]);
     }
     await tester.enterText(fields.at(3), pin);
-    await tester.ensureVisible(find.byKey(const Key('securityQuestionsSubmit')));
+    await tester.ensureVisible(
+      find.byKey(const Key('securityQuestionsSubmit')),
+    );
     await tester.tap(find.byKey(const Key('securityQuestionsSubmit')));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('starts with three different questions and sends the answers with the PIN', (tester) async {
-    await pump(tester);
-    await fillAndSubmit(tester, <String>['Bole Primary', 'Dawit', 'Ato Kebede'], '1234');
+  testWidgets(
+    'starts with three different questions and sends the answers with the PIN',
+    (tester) async {
+      await pump(tester);
+      await fillAndSubmit(tester, <String>[
+        'Bole Primary',
+        'Dawit',
+        'Ato Kebede',
+      ], '1234');
 
-    final set = repo.answerSets.single;
-    expect(set.currentPin, '1234');
-    expect(set.answers.map((SecurityAnswer a) => a.question).toSet(), hasLength(3));
-    expect(set.answers.map((SecurityAnswer a) => a.answer), <String>['Bole Primary', 'Dawit', 'Ato Kebede']);
-  });
+      final set = repo.answerSets.single;
+      expect(set.currentPin, '1234');
+      expect(
+        set.answers.map((SecurityAnswer a) => a.question).toSet(),
+        hasLength(3),
+      );
+      expect(set.answers.map((SecurityAnswer a) => a.answer), <String>[
+        'Bole Primary',
+        'Dawit',
+        'Ato Kebede',
+      ]);
+    },
+  );
 
   testWidgets('too-short answers are caught before sending', (tester) async {
     await pump(tester);
     await fillAndSubmit(tester, <String>['B', 'Dawit', 'Ato Kebede'], '1234');
 
-    expect(find.text('auth.securityQuestions.answerLength'.tr()), findsOneWidget);
+    expect(
+      find.text('auth.securityQuestions.answerLength'.tr()),
+      findsOneWidget,
+    );
     expect(repo.answerSets, isEmpty);
   });
 
   testWidgets('needs a connection', (tester) async {
     await pump(tester);
     repo.error = const NetworkFailure('offline');
-    await fillAndSubmit(tester, <String>['Bole Primary', 'Dawit', 'Ato Kebede'], '1234');
+    await fillAndSubmit(tester, <String>[
+      'Bole Primary',
+      'Dawit',
+      'Ato Kebede',
+    ], '1234');
 
-    expect(find.text('auth.securityQuestions.needsConnection'.tr()), findsOneWidget);
+    expect(
+      find.text('auth.securityQuestions.needsConnection'.tr()),
+      findsOneWidget,
+    );
   });
 }

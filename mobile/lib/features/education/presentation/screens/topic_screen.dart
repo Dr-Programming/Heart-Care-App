@@ -29,6 +29,8 @@ class TopicScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
+      // The topic's own title, in the same cream header as other screens.
+      title: state.value?.title ?? 'education.tabTitle'.tr(),
       backgroundColor: AppColors.surfaceAlt,
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -53,7 +55,6 @@ class _TopicBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = topicAccentColor(topic.id);
-    final TextTheme text = Theme.of(context).textTheme;
 
     return ListView(
       padding: const EdgeInsets.only(
@@ -61,22 +62,6 @@ class _TopicBody extends StatelessWidget {
         bottom: AppSpacing.xxl,
       ),
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(topic.icon, color: accent, size: 24),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(child: Text(topic.title, style: text.headlineMedium)),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
         for (int i = 0; i < topic.sections.length; i++)
           _SectionCard(
             section: topic.sections[i],

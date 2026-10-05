@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/clinic/clinic_call.dart';
+import '../../../../core/clinical/activity_guidance.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/symptom_check_in.dart';
+import '../widgets/activity_guidance_card.dart';
 import '../controllers/check_in_hub_controller.dart';
 import '../controllers/symptom_form_controller.dart';
-import '../widgets/pill_choice.dart';
 
 class SymptomCheckInScreen extends ConsumerWidget {
   const SymptomCheckInScreen({super.key});
@@ -22,11 +25,19 @@ class SymptomCheckInScreen extends ConsumerWidget {
       symptomFormControllerProvider.notifier,
     );
 
-    return AppScaffold(
-      title: 'symptoms.checkIn.title'.tr(),
-      body: state.result != null
-          ? _ResultView(result: state.result!)
-          : _FormView(state: state, controller: controller, ref: ref),
+    return UnsavedChangesGuard(
+      dirty: state.isDirty,
+      child: AppScaffold.banded(
+        showBack: false,
+        scrollable: false,
+        bandChild: BandHeader(
+          title: 'symptoms.checkIn.title'.tr(),
+          subtitle: 'symptoms.checkIn.subtitle'.tr(),
+        ),
+        body: state.result != null
+            ? _ResultView(result: state.result!)
+            : _FormView(state: state, controller: controller, ref: ref),
+      ),
     );
   }
 }
@@ -49,8 +60,6 @@ class _FormView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
       children: <Widget>[
-        Text('symptoms.checkIn.subtitle'.tr(), style: text.bodyMedium),
-        const SizedBox(height: AppSpacing.xl),
         Text('symptoms.checkIn.chestPain'.tr(), style: text.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         PillChoice(
@@ -102,6 +111,7 @@ class _FormView extends StatelessWidget {
           keyboardType: TextInputType.number,
           inputFormatters: <TextInputFormatter>[
             FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(3),
           ],
           errorText: state.fieldErrors['heartRate']?.tr(),
           onChanged: (String v) => controller.setHeartRate(int.tryParse(v)),
@@ -116,6 +126,7 @@ class _FormView extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
                   FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
                 ],
                 errorText: state.fieldErrors['bpSystolic']?.tr(),
                 onChanged: (String v) =>
@@ -129,6 +140,7 @@ class _FormView extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
                   FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
                 ],
                 errorText: state.fieldErrors['bpDiastolic']?.tr(),
                 onChanged: (String v) =>
@@ -196,6 +208,21 @@ class _FormView extends StatelessWidget {
           onPressed: () async {
             await controller.submit();
             ref.invalidate(checkInHubControllerProvider);
+            final SymptomCheckIn? result = ref
+                .read(symptomFormControllerProvider)
+                .result;
+            if (result?.overall == Severity.emergency && context.mounted) {
+              await showCriticalAlertFor(
+                context,
+                ref.read(caregiverContactStoreProvider),
+              );
+            } else if (result?.overall == Severity.urgent && context.mounted) {
+              await remindToCallClinicIfNeeded(
+                context,
+                db: ref.read(appDatabaseProvider),
+                store: ref.read(clinicContactStoreProvider),
+              );
+            }
           },
         ),
       ],
@@ -236,6 +263,14 @@ class _ResultView extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(actionKeyFor(result.overall).tr(), style: text.bodyMedium),
             ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // Told straight away what activity suits today.
+        ActivityGuidanceCard(
+          guidance: activityGuidanceFor(
+            overall: result.overall,
+            perSymptom: result.perSymptom,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),

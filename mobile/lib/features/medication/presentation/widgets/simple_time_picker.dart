@@ -9,7 +9,8 @@ import '../../../../core/widgets/app_button.dart';
 abstract final class SimpleTimePicker {
   static Future<TimeOfDay?> show(
     BuildContext context, {
-    TimeOfDay initialTime = const TimeOfDay(hour: 0, minute: 0),
+    // Morning is the usual dose time; midnight was a poor starting point.
+    TimeOfDay initialTime = const TimeOfDay(hour: 8, minute: 0),
   }) {
     return showModalBottomSheet<TimeOfDay>(
       context: context,
@@ -17,9 +18,12 @@ abstract final class SimpleTimePicker {
       showDragHandle: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xl),
+        ),
       ),
-      builder: (BuildContext sheetContext) => _SimpleTimePickerSheet(initialTime: initialTime),
+      builder: (BuildContext sheetContext) =>
+          _SimpleTimePickerSheet(initialTime: initialTime),
     );
   }
 }
@@ -44,19 +48,28 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
   void initState() {
     super.initState();
     final TimeOfDayHourMinute12 initial = _to12Hour(widget.initialTime);
-    _hourController = TextEditingController(text: initial.hour.toString().padLeft(2, '0'));
+    _hourController = TextEditingController(
+      text: initial.hour.toString().padLeft(2, '0'),
+    );
     _minuteController = TextEditingController(
       text: widget.initialTime.minute.toString().padLeft(2, '0'),
     );
     _isPm = initial.isPm;
 
-    _hourFocus.addListener(() => _selectAllOnFocus(_hourFocus, _hourController));
-    _minuteFocus.addListener(() => _selectAllOnFocus(_minuteFocus, _minuteController));
+    _hourFocus.addListener(
+      () => _selectAllOnFocus(_hourFocus, _hourController),
+    );
+    _minuteFocus.addListener(
+      () => _selectAllOnFocus(_minuteFocus, _minuteController),
+    );
   }
 
   void _selectAllOnFocus(FocusNode node, TextEditingController controller) {
     if (!node.hasFocus) return;
-    controller.selection = TextSelection(baseOffset: 0, extentOffset: controller.text.length);
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
   }
 
   @override
@@ -69,7 +82,6 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
   }
 
   void _confirm() {
-
     final int hour12 = (int.tryParse(_hourController.text) ?? 12).clamp(1, 12);
     final int minute = (int.tryParse(_minuteController.text) ?? 0).clamp(0, 59);
     final int hour24 = switch ((hour12, _isPm)) {
@@ -86,7 +98,12 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
     final TextTheme text = Theme.of(context).textTheme;
 
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(AppSpacing.gutter, 0, AppSpacing.gutter, AppSpacing.xl),
+      minimum: const EdgeInsets.fromLTRB(
+        AppSpacing.gutter,
+        0,
+        AppSpacing.gutter,
+        AppSpacing.xl,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -138,7 +155,11 @@ class _SimpleTimePickerSheetState extends State<_SimpleTimePickerSheet> {
 }
 
 class _NumberField extends StatelessWidget {
-  const _NumberField({required this.label, required this.controller, required this.focusNode});
+  const _NumberField({
+    required this.label,
+    required this.controller,
+    required this.focusNode,
+  });
 
   final String label;
   final TextEditingController controller;
@@ -186,8 +207,16 @@ class _AmPmToggle extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _AmPmSegment(label: 'meds.form.am'.tr(), selected: !isPm, onTap: () => onChanged(false)),
-            _AmPmSegment(label: 'meds.form.pm'.tr(), selected: isPm, onTap: () => onChanged(true)),
+            _AmPmSegment(
+              label: 'meds.form.am'.tr(),
+              selected: !isPm,
+              onTap: () => onChanged(false),
+            ),
+            _AmPmSegment(
+              label: 'meds.form.pm'.tr(),
+              selected: isPm,
+              onTap: () => onChanged(true),
+            ),
           ],
         ),
       ),
@@ -196,7 +225,11 @@ class _AmPmToggle extends StatelessWidget {
 }
 
 class _AmPmSegment extends StatelessWidget {
-  const _AmPmSegment({required this.label, required this.selected, required this.onTap});
+  const _AmPmSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;

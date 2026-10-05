@@ -63,14 +63,18 @@ void main() {
     await datasource.upsertMedication(medication(active: false));
 
     final found = await datasource.findMedication('m1');
-    final logs = await datasource.doseLogsInRange(medicationClientRecordId: 'm1');
+    final logs = await datasource.doseLogsInRange(
+      medicationClientRecordId: 'm1',
+    );
     expect(found!.active, isFalse);
     expect(logs, hasLength(1));
   });
 
   test('activeMedications excludes deactivated rows', () async {
     await datasource.upsertMedication(medication(clientId: 'm1'));
-    await datasource.upsertMedication(medication(clientId: 'm2', active: false));
+    await datasource.upsertMedication(
+      medication(clientId: 'm2', active: false),
+    );
 
     final active = await datasource.activeMedications();
 
@@ -79,7 +83,9 @@ void main() {
 
   test('allMedications(includeInactive: true) returns both', () async {
     await datasource.upsertMedication(medication(clientId: 'm1'));
-    await datasource.upsertMedication(medication(clientId: 'm2', active: false));
+    await datasource.upsertMedication(
+      medication(clientId: 'm2', active: false),
+    );
 
     final all = await datasource.allMedications(includeInactive: true);
 

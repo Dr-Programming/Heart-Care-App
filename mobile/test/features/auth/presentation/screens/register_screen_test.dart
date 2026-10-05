@@ -13,7 +13,9 @@ import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 import 'package:libu_care/features/auth/presentation/screens/register_screen.dart';
 
+import '../../../../helpers/fake_pin_repository.dart';
 import '../../../../helpers/pump_app.dart';
+
 import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const AuthUser _user = AuthUser(
@@ -211,10 +213,16 @@ void main() {
       await _answerAndSubmit(tester);
 
       expect(repo.registerCalls, 1);
-      expect(repo.registerArgs?.securityAnswers?.map((SecurityAnswer a) => a.answer),
-          <String>['Bole Primary', 'Dawit', 'Ato Kebede']);
-      expect(repo.registerArgs?.securityAnswers?.map((SecurityAnswer a) => a.question).toSet(),
-          hasLength(3));
+      expect(
+        repo.registerArgs?.securityAnswers?.map((SecurityAnswer a) => a.answer),
+        <String>['Bole Primary', 'Dawit', 'Ato Kebede'],
+      );
+      expect(
+        repo.registerArgs?.securityAnswers
+            ?.map((SecurityAnswer a) => a.question)
+            .toSet(),
+        hasLength(3),
+      );
       expect(repo.registerArgs?.phone, '+251911234567');
       expect(repo.registerArgs?.pin, '1234');
       expect(repo.registerArgs?.name, 'Abebe Girma');
@@ -471,12 +479,17 @@ void main() {
     await _next(tester);
 
     expect(find.text('auth.register.securityTitle'.tr()), findsOneWidget);
-    expect(find.text(SecurityQuestion.firstSchool.labelKey.tr()), findsOneWidget);
+    expect(
+      find.text(SecurityQuestion.firstSchool.labelKey.tr()),
+      findsOneWidget,
+    );
     expect(find.byType(TextField), findsNWidgets(3));
     expect(repo.registerCalls, 0);
   });
 
-  testWidgets('security answers are required to create the account', (tester) async {
+  testWidgets('security answers are required to create the account', (
+    tester,
+  ) async {
     final repo = _FakeAuthRepository();
     await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
 
@@ -486,11 +499,16 @@ void main() {
     await _next(tester);
     await _answerAndSubmit(tester, answers: const <String>['B', '', '']);
 
-    expect(find.text('auth.securityQuestions.answerLength'.tr()), findsOneWidget);
+    expect(
+      find.text('auth.securityQuestions.answerLength'.tr()),
+      findsOneWidget,
+    );
     expect(repo.registerCalls, 0);
   });
 
-  testWidgets('Back returns to the first step with the details kept', (tester) async {
+  testWidgets('Back returns to the first step with the details kept', (
+    tester,
+  ) async {
     final repo = _FakeAuthRepository();
     await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
 
@@ -509,5 +527,72 @@ void main() {
     expect(find.byKey(const Key('registerNextButton')), findsOneWidget);
     await _next(tester);
     expect(find.text('auth.register.securityTitle'.tr()), findsOneWidget);
+  });
+
+  testWidgets("an own question added at sign-up is saved on the phone", (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    final FakePinRepository pins = FakePinRepository();
+    await pumpApp(
+      tester,
+      const RegisterScreen(),
+      overrides: <Override>[
+        ..._online(repo),
+        pinRepositoryProvider.overrideWithValue(pins),
+      ],
+    );
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+
+    final Finder toggle = find.byKey(const Key('ownQuestionSwitch'));
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await _settle(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('ownQuestionText')),
+        matching: find.byType(TextField),
+      ),
+      'What did I name my first goat?',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('ownQuestionAnswer')),
+        matching: find.byType(TextField),
+      ),
+      'Chaltu',
+    );
+    await _answerAndSubmit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(pins.customQuestionSets.single, (
+      currentPin: '1234',
+      question: 'What did I name my first goat?',
+      answer: 'Chaltu',
+    ));
+  });
+
+  testWidgets('a switched-on own question with no text blocks sign-up', (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+    final Finder toggle = find.byKey(const Key('ownQuestionSwitch'));
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await _settle(tester);
+    await _answerAndSubmit(tester);
+
+    expect(repo.registerCalls, 0);
+    expect(find.text('auth.ownQuestion.questionLength'.tr()), findsOneWidget);
   });
 }

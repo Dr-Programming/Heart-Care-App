@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/caregiver/caregiver_contact.dart';
+import '../../../../core/clinic/clinic_contact.dart';
 import '../../../../core/db/app_database.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/router/routes.dart';
@@ -28,6 +30,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   late final TextEditingController _birthYearController;
   late final TextEditingController _heightController;
   late final TextEditingController _otherComorbidityController;
+  final TextEditingController _clinicNameController = TextEditingController();
+  final TextEditingController _clinicPhoneController = TextEditingController();
+  String? _clinicPhoneError;
   late final ProviderSubscription<AsyncValue<CachedUser?>> _cachedUserSub;
 
   String? _birthYearError;
@@ -76,6 +81,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _birthYearController.dispose();
     _heightController.dispose();
     _otherComorbidityController.dispose();
+    _clinicNameController.dispose();
+    _clinicPhoneController.dispose();
     super.dispose();
   }
 
@@ -95,8 +102,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _handleFinish() async {
+    // The clinic is optional; a number that was typed must be valid.
+    final String clinicPhone = _clinicPhoneController.text.trim();
+    final String? clinicError = clinicPhone.isEmpty
+        ? null
+        : validateCaregiverPhone(clinicPhone);
+    setState(() => _clinicPhoneError = clinicError?.tr());
+    if (clinicError != null) return;
     setState(() => _isSubmitting = true);
+    if (clinicPhone.isNotEmpty) {
+      await ref
+          .read(clinicContactStoreProvider)
+          .save(
+            ClinicContact(
+              name: _clinicNameController.text.trim(),
+              phone: clinicPhone,
+            ),
+          );
+    }
     await ref.read(onboardingControllerProvider.notifier).finish();
+    await ref.read(onboardingDoneHandlerProvider)();
     if (!mounted) return;
     context.goNamed(AppRoutes.home);
   }
@@ -104,6 +129,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _handleSkip() async {
     setState(() => _isSubmitting = true);
     await ref.read(onboardingControllerProvider.notifier).skip();
+    await ref.read(onboardingDoneHandlerProvider)();
     if (!mounted) return;
     context.goNamed(AppRoutes.home);
   }
@@ -114,7 +140,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final OnboardingController controller = ref.read(
       onboardingControllerProvider.notifier,
     );
-    final TextTheme text = Theme.of(context).textTheme;
 
     final List<String> titles = <String>[
       'profile.onboarding.step1Title'.tr(),
@@ -141,32 +166,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return AppScaffold.banded(
       showBack: false,
-      bandChild: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: Text(titles[state.step], style: text.headlineMedium),
-              ),
-              AppButton(
-                label: 'common.skip'.tr(),
-                variant: AppButtonVariant.text,
-                expand: false,
-                onPressed: _isSubmitting ? null : _handleSkip,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(subtitles[state.step], style: text.bodyMedium),
-        ],
+      bandChild: BandHeader(
+        title: titles[state.step],
+        subtitle: subtitles[state.step],
+        showBack: false,
+        trailing: AppButton(
+          label: 'common.skip'.tr(),
+          variant: AppButtonVariant.text,
+          expand: false,
+          onPressed: _isSubmitting ? null : _handleSkip,
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          const SizedBox(height: AppSpacing.lg),
           stepBody,
           const SizedBox(height: AppSpacing.xl),
           WizardProgress(step: state.step, totalSteps: 3),
@@ -320,6 +334,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           subtitle: 'profile.onboarding.symptomReminderSubtitle'.tr(),
           value: state.symptomReminderOn,
           onChanged: controller.setSymptomReminder,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          'profile.clinic.title'.tr(),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'profile.clinic.onboardingHint'.tr(),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppTextField(
+          key: const Key('onboarding_clinic_name'),
+          label: 'profile.clinic.name'.tr(),
+          controller: _clinicNameController,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppTextField(
+          key: const Key('onboarding_clinic_phone'),
+          label: 'profile.clinic.phone'.tr(),
+          controller: _clinicPhoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
+          ],
+          errorText: _clinicPhoneError,
+          onChanged: (_) {
+            if (_clinicPhoneError != null) {
+              setState(() => _clinicPhoneError = null);
+            }
+          },
         ),
       ],
     );

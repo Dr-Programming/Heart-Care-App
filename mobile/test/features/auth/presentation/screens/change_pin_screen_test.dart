@@ -32,7 +32,12 @@ void main() {
     );
   }
 
-  Future<void> fill(WidgetTester tester, String current, String next, String confirm) async {
+  Future<void> fill(
+    WidgetTester tester,
+    String current,
+    String next,
+    String confirm,
+  ) async {
     await tester.enterText(find.byType(TextField).at(0), current);
     await tester.enterText(find.byType(TextField).at(1), next);
     await tester.enterText(find.byType(TextField).at(2), confirm);
@@ -47,7 +52,9 @@ void main() {
     expect(repo.changes.single, (currentPin: '1234', newPin: '5678'));
   });
 
-  testWidgets('a queued change tells the patient it reaches the server later', (tester) async {
+  testWidgets('a queued change tells the patient it reaches the server later', (
+    tester,
+  ) async {
     await pump(tester);
     repo.outcome = PinChangeOutcome.queued;
     await fill(tester, '1234', '5678', '5678');
@@ -55,7 +62,9 @@ void main() {
     expect(find.text('auth.changePin.queued'.tr()), findsOneWidget);
   });
 
-  testWidgets('a mismatched confirmation is caught before sending', (tester) async {
+  testWidgets('a mismatched confirmation is caught before sending', (
+    tester,
+  ) async {
     await pump(tester);
     await fill(tester, '1234', '5678', '5679');
 

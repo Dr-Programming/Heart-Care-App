@@ -40,8 +40,14 @@ void main() {
 
       await store.changePin('5678');
 
-      expect(await store.verify(phone: _user.phone, pin: '1234'), OfflineCheck.wrongPin);
-      expect(await store.verify(phone: _user.phone, pin: '5678'), OfflineCheck.match);
+      expect(
+        await store.verify(phone: _user.phone, pin: '1234'),
+        OfflineCheck.wrongPin,
+      );
+      expect(
+        await store.verify(phone: _user.phone, pin: '5678'),
+        OfflineCheck.match,
+      );
     });
 
     test('keeps the stored security answers', () async {
@@ -65,7 +71,10 @@ void main() {
 
       await store.remember(user: _user, pin: '1234');
 
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _answers), OfflineCheck.match);
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _answers),
+        OfflineCheck.match,
+      );
     });
 
     test('drops the answers when a different user signs in', () async {
@@ -87,6 +96,80 @@ void main() {
     });
   });
 
+  group('an earlier patient on this phone', () {
+    const AuthUser other = AuthUser(
+      id: 'u2',
+      name: 'Hana',
+      phone: '+251922222222',
+      preferredLanguage: 'en',
+      role: 'PATIENT',
+    );
+
+    Future<void> abebeThenHana() async {
+      await store.remember(user: _user, pin: '1234');
+      await store.rememberAnswers(_answers);
+      await store.remember(user: other, pin: '9999');
+    }
+
+    test(
+      'keeps their questions and answers after someone else signs in',
+      () async {
+        await abebeThenHana();
+
+        expect(await store.rememberedQuestions(_user.phone), hasLength(3));
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _answers),
+          OfflineCheck.match,
+        );
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _oneWrong),
+          OfflineCheck.wrongPin,
+        );
+      },
+    );
+
+    test('can still sign in offline with their own PIN', () async {
+      await abebeThenHana();
+
+      expect(
+        await store.verify(phone: _user.phone, pin: '1234'),
+        OfflineCheck.match,
+      );
+      expect(
+        await store.verify(phone: _user.phone, pin: '0000'),
+        OfflineCheck.wrongPin,
+      );
+      expect(await store.userForPhone(_user.phone), _user);
+    });
+
+    test(
+      'becomes the active account again, and the other one is kept',
+      () async {
+        await abebeThenHana();
+
+        await store.makeActive(_user.phone);
+
+        expect(await store.rememberedUser(), _user);
+        expect(
+          await store.verify(phone: other.phone, pin: '9999'),
+          OfflineCheck.match,
+        );
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _answers),
+          OfflineCheck.match,
+        );
+      },
+    );
+
+    test('signing in online again brings their answers back', () async {
+      await abebeThenHana();
+
+      await store.remember(user: _user, pin: '1234');
+
+      expect(await store.rememberedQuestions(_user.phone), hasLength(3));
+    });
+  });
+
   group('security answers', () {
     setUp(() async {
       await store.remember(user: _user, pin: '1234');
@@ -99,29 +182,38 @@ void main() {
       expect(raw.toLowerCase().contains('dawit'), isFalse);
     });
 
-    test('remembers which questions were chosen, for that phone only', () async {
-      expect(await store.rememberedQuestions(_user.phone), <SecurityQuestion>[
-        SecurityQuestion.firstSchool,
-        SecurityQuestion.childhoodFriend,
-        SecurityQuestion.favoriteTeacher,
-      ]);
-      expect(await store.rememberedQuestions('+251900000000'), isEmpty);
-    });
+    test(
+      'remembers which questions were chosen, for that phone only',
+      () async {
+        expect(await store.rememberedQuestions(_user.phone), <SecurityQuestion>[
+          SecurityQuestion.firstSchool,
+          SecurityQuestion.childhoodFriend,
+          SecurityQuestion.favoriteTeacher,
+        ]);
+        expect(await store.rememberedQuestions('+251900000000'), isEmpty);
+      },
+    );
 
-    test('accepts the right answers typed with different case and spacing', () async {
-      final OfflineCheck result = await store.verifyAnswers(
-        phone: _user.phone,
-        answers: const <SecurityAnswer>[
-          SecurityAnswer(SecurityQuestion.favoriteTeacher, 'ato   KEBEDE'),
-          SecurityAnswer(SecurityQuestion.firstSchool, ' bole primary '),
-          SecurityAnswer(SecurityQuestion.childhoodFriend, 'DAWIT'),
-        ],
-      );
-      expect(result, OfflineCheck.match);
-    });
+    test(
+      'accepts the right answers typed with different case and spacing',
+      () async {
+        final OfflineCheck result = await store.verifyAnswers(
+          phone: _user.phone,
+          answers: const <SecurityAnswer>[
+            SecurityAnswer(SecurityQuestion.favoriteTeacher, 'ato   KEBEDE'),
+            SecurityAnswer(SecurityQuestion.firstSchool, ' bole primary '),
+            SecurityAnswer(SecurityQuestion.childhoodFriend, 'DAWIT'),
+          ],
+        );
+        expect(result, OfflineCheck.match);
+      },
+    );
 
     test('one wrong answer fails', () async {
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _oneWrong), OfflineCheck.wrongPin);
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _oneWrong),
+        OfflineCheck.wrongPin,
+      );
     });
 
     test('answering other questions fails', () async {
@@ -143,31 +235,126 @@ void main() {
       );
       final MemoryCredentialStore empty = MemoryCredentialStore();
       await empty.remember(user: _user, pin: '1234');
-      expect(await empty.verifyAnswers(phone: _user.phone, answers: _answers), OfflineCheck.unknownAccount);
+      expect(
+        await empty.verifyAnswers(phone: _user.phone, answers: _answers),
+        OfflineCheck.unknownAccount,
+      );
     });
 
-    test('five wrong attempts lock recovery for 60 minutes, like the server', () async {
-      for (int i = 0; i < 4; i++) {
-        expect(await store.verifyAnswers(phone: _user.phone, answers: _oneWrong), OfflineCheck.wrongPin);
-      }
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _oneWrong), OfflineCheck.locked);
-      expect(await store.recoveryLockedFor(), 60);
+    test(
+      'five wrong attempts lock recovery for 60 minutes, like the server',
+      () async {
+        for (int i = 0; i < 4; i++) {
+          expect(
+            await store.verifyAnswers(phone: _user.phone, answers: _oneWrong),
+            OfflineCheck.wrongPin,
+          );
+        }
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _oneWrong),
+          OfflineCheck.locked,
+        );
+        expect(await store.recoveryLockedFor(), 60);
 
-      // Locked means locked, even for the right answers...
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _answers), OfflineCheck.locked);
-      // ...and the PIN itself is unaffected.
-      expect(await store.verify(phone: _user.phone, pin: '1234'), OfflineCheck.match);
+        // Locked means locked, even for the right answers...
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _answers),
+          OfflineCheck.locked,
+        );
+        // ...and the PIN itself is unaffected.
+        expect(
+          await store.verify(phone: _user.phone, pin: '1234'),
+          OfflineCheck.match,
+        );
 
-      now = now.add(const Duration(minutes: 61));
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _answers), OfflineCheck.match);
-    });
+        now = now.add(const Duration(minutes: 61));
+        expect(
+          await store.verifyAnswers(phone: _user.phone, answers: _answers),
+          OfflineCheck.match,
+        );
+      },
+    );
 
     test('a successful check clears the recovery failures', () async {
       for (int i = 0; i < 4; i++) {
         await store.verifyAnswers(phone: _user.phone, answers: _oneWrong);
       }
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _answers), OfflineCheck.match);
-      expect(await store.verifyAnswers(phone: _user.phone, answers: _oneWrong), OfflineCheck.wrongPin);
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _answers),
+        OfflineCheck.match,
+      );
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _oneWrong),
+        OfflineCheck.wrongPin,
+      );
+    });
+  });
+
+  group("the patient's own question", () {
+    setUp(() async {
+      await store.remember(user: _user, pin: '1234');
+      await store.rememberAnswers(_answers);
+      await store.rememberCustomQuestion(
+        question: 'What did I name my first goat?',
+        answer: 'Chaltu',
+      );
+    });
+
+    test('is kept on the phone with its question text', () async {
+      expect(
+        await store.customQuestion(_user.phone),
+        'What did I name my first goat?',
+      );
+      expect(await store.customQuestion('+251900000000'), isNull);
+    });
+
+    test('must be answered too when resetting offline', () async {
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _answers),
+        OfflineCheck.wrongPin,
+      );
+      expect(
+        await store.verifyAnswers(
+          phone: _user.phone,
+          answers: _answers,
+          customAnswer: '  chaltu ',
+        ),
+        OfflineCheck.match,
+      );
+    });
+
+    test('a wrong own answer counts towards the recovery lockout', () async {
+      for (int i = 0; i < OfflineCredentialStore.recoveryMaxAttempts - 1; i++) {
+        expect(
+          await store.verifyCustomAnswer(phone: _user.phone, answer: 'Wrong'),
+          OfflineCheck.wrongPin,
+        );
+      }
+      expect(
+        await store.verifyCustomAnswer(phone: _user.phone, answer: 'Wrong'),
+        OfflineCheck.locked,
+      );
+    });
+
+    test('survives signing in again and changing the PIN', () async {
+      await store.remember(user: _user, pin: '1234');
+      await store.changePin('5678');
+
+      expect(await store.customQuestion(_user.phone), isNotNull);
+    });
+
+    test('can be removed, and then is not asked', () async {
+      await store.clearCustomQuestion();
+
+      expect(await store.customQuestion(_user.phone), isNull);
+      expect(
+        await store.verifyAnswers(phone: _user.phone, answers: _answers),
+        OfflineCheck.match,
+      );
+      expect(
+        await store.verifyCustomAnswer(phone: _user.phone, answer: null),
+        OfflineCheck.match,
+      );
     });
   });
 }

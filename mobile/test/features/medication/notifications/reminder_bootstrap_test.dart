@@ -85,18 +85,20 @@ void main() {
     expect(scheduler.pendingPayloads, isEmpty);
   });
 
-  test('cancelAll() sweeps a deactivated medication\'s stale reminders', () async {
+  test(
+    'cancelAll() sweeps a deactivated medication\'s stale reminders',
+    () async {
+      await scheduler.zonedSchedule(
+        id: 99,
+        title: 't',
+        body: 'b',
+        when: DateTime(2026, 8, 26, 8),
+        payload: 'm3|08:00|main',
+      );
 
-    await scheduler.zonedSchedule(
-      id: 99,
-      title: 't',
-      body: 'b',
-      when: DateTime(2026, 8, 26, 8),
-      payload: 'm3|08:00|main',
-    );
+      await bootstrap.cancelAll();
 
-    await bootstrap.cancelAll();
-
-    expect(scheduler.pendingPayloads, isEmpty);
-  });
+      expect(scheduler.pendingPayloads, isEmpty);
+    },
+  );
 }

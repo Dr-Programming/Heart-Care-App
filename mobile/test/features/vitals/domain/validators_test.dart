@@ -9,7 +9,10 @@ void main() {
         VitalType.bloodPressure,
         <String, double?>{'systolic': 80, 'diastolic': 90},
       );
-      expect(errors['diastolic'], 'vitals.validation.systolicMustExceedDiastolic');
+      expect(
+        errors['diastolic'],
+        'vitals.validation.systolicMustExceedDiastolic',
+      );
     });
 
     test('a valid BP has no errors', () {

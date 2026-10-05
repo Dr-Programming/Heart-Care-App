@@ -51,7 +51,8 @@ class MedicationListController extends AsyncNotifier<MedicationListState> {
     List<Medication> medications,
     List<DoseLog> recentNewestFirst,
   ) {
-    final Map<String, List<String>> statusesByMedication = <String, List<String>>{};
+    final Map<String, List<String>> statusesByMedication =
+        <String, List<String>>{};
     for (final DoseLog log in recentNewestFirst) {
       statusesByMedication
           .putIfAbsent(log.medicationClientRecordId, () => <String>[])
@@ -74,19 +75,25 @@ class MedicationListController extends AsyncNotifier<MedicationListState> {
     String? scheduledTime,
     String? note,
   }) async {
-    await ref.read(medicationRepositoryProvider).logDose(
-      medicationClientRecordId: medicationClientRecordId,
-      status: status,
-      scheduledDate: scheduledDate,
-      scheduledTime: scheduledTime,
-      note: note,
-    );
+    await ref
+        .read(medicationRepositoryProvider)
+        .logDose(
+          medicationClientRecordId: medicationClientRecordId,
+          status: status,
+          scheduledDate: scheduledDate,
+          scheduledTime: scheduledTime,
+          note: note,
+        );
     ref.invalidateSelf();
   }
 
   Future<void> deactivate(String clientRecordId) async {
-    final updated = await ref.read(medicationRepositoryProvider).deactivate(clientRecordId);
-    await ref.read(medicationNotificationsProvider).cancelFor(updated.clientRecordId);
+    final updated = await ref
+        .read(medicationRepositoryProvider)
+        .deactivate(clientRecordId);
+    await ref
+        .read(medicationNotificationsProvider)
+        .cancelFor(updated.clientRecordId);
     ref.invalidateSelf();
   }
 }

@@ -100,4 +100,90 @@ void main() {
       );
     });
   });
+
+  test(
+    'upgrading from v2 adds deactivated_at and backfills inactive rows',
+    () async {
+      final AppDatabase old = AppDatabase(
+        NativeDatabase.memory(
+          setup: (rawDb) {
+            rawDb.execute('''
+            CREATE TABLE medications (
+              client_record_id TEXT NOT NULL PRIMARY KEY,
+              server_id TEXT NULL,
+              name TEXT NOT NULL,
+              dose_mg REAL NOT NULL,
+              frequency TEXT NOT NULL,
+              schedule_times_json TEXT NOT NULL,
+              active INTEGER NOT NULL DEFAULT 1,
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL
+            )''');
+            rawDb.execute(
+              "INSERT INTO medications VALUES ('on', NULL, 'A', 1, 'BID', '[]', 1, 100, 200)",
+            );
+            rawDb.execute(
+              "INSERT INTO medications VALUES ('off', NULL, 'B', 1, 'BID', '[]', 0, 100, 300)",
+            );
+            rawDb.execute('PRAGMA user_version = 2');
+          },
+        ),
+      );
+      addTearDown(old.close);
+
+      final List<Medication> rows = await old.select(old.medications).get();
+      final Medication on = rows.firstWhere(
+        (Medication m) => m.clientRecordId == 'on',
+      );
+      final Medication off = rows.firstWhere(
+        (Medication m) => m.clientRecordId == 'off',
+      );
+
+      expect(on.deactivatedAt, isNull);
+      expect(off.deactivatedAt, off.updatedAt);
+    },
+  );
+
+  test(
+    'clearPatientData removes one patient’s records but keeps device settings',
+    () async {
+      await db
+          .into(db.medications)
+          .insert(
+            MedicationsCompanion.insert(
+              clientRecordId: 'm1',
+              name: 'Aspirin',
+              doseMg: 75,
+              frequency: 'ONCE_DAILY',
+              scheduleTimesJson: '["08:00"]',
+              createdAt: DateTime(2026, 9, 1),
+              updatedAt: DateTime(2026, 9, 1),
+            ),
+          );
+      await db
+          .into(db.syncQueueEntries)
+          .insert(
+            SyncQueueEntriesCompanion.insert(
+              clientRecordId: 'v1',
+              entityType: 'VITAL',
+              payloadJson: '{}',
+              status: LocalSyncStatus.pending,
+              recordedAt: DateTime(2026, 9, 1),
+              createdLocallyAt: DateTime(2026, 9, 1),
+            ),
+          );
+      await db.preferencesDao.set(PreferenceKeys.language, 'am');
+      await db.preferencesDao.set('m3_pending_medication_edits', '["m1"]');
+
+      await db.clearPatientData();
+
+      expect(await db.select(db.medications).get(), isEmpty);
+      expect(await db.select(db.syncQueueEntries).get(), isEmpty);
+      expect(await db.preferencesDao.get(PreferenceKeys.language), 'am');
+      expect(
+        await db.preferencesDao.get('m3_pending_medication_edits'),
+        isNull,
+      );
+    },
+  );
 }

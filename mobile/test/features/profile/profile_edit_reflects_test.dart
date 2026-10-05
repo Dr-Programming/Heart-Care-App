@@ -4,34 +4,18 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
 import 'package:libu_care/core/db/app_database.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
-import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
 
 import '../../helpers/fake_dio.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/test_database.dart';
-
-class _FakeTokenStore extends TokenStore {
-  _FakeTokenStore() : super(const FlutterSecureStorage());
-
-  String? _value;
-
-  @override
-  Future<void> clear() async => _value = null;
-
-  @override
-  Future<String?> read() async => _value;
-
-  @override
-  Future<void> write(String token) async => _value = token;
-}
+import '../../helpers/auth_fakes.dart';
 
 String _jwt({required DateTime exp}) {
   String segment(Map<String, dynamic> json) =>
@@ -48,12 +32,12 @@ void main() {
 
   late AppDatabase db;
   late FakeDio http;
-  late _FakeTokenStore tokens;
+  late FakeTokenStore tokens;
 
   setUp(() async {
     db = testDatabase();
     http = FakeDio()..stubAll(FakeResponse.offline());
-    tokens = _FakeTokenStore();
+    tokens = FakeTokenStore();
 
     await tokens.write(_jwt(exp: DateTime.now().add(const Duration(days: 7))));
     await db.cachedUserDao.save(
@@ -84,8 +68,12 @@ void main() {
         dioProvider.overrideWithValue(http.dio),
         tokenStoreProvider.overrideWithValue(tokens),
         isOnlineProvider.overrideWithValue(() async => false),
-        connectivityStreamProvider.overrideWithValue(const Stream<bool>.empty()),
-        onlineStatusProvider.overrideWith((Ref ref) => Stream<bool>.value(true)),
+        connectivityStreamProvider.overrideWithValue(
+          const Stream<bool>.empty(),
+        ),
+        onlineStatusProvider.overrideWith(
+          (Ref ref) => Stream<bool>.value(true),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -121,27 +109,28 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('editing the profile updates the Profile screen without a restart', (
-    WidgetTester tester,
-  ) async {
-    await boot(tester);
+  testWidgets(
+    'editing the profile updates the Profile screen without a restart',
+    (WidgetTester tester) async {
+      await boot(tester);
 
-    await tester.tap(find.byTooltip('profile.title'.tr()));
-    await settle(tester);
-    expect(find.text('profile.empty.title'.tr()), findsOneWidget);
+      await tester.tap(find.byTooltip('profile.title'.tr()));
+      await settle(tester);
+      expect(find.text('profile.empty.title'.tr()), findsOneWidget);
 
-    await tester.tap(find.byTooltip('common.edit'.tr()));
-    await settle(tester);
+      await tester.tap(find.byTooltip('common.edit'.tr()));
+      await settle(tester);
 
-    await tester.enterText(
-      find.byKey(const Key('profile_edit_birthYear_field')),
-      '1970',
-    );
-    await tester.pump();
-    await tester.tap(find.text('common.save'.tr()));
-    await settle(tester);
+      await tester.enterText(
+        find.byKey(const Key('profile_edit_birthYear_field')),
+        '1970',
+      );
+      await tester.pump();
+      await tester.tap(find.text('common.save'.tr()));
+      await settle(tester);
 
-    expect(find.text('profile.empty.title'.tr()), findsNothing);
-    expect(find.text('1970'), findsOneWidget);
-  });
+      expect(find.text('profile.empty.title'.tr()), findsNothing);
+      expect(find.text('1970'), findsOneWidget);
+    },
+  );
 }

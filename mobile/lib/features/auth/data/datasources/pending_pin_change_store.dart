@@ -56,11 +56,15 @@ class PendingPinChange {
     final Object? changeId = json['changeId'];
     final Object? phone = json['phone'];
     final Object? newPin = json['newPin'];
-    if (kind == null || changeId is! String || phone is! String || newPin is! String) {
+    if (kind == null ||
+        changeId is! String ||
+        phone is! String ||
+        newPin is! String) {
       return null;
     }
     final List<SecurityAnswer> answers = <SecurityAnswer>[
-      for (final Object? raw in (json['answers'] as List<Object?>?) ?? <Object?>[])
+      for (final Object? raw
+          in (json['answers'] as List<Object?>?) ?? <Object?>[])
         if (raw is Map) ?SecurityAnswer.fromJson(raw.cast<String, dynamic>()),
     ];
     return PendingPinChange(
@@ -70,7 +74,9 @@ class PendingPinChange {
       currentPin: json['currentPin'] as String?,
       answers: answers,
       newPin: newPin,
-      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -103,7 +109,9 @@ class PendingPinChangeStore {
     if (raw == null) return null;
     try {
       final Object? decoded = jsonDecode(raw);
-      return decoded is Map<String, dynamic> ? PendingPinChange.fromJson(decoded) : null;
+      return decoded is Map<String, dynamic>
+          ? PendingPinChange.fromJson(decoded)
+          : null;
     } on FormatException {
       return null;
     }
@@ -120,7 +128,11 @@ class PendingPinChangeStore {
     return _record(
       phone: phone,
       newPin: newPin,
-      fresh: () => (kind: PendingPinChangeKind.change, currentPin: currentPin, answers: <SecurityAnswer>[]),
+      fresh: () => (
+        kind: PendingPinChangeKind.change,
+        currentPin: currentPin,
+        answers: <SecurityAnswer>[],
+      ),
     );
   }
 
@@ -133,7 +145,11 @@ class PendingPinChangeStore {
     return _record(
       phone: phone,
       newPin: newPin,
-      fresh: () => (kind: PendingPinChangeKind.reset, currentPin: null, answers: answers),
+      fresh: () => (
+        kind: PendingPinChangeKind.reset,
+        currentPin: null,
+        answers: answers,
+      ),
     );
   }
 
@@ -142,7 +158,13 @@ class PendingPinChangeStore {
   Future<void> _record({
     required String phone,
     required String newPin,
-    required ({PendingPinChangeKind kind, String? currentPin, List<SecurityAnswer> answers}) Function() fresh,
+    required ({
+      PendingPinChangeKind kind,
+      String? currentPin,
+      List<SecurityAnswer> answers,
+    })
+    Function()
+    fresh,
   }) async {
     final PendingPinChange? existing = await read();
     final bool merge = existing != null && existing.phone == phone;

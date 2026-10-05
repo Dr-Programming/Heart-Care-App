@@ -27,9 +27,12 @@ class VitalsTrendController extends AsyncNotifier<VitalSeriesResult> {
   }
 }
 
-final AsyncNotifierProviderFamily<VitalsTrendController, VitalSeriesResult, VitalType>
-vitalsTrendControllerProvider = AsyncNotifierProvider.autoDispose.family<
+final AsyncNotifierProviderFamily<
   VitalsTrendController,
   VitalSeriesResult,
   VitalType
->(VitalsTrendController.new);
+>
+vitalsTrendControllerProvider = AsyncNotifierProvider.autoDispose
+    .family<VitalsTrendController, VitalSeriesResult, VitalType>(
+      VitalsTrendController.new,
+    );

@@ -84,7 +84,9 @@ class _SpyListController extends MedicationListController {
 void main() {
   setUpWidgetTests();
 
-  testWidgets('shows a validation error after an empty save attempt', (tester) async {
+  testWidgets('shows a validation error after an empty save attempt', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       const MedicationFormScreen(),
@@ -126,7 +128,6 @@ void main() {
     'does not overflow on a short viewport (e.g. a small device, or the '
     'keyboard open while editing)',
     (tester) async {
-
       tester.view.physicalSize = const Size(400, 400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -161,46 +162,42 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets(
-    'a valid form pushes ReviewMedicationScreen when Save is tapped, '
-    'without saving immediately',
-    (tester) async {
+  testWidgets('a valid form pushes ReviewMedicationScreen when Save is tapped, '
+      'without saving immediately', (tester) async {
+    final FakeMedicationRepository repository = FakeMedicationRepository();
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
 
-      final FakeMedicationRepository repository = FakeMedicationRepository();
-      final AppDatabase db = testDatabase();
-      addTearDown(db.close);
+    await pumpApp(
+      tester,
+      const MedicationFormScreen(),
+      overrides: <Override>[
+        medicationRepositoryProvider.overrideWithValue(repository),
+        medicationNotificationsProvider.overrideWithValue(
+          MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+        ),
+      ],
+    );
 
-      await pumpApp(
-        tester,
-        const MedicationFormScreen(),
-        overrides: <Override>[
-          medicationRepositoryProvider.overrideWithValue(repository),
-          medicationNotificationsProvider.overrideWithValue(
-            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
-          ),
-        ],
-      );
+    await fillValidForm(tester);
 
-      await fillValidForm(tester);
+    await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+    await tester.tap(find.text('meds.form.reviewButton'.tr()));
+    await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
-      await tester.tap(find.text('meds.form.reviewButton'.tr()));
-      await tester.pumpAndSettle();
+    expect(find.byType(ReviewMedicationScreen), findsOneWidget);
 
-      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
-
-      expect(
-        find.byType(MedicationFormScreen, skipOffstage: false),
-        findsOneWidget,
-      );
-      expect(
-        repository.medications,
-        isEmpty,
-        reason: 'Save must not persist anything until Review confirms',
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(
+      find.byType(MedicationFormScreen, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      repository.medications,
+      isEmpty,
+      reason: 'Save must not persist anything until Review confirms',
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'an invalid form (never touched) shows validation errors instead of '
@@ -231,53 +228,50 @@ void main() {
     expect(find.text('meds.deactivate'.tr()), findsNothing);
   });
 
-  testWidgets(
-    'deactivating in edit mode confirms first, then deactivates that '
-    'medication (C3)',
-    (tester) async {
-      final _SpyListController listController = _SpyListController();
-      final AppDatabase db = testDatabase();
-      addTearDown(db.close);
+  testWidgets('deactivating in edit mode confirms first, then deactivates that '
+      'medication (C3)', (tester) async {
+    final _SpyListController listController = _SpyListController();
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
 
-      await pumpApp(
-        tester,
-        _routedForm(editingId: 'm1'),
-        overrides: <Override>[
-          medicationRepositoryProvider.overrideWithValue(
-            FakeMedicationRepository(
-              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
-            ),
+    await pumpApp(
+      tester,
+      _routedForm(editingId: 'm1'),
+      overrides: <Override>[
+        medicationRepositoryProvider.overrideWithValue(
+          FakeMedicationRepository(
+            medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
           ),
-          medicationFormControllerProvider.overrideWith(
-            () => _FakeFormController(const MedicationFormState()),
-          ),
-          medicationListControllerProvider.overrideWith(() => listController),
+        ),
+        medicationFormControllerProvider.overrideWith(
+          () => _FakeFormController(const MedicationFormState()),
+        ),
+        medicationListControllerProvider.overrideWith(() => listController),
 
-          caregiverNotifyStoreProvider.overrideWithValue(
-            CaregiverNotifyStore(db.preferencesDao),
-          ),
-          medicationInstructionsStoreProvider.overrideWithValue(
-            MedicationInstructionsStore(db.preferencesDao),
-          ),
-        ],
-      );
+        caregiverNotifyStoreProvider.overrideWithValue(
+          CaregiverNotifyStore(db.preferencesDao),
+        ),
+        medicationInstructionsStoreProvider.overrideWithValue(
+          MedicationInstructionsStore(db.preferencesDao),
+        ),
+      ],
+    );
 
-      await tester.ensureVisible(find.text('meds.deactivate'.tr()));
-      await tester.tap(find.text('meds.deactivate'.tr()));
-      await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('meds.deactivate'.tr()));
+    await tester.tap(find.text('meds.deactivate'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(find.text('meds.deactivateTitle'.tr()), findsOneWidget);
-      expect(find.text('meds.deactivateBody'.tr()), findsOneWidget);
-      expect(listController.deactivatedId, isNull, reason: 'not yet confirmed');
+    expect(find.text('meds.deactivateTitle'.tr()), findsOneWidget);
+    expect(find.text('meds.deactivateBody'.tr()), findsOneWidget);
+    expect(listController.deactivatedId, isNull, reason: 'not yet confirmed');
 
-      await tester.tap(find.text('meds.deactivateConfirm'.tr()));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('meds.deactivateConfirm'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(listController.deactivatedId, 'm1');
-      expect(find.text('behind the form'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(listController.deactivatedId, 'm1');
+    expect(find.text('behind the form'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('dismissing the confirm sheet deactivates nothing (C3)', (
     tester,
@@ -324,7 +318,9 @@ void main() {
     (tester) async {
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
-      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(
+        db.preferencesDao,
+      );
       await store.set(
         'm1',
         const CaregiverNotifySettings(enabled: true, phone: '+251911234567'),
@@ -361,7 +357,9 @@ void main() {
     (tester) async {
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
-      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(
+        db.preferencesDao,
+      );
 
       await pumpApp(
         tester,
@@ -401,7 +399,6 @@ void main() {
   testWidgets(
     'add mode leaves the caregiver toggle and phone field fully enabled',
     (tester) async {
-
       await pumpApp(
         tester,
         const MedicationFormScreen(),
@@ -419,7 +416,10 @@ void main() {
       await tester.ensureVisible(find.byType(SwitchListTile));
       await tester.tap(find.byType(SwitchListTile));
       await tester.pumpAndSettle();
-      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isTrue);
+      expect(
+        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
+        isTrue,
+      );
 
       final AppTextField phoneField = tester.widget(
         find.widgetWithText(AppTextField, 'meds.form.caregiverPhone'.tr()),
@@ -442,7 +442,9 @@ void main() {
     (tester) async {
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
-      final CaregiverNotifyStore store = CaregiverNotifyStore(db.preferencesDao);
+      final CaregiverNotifyStore store = CaregiverNotifyStore(
+        db.preferencesDao,
+      );
 
       await pumpApp(
         tester,
@@ -530,7 +532,10 @@ void main() {
 
       expect(find.byType(SnackBar), findsNothing);
       expect(find.byType(ReviewMedicationScreen), findsNothing);
-      expect(find.byType(MedicationFormScreen, skipOffstage: false), findsNothing);
+      expect(
+        find.byType(MedicationFormScreen, skipOffstage: false),
+        findsNothing,
+      );
       expect(find.text('behind the form'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
@@ -538,7 +543,7 @@ void main() {
 
   Finder doseChips() => find.byWidgetPredicate(
     (Widget w) =>
-        w is ActionChip &&
+        w is ChoiceChip &&
         w.label is Text &&
         ((w.label as Text).data?.endsWith(' mg') ?? false),
   );
@@ -555,12 +560,12 @@ void main() {
         await tester.enterText(find.byType(TextField).at(0), 'Metoprolol');
         await tester.pump();
 
-        expect(find.widgetWithText(ActionChip, '25 mg'), findsOneWidget);
-        expect(find.widgetWithText(ActionChip, '50 mg'), findsOneWidget);
-        expect(find.widgetWithText(ActionChip, '100 mg'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, '25 mg'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, '50 mg'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, '100 mg'), findsOneWidget);
         expect(doseChips(), findsNWidgets(3));
 
-        await tester.tap(find.widgetWithText(ActionChip, '50 mg'));
+        await tester.tap(find.widgetWithText(ChoiceChip, '50 mg'));
         await tester.pump();
 
         final MedicationFormState state = ProviderScope.containerOf(
@@ -568,26 +573,28 @@ void main() {
         ).read(medicationFormControllerProvider);
         expect(state.doseMg, '50');
         expect(
-          tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+          tester
+              .widget<TextField>(find.byType(TextField).at(1))
+              .controller!
+              .text,
           '50',
         );
       },
     );
 
-    testWidgets(
-      'typing an unrecognized medication name shows no chip row',
-      (tester) async {
-        await pumpApp(tester, const MedicationFormScreen());
+    testWidgets('typing an unrecognized medication name shows no chip row', (
+      tester,
+    ) async {
+      await pumpApp(tester, const MedicationFormScreen());
 
-        await tester.enterText(
-          find.byType(TextField).at(0),
-          'Zzz Not A Real Drug',
-        );
-        await tester.pump();
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        'Zzz Not A Real Drug',
+      );
+      await tester.pump();
 
-        expect(doseChips(), findsNothing);
-      },
-    );
+      expect(doseChips(), findsNothing);
+    });
 
     testWidgets(
       'the free-text dose field still works standalone with no name typed '
@@ -634,47 +641,51 @@ void main() {
       },
     );
 
-    testWidgets(
-      'tapping a suggestion fills both name and dose, and the list '
-      'disappears',
-      (tester) async {
-        await pumpApp(tester, const MedicationFormScreen());
-
-        await tester.enterText(find.byType(TextField).at(0), 'prolol');
-        await tester.pump();
-
-        await tester.tap(find.text('Metoprolol 50 mg'));
-        await tester.pump();
-
-        final MedicationFormState state = ProviderScope.containerOf(
-          tester.element(find.byType(MedicationFormScreen)),
-        ).read(medicationFormControllerProvider);
-        expect(state.name, 'Metoprolol');
-        expect(state.doseMg, '50');
-        expect(
-          tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text,
-          'Metoprolol',
-        );
-        expect(
-          tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
-          '50',
-        );
-
-        expect(find.text('Metoprolol 25 mg'), findsNothing);
-        expect(find.text('Metoprolol 100 mg'), findsNothing);
-      },
-    );
-
-    testWidgets('typing an unrecognized name shows no suggestions', (tester) async {
+    testWidgets('tapping a suggestion fills both name and dose, and the list '
+        'disappears', (tester) async {
       await pumpApp(tester, const MedicationFormScreen());
 
-      await tester.enterText(find.byType(TextField).at(0), 'Zzz Not A Real Drug');
+      await tester.enterText(find.byType(TextField).at(0), 'prolol');
+      await tester.pump();
+
+      await tester.tap(find.text('Metoprolol 50 mg'));
+      await tester.pump();
+
+      final MedicationFormState state = ProviderScope.containerOf(
+        tester.element(find.byType(MedicationFormScreen)),
+      ).read(medicationFormControllerProvider);
+      expect(state.name, 'Metoprolol');
+      expect(state.doseMg, '50');
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(0)).controller!.text,
+        'Metoprolol',
+      );
+      expect(
+        tester.widget<TextField>(find.byType(TextField).at(1)).controller!.text,
+        '50',
+      );
+
+      expect(find.text('Metoprolol 25 mg'), findsNothing);
+      expect(find.text('Metoprolol 100 mg'), findsNothing);
+    });
+
+    testWidgets('typing an unrecognized name shows no suggestions', (
+      tester,
+    ) async {
+      await pumpApp(tester, const MedicationFormScreen());
+
+      await tester.enterText(
+        find.byType(TextField).at(0),
+        'Zzz Not A Real Drug',
+      );
       await tester.pump();
 
       expect(find.byType(SectionCard), findsNothing);
     });
 
-    testWidgets('never shows in edit mode, however the name is typed', (tester) async {
+    testWidgets('never shows in edit mode, however the name is typed', (
+      tester,
+    ) async {
       final AppDatabase db = testDatabase();
       addTearDown(db.close);
 
@@ -706,140 +717,151 @@ void main() {
   });
 
   group('instructions field', () {
-    testWidgets(
-      'edit mode loads a previously saved instruction alongside the '
-      'medication',
-      (tester) async {
-        final AppDatabase db = testDatabase();
-        addTearDown(db.close);
-        final MedicationInstructionsStore store = MedicationInstructionsStore(
-          db.preferencesDao,
-        );
-        await store.set('m1', MedicationInstructions.afterMeal);
+    testWidgets('edit mode loads a previously saved instruction alongside the '
+        'medication', (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final MedicationInstructionsStore store = MedicationInstructionsStore(
+        db.preferencesDao,
+      );
+      await store.set('m1', MedicationInstructions.afterMeal);
 
-        await pumpApp(
-          tester,
-          _routedForm(editingId: 'm1'),
-          overrides: <Override>[
-            medicationRepositoryProvider.overrideWithValue(
-              FakeMedicationRepository(
-                medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(store),
+        ],
+      );
+
+      final ChoiceChip afterMeal = tester.widget(
+        find.widgetWithText(
+          ChoiceChip,
+          'meds.form.instructions.afterMeal'.tr(),
+        ),
+      );
+      final ChoiceChip withFood = tester.widget(
+        find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
+      );
+      expect(afterMeal.selected, isTrue);
+      expect(withFood.selected, isFalse);
+    });
+
+    testWidgets('tapping an instructions chip in edit mode persists via '
+        'MedicationInstructionsStore, and tapping the same chip again '
+        'deselects back to none', (tester) async {
+      final AppDatabase db = testDatabase();
+      addTearDown(db.close);
+      final MedicationInstructionsStore store = MedicationInstructionsStore(
+        db.preferencesDao,
+      );
+
+      await pumpApp(
+        tester,
+        _routedForm(editingId: 'm1'),
+        overrides: <Override>[
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+            ),
+          ),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+          caregiverNotifyStoreProvider.overrideWithValue(
+            CaregiverNotifyStore(db.preferencesDao),
+          ),
+          medicationInstructionsStoreProvider.overrideWithValue(store),
+        ],
+      );
+
+      expect(await store.get('m1'), MedicationInstructions.none);
+
+      await tester.ensureVisible(
+        find.text('meds.form.instructions.withFood'.tr()),
+      );
+      await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
+      await tester.pumpAndSettle();
+      expect(await store.get('m1'), MedicationInstructions.withFood);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.widgetWithText(
+                ChoiceChip,
+                'meds.form.instructions.withFood'.tr(),
               ),
-            ),
-            medicationFormControllerProvider.overrideWith(
-              () => _FakeFormController(const MedicationFormState()),
-            ),
-            caregiverNotifyStoreProvider.overrideWithValue(
-              CaregiverNotifyStore(db.preferencesDao),
-            ),
-            medicationInstructionsStoreProvider.overrideWithValue(store),
-          ],
-        );
+            )
+            .selected,
+        isTrue,
+      );
 
-        final ChoiceChip afterMeal = tester.widget(
-          find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
-        );
-        final ChoiceChip withFood = tester.widget(
-          find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
-        );
-        expect(afterMeal.selected, isTrue);
-        expect(withFood.selected, isFalse);
-      },
-    );
-
-    testWidgets(
-      'tapping an instructions chip in edit mode persists via '
-      'MedicationInstructionsStore, and tapping the same chip again '
-      'deselects back to none',
-      (tester) async {
-        final AppDatabase db = testDatabase();
-        addTearDown(db.close);
-        final MedicationInstructionsStore store = MedicationInstructionsStore(
-          db.preferencesDao,
-        );
-
-        await pumpApp(
-          tester,
-          _routedForm(editingId: 'm1'),
-          overrides: <Override>[
-            medicationRepositoryProvider.overrideWithValue(
-              FakeMedicationRepository(
-                medications: <Medication>[fakeMedication(clientRecordId: 'm1')],
+      await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
+      await tester.pumpAndSettle();
+      expect(await store.get('m1'), MedicationInstructions.none);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.widgetWithText(
+                ChoiceChip,
+                'meds.form.instructions.withFood'.tr(),
               ),
-            ),
-            medicationFormControllerProvider.overrideWith(
-              () => _FakeFormController(const MedicationFormState()),
-            ),
-            caregiverNotifyStoreProvider.overrideWithValue(
-              CaregiverNotifyStore(db.preferencesDao),
-            ),
-            medicationInstructionsStoreProvider.overrideWithValue(store),
-          ],
-        );
+            )
+            .selected,
+        isFalse,
+      );
+    });
 
-        expect(await store.get('m1'), MedicationInstructions.none);
+    testWidgets('add mode leaves the instructions chips fully interactive', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        const MedicationFormScreen(),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeFormController(const MedicationFormState()),
+          ),
+        ],
+      );
 
-        await tester.ensureVisible(find.text('meds.form.instructions.withFood'.tr()));
-        await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
-        await tester.pumpAndSettle();
-        expect(await store.get('m1'), MedicationInstructions.withFood);
-        expect(
-          tester
-              .widget<ChoiceChip>(
-                find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
-              )
-              .selected,
-          isTrue,
-        );
+      final ChoiceChip afterMeal = tester.widget(
+        find.widgetWithText(
+          ChoiceChip,
+          'meds.form.instructions.afterMeal'.tr(),
+        ),
+      );
+      expect(afterMeal.onSelected, isNotNull);
+      expect(afterMeal.selected, isFalse);
 
-        await tester.tap(find.text('meds.form.instructions.withFood'.tr()));
-        await tester.pumpAndSettle();
-        expect(await store.get('m1'), MedicationInstructions.none);
-        expect(
-          tester
-              .widget<ChoiceChip>(
-                find.widgetWithText(ChoiceChip, 'meds.form.instructions.withFood'.tr()),
-              )
-              .selected,
-          isFalse,
-        );
-      },
-    );
-
-    testWidgets(
-      'add mode leaves the instructions chips fully interactive',
-      (tester) async {
-
-        await pumpApp(
-          tester,
-          const MedicationFormScreen(),
-          overrides: <Override>[
-            medicationFormControllerProvider.overrideWith(
-              () => _FakeFormController(const MedicationFormState()),
-            ),
-          ],
-        );
-
-        final ChoiceChip afterMeal = tester.widget(
-          find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
-        );
-        expect(afterMeal.onSelected, isNotNull);
-        expect(afterMeal.selected, isFalse);
-
-        await tester.ensureVisible(find.text('meds.form.instructions.afterMeal'.tr()));
-        await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
-        await tester.pump();
-        expect(
-          tester
-              .widget<ChoiceChip>(
-                find.widgetWithText(ChoiceChip, 'meds.form.instructions.afterMeal'.tr()),
-              )
-              .selected,
-          isTrue,
-        );
-        expect(tester.takeException(), isNull);
-      },
-    );
+      await tester.ensureVisible(
+        find.text('meds.form.instructions.afterMeal'.tr()),
+      );
+      await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
+      await tester.pump();
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.widgetWithText(
+                ChoiceChip,
+                'meds.form.instructions.afterMeal'.tr(),
+              ),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('"As needed" frequency', () {
@@ -866,13 +888,17 @@ void main() {
 
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()),
+              )
               .selected,
           isTrue,
         );
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()),
+              )
               .selected,
           isFalse,
         );
@@ -898,13 +924,17 @@ void main() {
 
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()),
+              )
               .selected,
           isTrue,
         );
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()),
+              )
               .selected,
           isFalse,
         );
@@ -946,13 +976,17 @@ void main() {
         expect(find.text('meds.form.asNeededCaption'.tr()), findsOneWidget);
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.asNeeded'.tr()),
+              )
               .selected,
           isTrue,
         );
         expect(
           tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()))
+              .widget<ChoiceChip>(
+                find.widgetWithText(ChoiceChip, 'meds.frequency.custom'.tr()),
+              )
               .selected,
           isFalse,
         );
@@ -1005,7 +1039,10 @@ void main() {
 
         expect(find.byType(SnackBar), findsNothing);
         expect(repository.medications, hasLength(1));
-        expect(repository.medications.single.frequency, MedicationFrequency.custom);
+        expect(
+          repository.medications.single.frequency,
+          MedicationFrequency.custom,
+        );
         expect(repository.medications.single.scheduleTimes, isEmpty);
         expect(tester.takeException(), isNull);
       },
@@ -1015,7 +1052,6 @@ void main() {
   testWidgets(
     'renders the whole form in real Amharic on a phone-sized screen (I9)',
     (tester) async {
-
       tester.view.physicalSize = const Size(360, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

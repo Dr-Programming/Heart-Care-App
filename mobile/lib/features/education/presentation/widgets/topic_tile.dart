@@ -57,6 +57,8 @@ class TopicTile extends StatelessWidget {
               ],
             ),
           ),
+          // Same as every other card that opens a page.
+          const Icon(Icons.chevron_right_rounded),
         ],
       ),
     );

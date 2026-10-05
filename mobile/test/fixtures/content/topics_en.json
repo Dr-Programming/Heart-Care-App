@@ -1,0 +1,17 @@
+[
+  {
+    "id": "fixture-topic",
+    "title": "Fixture topic",
+    "summary": "A small topic used only by the tests.",
+    "sections": [
+      {
+        "title": "First section",
+        "blocks": [
+          { "type": "paragraph", "text": "A paragraph." },
+          { "type": "bulletList", "items": ["One", "Two"] },
+          { "type": "callout", "style": "warning", "text": "A callout." }
+        ]
+      }
+    ]
+  }
+]

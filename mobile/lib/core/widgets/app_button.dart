@@ -3,16 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-enum AppButtonVariant {
-
-  primary,
-
-  secondary,
-
-  text,
-
-  danger,
-}
+enum AppButtonVariant { primary, secondary, text, danger }
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -96,7 +87,11 @@ class AppButton extends StatelessWidget {
       children: <Widget>[
         Icon(icon, size: 18),
         const SizedBox(width: AppSpacing.sm),
-        Text(label),
+        // A long label (often in Amharic) shrinks a little instead of
+        // running past the button's edge.
+        Flexible(
+          child: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
+        ),
       ],
     );
   }

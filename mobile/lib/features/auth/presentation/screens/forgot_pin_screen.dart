@@ -13,6 +13,7 @@ import '../../domain/answer_normalizer.dart';
 import '../../domain/repositories/pin_repository.dart';
 import '../../domain/security_question.dart';
 import '../../domain/validators.dart';
+import '../widgets/patient_switch.dart';
 import '../widgets/pin_field.dart';
 
 /// Forgot PIN: phone number, then the patient's three security questions and
@@ -33,8 +34,15 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
       List<TextEditingController>.generate(3, (_) => TextEditingController());
 
   List<SecurityQuestion>? _questions;
+
+  /// The patient's own question, when they added one on this phone.
+  String? _ownQuestion;
+  final TextEditingController _ownAnswer = TextEditingController();
+  bool _ownAnswerBad = false;
   String? _phoneErrorKey;
-  String? _answerErrorKey;
+
+  /// Indexes of the answers that are too short, so each error sits under its own field.
+  Set<int> _badAnswers = <int>{};
   String? _pinErrorKey;
   String? _confirmErrorKey;
   String? _formError;
@@ -45,6 +53,7 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
     _phone.dispose();
     _newPin.dispose();
     _confirm.dispose();
+    _ownAnswer.dispose();
     for (final TextEditingController c in _answers) {
       c.dispose();
     }
@@ -61,9 +70,17 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
 
     setState(() => _busy = true);
     try {
-      final List<SecurityQuestion> questions =
-          await ref.read(pinRepositoryProvider).recoveryQuestions(_phone.text.trim());
-      if (mounted) setState(() => _questions = questions);
+      final PinRepository pins = ref.read(pinRepositoryProvider);
+      final List<SecurityQuestion> questions = await pins.recoveryQuestions(
+        _phone.text.trim(),
+      );
+      final String? own = await pins.customRecoveryQuestion(_phone.text.trim());
+      if (mounted) {
+        setState(() {
+          _questions = questions;
+          _ownQuestion = own;
+        });
+      }
     } on Failure catch (failure) {
       if (mounted) setState(() => _formError = _messageFor(failure));
     } finally {
@@ -73,11 +90,20 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
 
   Future<void> _reset() async {
     final List<SecurityQuestion> questions = _questions!;
-    final bool answersOk = _answers.take(questions.length).every((c) => isValidAnswer(c.text));
+    final Set<int> badAnswers = <int>{
+      for (int i = 0; i < questions.length; i++)
+        if (!isValidAnswer(_answers[i].text)) i,
+    };
+    final bool ownAnswerBad =
+        _ownQuestion != null && !isValidAnswer(_ownAnswer.text);
+    final bool answersOk = badAnswers.isEmpty && !ownAnswerBad;
     final String? pinKey = validatePin(_newPin.text);
-    final String? confirmKey = _confirm.text == _newPin.text ? null : 'auth.errors.pinMismatch';
+    final String? confirmKey = _confirm.text == _newPin.text
+        ? null
+        : 'auth.errors.pinMismatch';
     setState(() {
-      _answerErrorKey = answersOk ? null : 'auth.securityQuestions.answerLength';
+      _badAnswers = badAnswers;
+      _ownAnswerBad = ownAnswerBad;
       _pinErrorKey = pinKey;
       _confirmErrorKey = confirmKey;
       _formError = null;
@@ -86,13 +112,17 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
 
     setState(() => _busy = true);
     try {
-      final PinChangeOutcome outcome = await ref.read(pinRepositoryProvider).resetPin(
-        phone: _phone.text.trim(),
-        answers: <SecurityAnswer>[
-          for (int i = 0; i < questions.length; i++) SecurityAnswer(questions[i], _answers[i].text),
-        ],
-        newPin: _newPin.text,
-      );
+      final PinChangeOutcome outcome = await ref
+          .read(pinRepositoryProvider)
+          .resetPin(
+            phone: _phone.text.trim(),
+            answers: <SecurityAnswer>[
+              for (int i = 0; i < questions.length; i++)
+                SecurityAnswer(questions[i], _answers[i].text),
+            ],
+            newPin: _newPin.text,
+            customAnswer: _ownQuestion == null ? null : _ownAnswer.text,
+          );
       if (!mounted) return;
       showAppToast(
         context,
@@ -104,7 +134,9 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
       );
       // Signed in now (online, or offline on this phone): let the gate route home.
       await ref.read(realAuthGateProvider.notifier).refresh();
-      if (mounted && GoRouter.maybeOf(context) != null) context.goNamed(AppRoutes.home);
+      if (mounted && GoRouter.maybeOf(context) != null) {
+        context.goNamed(AppRoutes.home);
+      }
     } on Failure catch (failure) {
       if (mounted) setState(() => _formError = _messageFor(failure));
     } finally {
@@ -115,9 +147,13 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
   String _messageFor(Failure failure) {
     return switch (failure) {
       InvalidCredentialsFailure() => 'auth.forgotPin.answersDontMatch'.tr(),
-      AccountLockedFailure(:final int? minutesRemaining) => minutesRemaining != null
-          ? 'auth.errors.locked'.tr(namedArgs: <String, String>{'minutes': '$minutesRemaining'})
-          : 'auth.errors.lockedNoTime'.tr(),
+      AccountLockedFailure(:final int? minutesRemaining) =>
+        minutesRemaining != null
+            ? 'auth.errors.locked'.tr(
+                namedArgs: <String, String>{'minutes': '$minutesRemaining'},
+              )
+            : 'auth.errors.lockedNoTime'.tr(),
+      final PatientSwitchFailure f => patientSwitchMessage(f),
       NetworkFailure() => 'auth.forgotPin.needsConnection'.tr(),
       _ => 'errors.generic'.tr(),
     };
@@ -135,12 +171,15 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
           children: <Widget>[
             const SizedBox(height: AppSpacing.md),
             Text(
-              questions == null ? 'auth.forgotPin.intro'.tr() : 'auth.forgotPin.answerIntro'.tr(),
+              questions == null
+                  ? 'auth.forgotPin.intro'.tr()
+                  : 'auth.forgotPin.answerIntro'.tr(),
               style: text.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
             if (questions == null) ...<Widget>[
               AppTextField(
+                key: const Key('forgotPinPhone'),
                 label: 'auth.login.phone'.tr(),
                 controller: _phone,
                 hint: 'auth.login.phoneHint'.tr(),
@@ -158,9 +197,27 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
             ] else ...<Widget>[
               for (int i = 0; i < questions.length; i++) ...<Widget>[
                 AppTextField(
+                  // Own key and keyboard: without them the first answer reuses
+                  // the phone field's input and opens the number pad.
+                  key: Key('forgotPinAnswer$i'),
                   label: questions[i].labelKey.tr(),
                   controller: _answers[i],
-                  errorText: i == 0 ? _answerErrorKey?.tr() : null,
+                  keyboardType: TextInputType.text,
+                  errorText: _badAnswers.contains(i)
+                      ? 'auth.securityQuestions.answerLength'.tr()
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              if (_ownQuestion != null) ...<Widget>[
+                AppTextField(
+                  key: const Key('forgotPinOwnAnswer'),
+                  label: _ownQuestion!,
+                  controller: _ownAnswer,
+                  keyboardType: TextInputType.text,
+                  errorText: _ownAnswerBad
+                      ? 'auth.securityQuestions.answerLength'.tr()
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -185,7 +242,10 @@ class _ForgotPinScreenState extends ConsumerState<ForgotPinScreen> {
             ],
             if (_formError != null) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
-              Text(_formError!, style: text.bodyMedium?.copyWith(color: AppColors.critical)),
+              Text(
+                _formError!,
+                style: text.bodyMedium?.copyWith(color: AppColors.critical),
+              ),
             ],
             const SizedBox(height: AppSpacing.lg),
             AppButton(

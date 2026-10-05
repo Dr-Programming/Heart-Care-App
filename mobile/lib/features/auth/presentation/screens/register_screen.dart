@@ -16,6 +16,8 @@ import '../../../../core/widgets/widgets.dart';
 import '../../domain/security_question.dart';
 import '../../domain/validators.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/own_question_field.dart';
+import '../widgets/patient_switch.dart';
 import '../widgets/pin_box_input.dart';
 import '../widgets/security_questions_fields.dart';
 
@@ -42,6 +44,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   int _step = 1;
   final SecurityQuestionsFieldsController _questions =
       SecurityQuestionsFieldsController();
+  final OwnQuestionController _ownQuestion = OwnQuestionController();
 
   @override
   void initState() {
@@ -64,6 +67,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _phoneController.dispose();
     _nameController.dispose();
     _questions.dispose();
+    _ownQuestion.dispose();
     super.dispose();
   }
 
@@ -95,7 +99,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _reportBlocked(reachability);
       return;
     }
-    if (_validateDetails()) setState(() => _step = 2);
+    if (_validateDetails()) {
+      // The phone field stays alive offstage; without this its number pad
+      // stays open over the answer fields.
+      FocusScope.of(context).unfocus();
+      setState(() => _step = 2);
+    }
   }
 
   bool _validateDetails() {
@@ -121,10 +130,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
     final List<SecurityAnswer>? answers = _questions.validate();
+    final bool ownQuestionOk = _ownQuestion.validate();
     setState(() {});
-    if (answers == null) return;
+    if (answers == null || !ownQuestionOk) return;
 
-    await ref
+    Future<void> register() => ref
         .read(authControllerProvider.notifier)
         .register(
           phone: _phoneController.text.trim(),
@@ -132,7 +142,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           name: _nameController.text.trim(),
           preferredLanguage: _selectedLanguage.code,
           securityAnswers: answers,
+          ownQuestion: _ownQuestion.value,
         );
+    await register();
+
+    // The previous patient on this phone has records the server hasn't
+    // received: offer to delete them, then try again.
+    if (!mounted) return;
+    final Object? switchError = ref.read(authControllerProvider).error;
+    if (switchError is PatientSwitchFailure &&
+        await offerToDiscardUnsent(context, ref, switchError) &&
+        mounted) {
+      await register();
+    }
 
     if (!mounted) return;
     final AsyncValue<AuthState> asyncState = ref.read(authControllerProvider);
@@ -156,6 +178,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (error is PhoneAlreadyRegisteredFailure) {
       return 'auth.errors.phoneTaken'.tr();
     }
+    if (error is PatientSwitchFailure) return patientSwitchMessage(error);
     if (error is NetworkFailure) {
       return 'errors.offline'.tr();
     }
@@ -180,25 +203,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return AppScaffold.banded(
       showBack: false,
-      bandChild: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
-            // Popping the only page on the stack leaves a black screen, so
-            // fall back to login when this screen was reached with `go`.
-            onPressed: () => context.canPop()
-                ? context.pop()
-                : context.goNamed(AppRoutes.login),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text('auth.register.title'.tr(), style: text.headlineLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text('auth.register.subtitle'.tr(), style: text.bodyMedium),
-        ],
+      bandChild: BandHeader(
+        title: 'auth.register.title'.tr(),
+        subtitle: 'auth.register.subtitle'.tr(),
+        // Popping the only page on the stack leaves a black screen, so
+        // fall back to login when this screen was reached with `go`.
+        onBack: () =>
+            context.canPop() ? context.pop() : context.goNamed(AppRoutes.login),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -331,6 +342,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               controller: _questions,
               enabled: !isLoading,
             ),
+            OwnQuestionField(controller: _ownQuestion, enabled: !isLoading),
+            const SizedBox(height: AppSpacing.lg),
             if (formError != null) ...<Widget>[
               Text(
                 formError,
@@ -378,6 +391,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             alignment: Alignment.center,
             child: Wrap(
               alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 Text('auth.register.haveAccount'.tr(), style: text.bodyMedium),
                 AppButton(

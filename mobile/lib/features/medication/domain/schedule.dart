@@ -9,7 +9,9 @@ bool isActiveOn(Medication medication, DateTime day) {
   final DateTime createdDay = DateFormatter.startOfDay(medication.createdAt);
   if (dayStart.isBefore(createdDay)) return false;
   if (!medication.active) {
-    final DateTime deactivatedDay = DateFormatter.startOfDay(medication.updatedAt);
+    final DateTime deactivatedDay = DateFormatter.startOfDay(
+      medication.deactivatedAt ?? medication.updatedAt,
+    );
     if (dayStart.isAfter(deactivatedDay)) return false;
   }
   return true;
@@ -27,7 +29,11 @@ List<ScheduledDose> scheduledDosesFor({
   for (final Medication medication in medications) {
     if (!isActiveOn(medication, date)) continue;
     for (final String time in medication.scheduleTimes) {
-      final DoseLog? match = _matchingLog(logsForDate, medication.clientRecordId, time);
+      final DoseLog? match = _matchingLog(
+        logsForDate,
+        medication.clientRecordId,
+        time,
+      );
       final ScheduledDoseStatus status = match != null
           ? ScheduledDoseStatus.logged
           : (_isPastDue(date, time, now)
@@ -48,7 +54,10 @@ List<ScheduledDose> scheduledDosesFor({
     }
   }
 
-  result.sort((ScheduledDose a, ScheduledDose b) => a.scheduledTime.compareTo(b.scheduledTime));
+  result.sort(
+    (ScheduledDose a, ScheduledDose b) =>
+        a.scheduledTime.compareTo(b.scheduledTime),
+  );
   return result;
 }
 
@@ -73,7 +82,11 @@ Adherence computeAdherence({
         if (!_isPastDue(day, time, now)) continue;
 
         final DoseLog? match = _matchingLog(
-          allLogs.where((DoseLog l) => l.scheduledDate == DateFormatter.toApiDate(day)).toList(),
+          allLogs
+              .where(
+                (DoseLog l) => l.scheduledDate == DateFormatter.toApiDate(day),
+              )
+              .toList(),
           medication.clientRecordId,
           time,
         );
@@ -91,12 +104,22 @@ Adherence computeAdherence({
     day = day.add(const Duration(days: 1));
   }
 
-  return Adherence(taken: taken, due: due, skipped: skipped, windowDays: windowDays);
+  return Adherence(
+    taken: taken,
+    due: due,
+    skipped: skipped,
+    windowDays: windowDays,
+  );
 }
 
-DoseLog? _matchingLog(List<DoseLog> logs, String medicationClientRecordId, String time) {
+DoseLog? _matchingLog(
+  List<DoseLog> logs,
+  String medicationClientRecordId,
+  String time,
+) {
   for (final DoseLog log in logs) {
-    if (log.medicationClientRecordId == medicationClientRecordId && log.scheduledTime == time) {
+    if (log.medicationClientRecordId == medicationClientRecordId &&
+        log.scheduledTime == time) {
       return log;
     }
   }

@@ -12,6 +12,14 @@ class VitalsLocalDataSource {
 
   final drift_db.AppDatabase _db;
 
+  Future<bool> exists(String clientRecordId) async =>
+      await (_db.select(_db.vitalsLogs)..where(
+            (drift_db.$VitalsLogsTable t) =>
+                t.clientRecordId.equals(clientRecordId),
+          ))
+          .getSingleOrNull() !=
+      null;
+
   Future<void> insert(VitalModel model) =>
       _db.into(_db.vitalsLogs).insert(model.toCompanion());
 

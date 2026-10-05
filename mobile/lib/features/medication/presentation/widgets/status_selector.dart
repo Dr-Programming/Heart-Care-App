@@ -12,15 +12,26 @@ class StatusSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Wrap(
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
-        _Chip(label: 'meds.status.taken'.tr(), color: AppColors.success, onTap: () => onSelected(DoseStatus.taken)),
-        _Chip(label: 'meds.status.missed'.tr(), color: AppColors.critical, onTap: () => onSelected(DoseStatus.missed)),
-        _Chip(label: 'meds.status.skipped'.tr(), color: AppColors.textSecondary, onTap: () => onSelected(DoseStatus.skipped)),
+        _Chip(
+          label: 'meds.status.taken'.tr(),
+          color: AppColors.success,
+          onTap: () => onSelected(DoseStatus.taken),
+        ),
+        _Chip(
+          label: 'meds.status.missed'.tr(),
+          color: AppColors.critical,
+          onTap: () => onSelected(DoseStatus.missed),
+        ),
+        _Chip(
+          label: 'meds.status.skipped'.tr(),
+          color: AppColors.textSecondary,
+          onTap: () => onSelected(DoseStatus.skipped),
+        ),
       ],
     );
   }
@@ -40,7 +51,10 @@ class _Chip extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSpacing.lg),
       child: Container(
         constraints: const BoxConstraints(minHeight: AppSpacing.xxl),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
         decoration: BoxDecoration(
           border: Border.all(color: color),
           borderRadius: BorderRadius.circular(AppSpacing.lg),
@@ -48,7 +62,8 @@ class _Chip extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: color, fontWeight: FontWeight.w700),
         ),
       ),
     );

@@ -42,12 +42,30 @@ abstract interface class PinRepository {
   /// The three questions to ask on the Forgot PIN screen for [phone].
   Future<List<SecurityQuestion>> recoveryQuestions(String phone);
 
-  /// Forgot PIN: sets [newPin] when [answers] are right, and signs in.
+  /// Forgot PIN: sets [newPin] when [answers] are right, and signs in. On a
+  /// phone where the patient added their own question, [customAnswer] must
+  /// match it too.
   Future<PinChangeOutcome> resetPin({
     required String phone,
     required List<SecurityAnswer> answers,
     required String newPin,
+    String? customAnswer,
   });
+
+  /// The patient's own question for [phone], when they added one on this
+  /// phone. It is kept on the phone only: the server has a fixed list.
+  Future<String?> customRecoveryQuestion(String phone);
+
+  /// Adds or replaces the signed-in patient's own question. Works offline;
+  /// [currentPin] is checked on this phone.
+  Future<void> setCustomQuestion({
+    required String currentPin,
+    required String question,
+    required String answer,
+  });
+
+  /// Removes the signed-in patient's own question.
+  Future<void> clearCustomQuestion({required String currentPin});
 
   /// Sets or replaces the signed-in patient's answers. Needs a connection.
   Future<void> setSecurityAnswers({

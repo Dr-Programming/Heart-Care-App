@@ -10,6 +10,7 @@ Medication _med({
   bool active = true,
   DateTime? createdAt,
   DateTime? updatedAt,
+  DateTime? deactivatedAt,
   MedicationFrequency frequency = MedicationFrequency.onceDaily,
 }) {
   final DateTime created = createdAt ?? DateTime(2026, 1, 1);
@@ -23,6 +24,7 @@ Medication _med({
     active: active,
     createdAt: created,
     updatedAt: updatedAt ?? created,
+    deactivatedAt: deactivatedAt,
   );
 }
 
@@ -50,11 +52,23 @@ void main() {
       expect(isActiveOn(med, DateTime(2026, 8, 16)), isFalse);
     });
 
+    test('an edit after deactivation does not move the deactivation day', () {
+      final Medication med = _med(
+        id: 'm1',
+        times: <String>['08:00'],
+        createdAt: DateTime(2026, 8, 1),
+        active: false,
+        deactivatedAt: DateTime(2026, 8, 10),
+        updatedAt: DateTime(2026, 8, 20),
+      );
+      expect(isActiveOn(med, DateTime(2026, 8, 10)), isTrue);
+      expect(isActiveOn(med, DateTime(2026, 8, 15)), isFalse);
+    });
+
     test(
       'a reactivated medication incorrectly treats the inactive gap as active '
       '(known limitation: multi-transition handling requires schema change)',
       () {
-
         final Medication medReactivated = _med(
           id: 'm1',
           times: <String>['08:00'],
@@ -63,14 +77,8 @@ void main() {
           updatedAt: DateTime(2026, 8, 15),
         );
 
-        expect(
-          isActiveOn(medReactivated, DateTime(2026, 8, 6)),
-          isTrue,
-        );
-        expect(
-          isActiveOn(medReactivated, DateTime(2026, 8, 10)),
-          isTrue,
-        );
+        expect(isActiveOn(medReactivated, DateTime(2026, 8, 6)), isTrue);
+        expect(isActiveOn(medReactivated, DateTime(2026, 8, 10)), isTrue);
 
         expect(isActiveOn(medReactivated, DateTime(2026, 8, 16)), isTrue);
       },
@@ -83,7 +91,11 @@ void main() {
       final DateTime now = DateTime(2026, 8, 25, 23);
       final List<ScheduledDose> once = scheduledDosesFor(
         medications: <Medication>[
-          _med(id: 'm1', times: <String>['08:00'], frequency: MedicationFrequency.onceDaily),
+          _med(
+            id: 'm1',
+            times: <String>['08:00'],
+            frequency: MedicationFrequency.onceDaily,
+          ),
         ],
         logsForDate: const <DoseLog>[],
         date: date,
@@ -91,7 +103,11 @@ void main() {
       );
       final List<ScheduledDose> bid = scheduledDosesFor(
         medications: <Medication>[
-          _med(id: 'm2', times: <String>['08:00', '20:00'], frequency: MedicationFrequency.bid),
+          _med(
+            id: 'm2',
+            times: <String>['08:00', '20:00'],
+            frequency: MedicationFrequency.bid,
+          ),
         ],
         logsForDate: const <DoseLog>[],
         date: date,
@@ -99,7 +115,11 @@ void main() {
       );
       final List<ScheduledDose> custom = scheduledDosesFor(
         medications: <Medication>[
-          _med(id: 'm3', times: <String>['06:00', '12:00', '18:00', '22:00'], frequency: MedicationFrequency.custom),
+          _med(
+            id: 'm3',
+            times: <String>['06:00', '12:00', '18:00', '22:00'],
+            frequency: MedicationFrequency.custom,
+          ),
         ],
         logsForDate: const <DoseLog>[],
         date: date,
@@ -116,7 +136,11 @@ void main() {
       final DateTime now = DateTime(2026, 8, 25, 23);
       final List<ScheduledDose> doses = scheduledDosesFor(
         medications: <Medication>[
-          _med(id: 'm1', times: const <String>[], frequency: MedicationFrequency.custom),
+          _med(
+            id: 'm1',
+            times: const <String>[],
+            frequency: MedicationFrequency.custom,
+          ),
         ],
         logsForDate: const <DoseLog>[],
         date: date,
@@ -138,8 +162,12 @@ void main() {
         now: now,
       );
 
-      final ScheduledDose morning = doses.firstWhere((ScheduledDose d) => d.scheduledTime == '08:00');
-      final ScheduledDose evening = doses.firstWhere((ScheduledDose d) => d.scheduledTime == '20:00');
+      final ScheduledDose morning = doses.firstWhere(
+        (ScheduledDose d) => d.scheduledTime == '08:00',
+      );
+      final ScheduledDose evening = doses.firstWhere(
+        (ScheduledDose d) => d.scheduledTime == '20:00',
+      );
       expect(morning.status, ScheduledDoseStatus.overdue);
       expect(evening.status, ScheduledDoseStatus.pending);
     });
@@ -158,7 +186,9 @@ void main() {
         note: null,
       );
       final List<ScheduledDose> doses = scheduledDosesFor(
-        medications: <Medication>[_med(id: 'm1', times: <String>['08:00'])],
+        medications: <Medication>[
+          _med(id: 'm1', times: <String>['08:00']),
+        ],
         logsForDate: <DoseLog>[log],
         date: date,
         now: DateTime(2026, 8, 25, 12),
@@ -168,23 +198,30 @@ void main() {
       expect(doses.single.doseLog, log);
     });
 
-    test('a late-evening slot stays on its own calendar day, not shifted by UTC', () {
-      final DateTime date = DateTime(2026, 8, 25);
-      final DateTime now = DateTime(2026, 8, 25, 23, 45);
-      final List<ScheduledDose> doses = scheduledDosesFor(
-        medications: <Medication>[_med(id: 'm1', times: <String>['23:30'])],
-        logsForDate: const <DoseLog>[],
-        date: date,
-        now: now,
-      );
+    test(
+      'a late-evening slot stays on its own calendar day, not shifted by UTC',
+      () {
+        final DateTime date = DateTime(2026, 8, 25);
+        final DateTime now = DateTime(2026, 8, 25, 23, 45);
+        final List<ScheduledDose> doses = scheduledDosesFor(
+          medications: <Medication>[
+            _med(id: 'm1', times: <String>['23:30']),
+          ],
+          logsForDate: const <DoseLog>[],
+          date: date,
+          now: now,
+        );
 
-      expect(doses.single.scheduledDate, '2026-08-25');
-      expect(doses.single.status, ScheduledDoseStatus.overdue);
-    });
+        expect(doses.single.scheduledDate, '2026-08-25');
+        expect(doses.single.status, ScheduledDoseStatus.overdue);
+      },
+    );
 
     test('an inactive medication contributes no slots', () {
       final List<ScheduledDose> doses = scheduledDosesFor(
-        medications: <Medication>[_med(id: 'm1', times: <String>['08:00'], active: false)],
+        medications: <Medication>[
+          _med(id: 'm1', times: <String>['08:00'], active: false),
+        ],
         logsForDate: const <DoseLog>[],
         date: DateTime(2026, 8, 25),
         now: DateTime(2026, 8, 25, 12),

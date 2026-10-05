@@ -53,10 +53,13 @@ void main() {
     expect(model.clientRecordId, 'client-2');
   });
 
-  test('toCompanion carries the JSON-encoded schedule and the client id as key', () {
-    final MedicationModel model = MedicationModel.fromJson(wireJson);
-    final companion = model.toCompanion();
-    expect(companion.clientRecordId.value, 'client-1');
-    expect(companion.scheduleTimesJson.value, '["08:00"]');
-  });
+  test(
+    'toCompanion carries the JSON-encoded schedule and the client id as key',
+    () {
+      final MedicationModel model = MedicationModel.fromJson(wireJson);
+      final companion = model.toCompanion();
+      expect(companion.clientRecordId.value, 'client-1');
+      expect(companion.scheduleTimesJson.value, '["08:00"]');
+    },
+  );
 }

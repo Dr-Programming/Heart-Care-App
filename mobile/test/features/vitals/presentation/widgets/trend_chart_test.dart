@@ -8,7 +8,9 @@ import '../../../../helpers/pump_app.dart';
 void main() {
   setUpWidgetTests();
 
-  testWidgets('renders one line per series without throwing', (WidgetTester tester) async {
+  testWidgets('renders one line per series without throwing', (
+    WidgetTester tester,
+  ) async {
     final DateTime day0 = DateTime.utc(2026, 9, 1);
     final List<ChartSeries> series = <ChartSeries>[
       ChartSeries(

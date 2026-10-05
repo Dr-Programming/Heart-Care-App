@@ -33,7 +33,9 @@ class _FakeMedicationRepository implements MedicationRepository {
   }
 
   @override
-  Future<List<Medication>> allMedications({bool includeInactive = false}) async {
+  Future<List<Medication>> allMedications({
+    bool includeInactive = false,
+  }) async {
     calls.add('allMedications:$includeInactive');
     return <Medication>[_medication('m1')];
   }

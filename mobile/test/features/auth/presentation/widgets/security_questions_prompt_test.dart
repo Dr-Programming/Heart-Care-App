@@ -34,7 +34,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shown when the account has no security questions', (tester) async {
+  testWidgets('shown when the account has no security questions', (
+    tester,
+  ) async {
     await pump(tester, configured: false);
 
     expect(find.text('auth.securityPrompt.title'.tr()), findsOneWidget);
@@ -59,14 +61,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('auth.securityPrompt.title'.tr()), findsNothing);
-    expect(await db.preferencesDao.get(PreferenceKeys.securityQuestionsPromptDismissed), 'true');
+    expect(
+      await db.preferencesDao.get(
+        PreferenceKeys.securityQuestionsPromptDismissed,
+      ),
+      'true',
+    );
   });
 
   testWidgets('stays hidden once dismissed', (tester) async {
     repo = FakePinRepository()..status = false;
     db = testDatabase();
     addTearDown(db.close);
-    await db.preferencesDao.set(PreferenceKeys.securityQuestionsPromptDismissed, 'true');
+    await db.preferencesDao.set(
+      PreferenceKeys.securityQuestionsPromptDismissed,
+      'true',
+    );
     await pumpApp(
       tester,
       const SecurityQuestionsPrompt(),

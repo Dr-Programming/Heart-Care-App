@@ -8,9 +8,7 @@ sealed class ContentBlock {
       case 'paragraph':
         return ParagraphBlock(json['text'] as String);
       case 'bulletList':
-        return BulletListBlock(
-          (json['items'] as List<dynamic>).cast<String>(),
-        );
+        return BulletListBlock((json['items'] as List<dynamic>).cast<String>());
       case 'callout':
         return CalloutBlock(
           style: CalloutStyle.values.byName(json['style'] as String),

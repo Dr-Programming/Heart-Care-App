@@ -8,7 +8,10 @@ class CaregiverNotifySettings {
   final bool enabled;
   final String phone;
 
-  static const CaregiverNotifySettings empty = CaregiverNotifySettings(enabled: false, phone: '');
+  static const CaregiverNotifySettings empty = CaregiverNotifySettings(
+    enabled: false,
+    phone: '',
+  );
 }
 
 class CaregiverNotifyStore {
@@ -16,7 +19,8 @@ class CaregiverNotifyStore {
 
   final PreferencesDao _prefs;
 
-  String _keyFor(String medicationClientRecordId) => 'm3_caregiver_$medicationClientRecordId';
+  String _keyFor(String medicationClientRecordId) =>
+      'm3_caregiver_$medicationClientRecordId';
 
   Future<CaregiverNotifySettings> get(String medicationClientRecordId) async {
     final String? raw = await _prefs.get(_keyFor(medicationClientRecordId));
@@ -28,10 +32,16 @@ class CaregiverNotifyStore {
     );
   }
 
-  Future<void> set(String medicationClientRecordId, CaregiverNotifySettings settings) {
+  Future<void> set(
+    String medicationClientRecordId,
+    CaregiverNotifySettings settings,
+  ) {
     return _prefs.set(
       _keyFor(medicationClientRecordId),
-      jsonEncode(<String, dynamic>{'enabled': settings.enabled, 'phone': settings.phone}),
+      jsonEncode(<String, dynamic>{
+        'enabled': settings.enabled,
+        'phone': settings.phone,
+      }),
     );
   }
 }

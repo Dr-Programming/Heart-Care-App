@@ -53,6 +53,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     );
 
     return AppScaffold(
+      title: 'education.quiz.title'.tr(),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object error, StackTrace _) => ErrorView(
@@ -73,7 +74,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                 children: <Widget>[
                   Text('education.quiz.done'.tr(), textAlign: TextAlign.center),
                   const SizedBox(height: AppSpacing.lg),
-                  AppButton(label: 'education.quiz.retake'.tr(), onPressed: _retake),
+                  AppButton(
+                    label: 'education.quiz.retake'.tr(),
+                    onPressed: _retake,
+                  ),
                 ],
               ),
             );
@@ -84,7 +88,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           final bool isLast = _questionIndex == quiz.questions.length - 1;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.gutter),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: ListView(
               children: <Widget>[
                 Text(
@@ -97,7 +101,10 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   style: Theme.of(context).textTheme.labelMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                Text(question.question, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  question.question,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 for (int i = 0; i < question.options.length; i++)
                   Padding(
@@ -171,15 +178,23 @@ class _OptionTile extends StatelessWidget {
                     ? 'education.quiz.correctLabel'.tr()
                     : 'education.quiz.incorrectLabel'.tr(),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: option.correct ? AppColors.success : AppColors.critical,
+                  color: option.correct
+                      ? AppColors.success
+                      : AppColors.critical,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text(option.explanation, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                option.explanation,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ] else if (revealed && showAsCorrect) ...<Widget>[
               const SizedBox(height: AppSpacing.xs),
-              Text(option.explanation, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                option.explanation,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ],
           ],
         ),

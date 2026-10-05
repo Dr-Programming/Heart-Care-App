@@ -1,6 +1,8 @@
 {
-  "app": { "name": "Libu Care", "tagline": "Heart health care" },
-
+  "app": {
+    "name": "Libu Care",
+    "tagline": "Heart health care"
+  },
   "common": {
     "retry": "Try again",
     "cancel": "Cancel",
@@ -19,9 +21,14 @@
     "yesterday": "Yesterday",
     "loading": "Loading",
     "noValue": "—",
-    "enterManually": "Enter manually"
+    "enterManually": "Enter manually",
+    "discard": {
+      "title": "Discard your changes?",
+      "message": "What you entered on this screen has not been saved.",
+      "confirm": "Discard",
+      "keepEditing": "Keep editing"
+    }
   },
-
   "nav": {
     "home": "Home",
     "medications": "Medicines",
@@ -29,18 +36,36 @@
     "checkIn": "Check-in",
     "learn": "Learn"
   },
-
   "sync": {
     "offline": "You are offline. Anything you record is saved on this phone.",
     "offlineTitle": "You are offline",
-    "offlineWithPending": "Offline — {count} records waiting to send",
-    "pending": "{count} records waiting to send",
+    "offlineWithPending": {
+      "one": "Offline — {} record waiting to send",
+      "other": "Offline — {} records waiting to send"
+    },
+    "pending": {
+      "one": "{} record waiting to send",
+      "other": "{} records waiting to send"
+    },
     "failed": "Could not send your records. They are safe and will be sent again.",
-    "rejected": "{count} records could not be saved on the server.",
+    "rejected": {
+      "one": "{} record could not be saved on the server.",
+      "other": "{} records could not be saved on the server."
+    },
     "syncNow": "Send now",
-    "lastSynced": "Last sent {when}"
+    "lastSynced": "Last sent {when}",
+    "rejectedDetails": "See why",
+    "rejectedTitle": "Not saved on the server",
+    "rejectedHint": "These records are still on this phone, but the server refused them. Check them and enter them again if needed.",
+    "dismiss": "OK",
+    "entity": {
+      "VITAL": "Vital reading",
+      "SYMPTOM": "Symptom check-in",
+      "ACTIVITY": "Activity",
+      "MEDICATION": "Medication",
+      "DOSE_LOG": "Medication dose"
+    }
   },
-
   "clinical": {
     "severity": {
       "none": "Normal",
@@ -53,9 +78,16 @@
       "monitor": "Self-care. Watch for changes.",
       "urgent": "Contact your clinician today.",
       "emergency": "Call your emergency contact now."
+    },
+    "critical": {
+      "title": "Your reading is at a dangerous level",
+      "body": "This is at a critical level. Sit down, rest, and call your caregiver now.",
+      "callCaregiver": "Call {name}",
+      "noCaregiver": "You have not saved a caregiver to call yet.",
+      "addCaregiver": "Add caregiver",
+      "understood": "I understand"
     }
   },
-
   "home": {
     "greeting": "Hello, {name}",
     "greetingAnonymous": "Welcome",
@@ -64,7 +96,6 @@
     "emptyBody": "Once you start recording your medicines and readings, they will appear here.",
     "signOut": "Sign out"
   },
-
   "errors": {
     "offline": "You need a connection to sign in the first time",
     "checkingConnection": "Checking the connection…",
@@ -76,7 +107,6 @@
     "invalidNumber": "Enter a number",
     "outOfRange": "Enter a value between {min} and {max}"
   },
-
   "auth": {
     "language": {
       "title": "Choose your language",
@@ -178,9 +208,33 @@
       "body": "Without them you can't reset a forgotten PIN. It takes a minute.",
       "setUp": "Set up",
       "later": "Later"
+    },
+    "switch": {
+      "anotherPatient": "Another patient",
+      "needsConnection": "{name}'s records are on this phone. Connect to the internet to sign in as a different patient, so your own records can be downloaded.",
+      "unsent": {
+        "one": "{name} has {} record on this phone that hasn't been sent to the server yet. {name} needs to sign in once while connected so it can be sent.",
+        "other": "{name} has {} records on this phone that haven't been sent to the server yet. {name} needs to sign in once while connected so they can be sent."
+      },
+      "discardTitle": "Delete unsent records?",
+      "discardBody": "If you continue, these records are deleted from this phone and can never be sent.",
+      "discardConfirm": "Delete and continue",
+      "keep": "Keep them"
+    },
+    "ownQuestion": {
+      "title": "Add your own question",
+      "hint": "Optional. Write a question only you can answer. Saved on this phone only, and asked here when you reset your PIN.",
+      "question": "Your question",
+      "questionHint": "e.g. What did I name my first goat?",
+      "questionLength": "Write a question of 5 to 150 characters",
+      "current": "Your own question on this phone: \"{question}\"",
+      "save": "Save my own question",
+      "saved": "Your own question is saved on this phone.",
+      "remove": "Remove my own question",
+      "removed": "Your own question was removed.",
+      "turnOn": "Turn on \"Add your own question\" first."
     }
   },
-
   "profile": {
     "title": "Profile",
     "empty": {
@@ -247,7 +301,11 @@
         "title": "Sign out",
         "confirmTitle": "Sign out?",
         "confirmMessage": "You'll need to sign in again to use the app.",
-        "confirmLabel": "Sign out"
+        "confirmLabel": "Sign out",
+        "unsent": {
+          "one": "{} record hasn't been sent to the server yet. It stays on this phone and is sent the next time you sign in while connected. Until then, another patient can't sign in on this phone.",
+          "other": "{} records haven't been sent to the server yet. They stay on this phone and are sent the next time you sign in while connected. Until then, another patient can't sign in on this phone."
+        }
       },
       "changePin": {
         "title": "Change PIN",
@@ -287,9 +345,29 @@
       "birthYearRange": "Enter a birth year between 1900 and 2100",
       "heightRange": "Enter a height between 50 and 250 cm",
       "goalNegative": "Enter a value of 0 or more"
+    },
+    "caregiver": {
+      "title": "Caregiver",
+      "hint": "The person to call if a reading is at a dangerous level. Saved on this phone only.",
+      "name": "Name",
+      "phone": "Phone number",
+      "save": "Save",
+      "remove": "Remove caregiver",
+      "notSet": "Not set. Called in an emergency",
+      "phoneRequired": "Enter a phone number",
+      "phoneInvalid": "Enter a phone number of 9 to 15 digits"
+    },
+    "clinic": {
+      "title": "Clinic",
+      "hint": "Your clinic or main doctor. You will be reminded to call them when your readings stay high. Saved on this phone only.",
+      "onboardingHint": "Optional. We will remind you to call them if your readings stay high.",
+      "name": "Clinic or doctor name",
+      "phone": "Phone number",
+      "save": "Save",
+      "remove": "Remove clinic",
+      "notSet": "Not set. Called when readings stay high"
     }
   },
-
   "meds": {
     "title": "Medications",
     "add": "Add medication",
@@ -364,7 +442,13 @@
       "doseInvalid": "Enter a number",
       "dosePositive": "Dose must be greater than 0",
       "scheduleRequired": "Add at least one time",
-      "scheduleFormat": "Enter a valid time"
+      "scheduleFormat": "Enter a valid time",
+      "doseTooHigh": "Dose must be 10000 mg or less",
+      "scheduleCountOnce": "Once daily needs exactly 1 time",
+      "scheduleCountBid": "Twice daily needs exactly 2 times",
+      "scheduleCountTid": "Three times daily needs exactly 3 times",
+      "scheduleDuplicate": "Each time can only be added once",
+      "scheduleTooMany": "Add no more than 12 times"
     },
     "history": {
       "title": "Dose history",
@@ -420,7 +504,6 @@
       "reminderSchedulingFailed": "Saved. Reminders may not work until notification permission is granted."
     }
   },
-
   "vitals": {
     "tabTitle": "Vitals",
     "tabSubtitle": "Track your readings over time",
@@ -484,9 +567,30 @@
       "seeAll": "See all",
       "noReading": "No reading yet",
       "addHeightPrompt": "Add your height in Profile to see your BMI"
+    },
+    "bpTrend": {
+      "title": "BP trend",
+      "subtitle": "Last {days} days · with your target",
+      "average": "{days}-day average",
+      "change": "{change} vs previous period",
+      "targetLabel": "Your target: below {sys}/{dia} mmHg",
+      "target": "Target",
+      "critical": "Critical",
+      "status": {
+        "onTarget": "On target",
+        "aboveTarget": "Above target",
+        "critical": "Critical"
+      },
+      "daysAbove": "{above} of {days} days above your target",
+      "discuss": "Discuss with your clinician at your next visit.",
+      "criticalAdvice": "A reading reached the critical level (180/120). Sit down, rest, and call your emergency contact now.",
+      "allOnTarget": "Every day was on target",
+      "keepGoing": "Keep taking your medicines and measuring regularly.",
+      "emptyTitle": "No blood pressure readings yet",
+      "emptyBody": "Log a reading to see your trend against your target.",
+      "open": "See your BP trend graph"
     }
   },
-
   "symptoms": {
     "tabTitle": "Check-in",
     "tabSubtitle": "How are you feeling today?",
@@ -496,7 +600,10 @@
       "notDoneShort": "Not done yet — takes about a minute",
       "startCta": "Start check-in",
       "doneTitle": "Checked in today",
-      "historyCta": "View history"
+      "historyCta": "View history",
+      "activityTitle": "Physical activity",
+      "activityBody": "Log a walk, housework or farm work",
+      "checkInFirstTip": "Tip: do your check-in before any physical activity. We'll suggest which activities are good for you today."
     },
     "checkIn": {
       "title": "Daily check-in",
@@ -552,9 +659,60 @@
       "empty": "No check-ins yet"
     }
   },
-
-  "activity": {},
-
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Every bit of movement counts",
+    "logCta": "Log activity",
+    "logShort": "Log",
+    "historyTitle": "Your activity",
+    "emptyTitle": "Nothing logged yet",
+    "emptyBody": "Log a walk, housework or farm work to see your week here.",
+    "thisWeek": "This week",
+    "ofGoal": "of {goal} minutes",
+    "goalReached": "You reached this week’s goal. Well done!",
+    "todaySummary": "{today} minutes today · active on {days} of the last 7 days",
+    "homeSummary": "{minutes} of {goal} minutes this week",
+    "minutesShort": "{minutes} min",
+    "type": {
+      "WALKING": "Walking",
+      "JOGGING": "Jogging",
+      "CYCLING": "Cycling",
+      "HOUSEHOLD": "Housework",
+      "FARMING": "Farm work",
+      "STRETCHING": "Stretching",
+      "OTHER": "Other"
+    },
+    "intensity": {
+      "LIGHT": "Light",
+      "MODERATE": "Moderate",
+      "VIGOROUS": "Vigorous"
+    },
+    "intensityHint": {
+      "LIGHT": "You can talk and sing easily.",
+      "MODERATE": "You can talk, but not sing. Best for your heart.",
+      "VIGOROUS": "Hard to say more than a few words. Check with your clinician first."
+    },
+    "form": {
+      "title": "Log activity",
+      "subtitle": "What did you do today?",
+      "type": "Activity",
+      "intensity": "How hard was it?",
+      "duration": "Minutes",
+      "steps": "Steps (optional)",
+      "note": "Note (optional)",
+      "safety": "Stop and rest if you feel chest pain, dizziness or very short of breath.",
+      "save": "Save",
+      "saved": "Activity saved"
+    },
+    "errors": {
+      "durationRequired": "Enter how many minutes",
+      "durationInvalid": "Enter a whole number of minutes",
+      "durationRange": "Minutes must be between 1 and 1440",
+      "stepsInvalid": "Enter a whole number of steps",
+      "stepsRange": "Steps must be 100000 or fewer",
+      "noteTooLong": "Note must be 500 characters or fewer"
+    }
+  },
   "education": {
     "tabTitle": "Learn",
     "tabSubtitle": "Heart health education — fully offline",
@@ -570,7 +728,322 @@
       "retake": "Retake quiz",
       "done": "Nice work - you've finished this quiz.",
       "correctLabel": "Correct",
-      "incorrectLabel": "Not quite"
+      "incorrectLabel": "Not quite",
+      "title": "Quiz"
+    },
+    "eatWell": {
+      "title": "Eat well",
+      "subtitle": "Heart-healthy Ethiopian foods",
+      "cardTitle": "Eat well",
+      "cardBody": "A heart-healthy guide with local foods: what to eat more of, what to limit.",
+      "recommended": "Recommended",
+      "limit": "Limit",
+      "recommendedIntro": "Choose these regularly. A heart-healthy pattern is not a strict diet; it is what you eat most days, over time.",
+      "limitIntro": "Eat these less often. They raise blood pressure or cholesterol.",
+      "footer": "Available in English · Amharic · Offline",
+      "patternTitle": "The heart-healthy eating pattern",
+      "pattern": {
+        "plants": "Eat plenty of vegetables, fruit and whole grains.",
+        "protein": "Choose legumes, nuts, seeds and fish. Have eggs and lean chicken in smaller amounts, and red meat only 1–3 times a week.",
+        "dairy": "Choose unflavoured milk and yoghurt. If you have heart disease or high cholesterol, choose reduced-fat.",
+        "fats": "Use healthy oils such as olive, canola or sunflower, in small amounts.",
+        "herbs": "Flavour food with herbs and spices instead of salt."
+      },
+      "groups": {
+        "wholeGrains": {
+          "title": "Whole grains",
+          "body": "High in fibre; can help lower cholesterol.",
+          "items": {
+            "teffInjera": "Teff injera",
+            "barley": "Barley",
+            "oats": "Oats",
+            "wholeWheat": "Whole wheat",
+            "brownRice": "Brown rice"
+          }
+        },
+        "vegetables": {
+          "title": "Vegetables",
+          "body": "Eat a variety of colours every day.",
+          "items": {
+            "gomen": "Gomen (kale)",
+            "cabbage": "Cabbage",
+            "spinach": "Spinach",
+            "carrots": "Carrots",
+            "tomatoes": "Tomatoes",
+            "onions": "Onions",
+            "greenBeans": "Green beans",
+            "broccoli": "Broccoli"
+          }
+        },
+        "fruits": {
+          "title": "Fruits",
+          "body": "Full of vitamins, minerals and fibre.",
+          "items": {
+            "oranges": "Oranges",
+            "bananas": "Bananas",
+            "papaya": "Papaya",
+            "mango": "Mango",
+            "avocado": "Avocado (moderate amounts)",
+            "apples": "Apples",
+            "guava": "Guava"
+          }
+        },
+        "legumes": {
+          "title": "Legumes & pulses",
+          "body": "Excellent plant protein and fibre.",
+          "items": {
+            "misir": "Misir (lentils)",
+            "shimbra": "Shimbra (chickpeas)",
+            "bakela": "Bakela (beans)",
+            "peas": "Peas"
+          }
+        },
+        "protein": {
+          "title": "Fish & lean protein",
+          "body": "Fish 2–3 times a week if available; red meat only occasionally.",
+          "items": {
+            "tilapia": "Tilapia",
+            "trout": "Trout",
+            "sardines": "Sardines",
+            "chicken": "Skinless chicken (moderate)",
+            "leanBeef": "Lean beef (occasionally)"
+          }
+        },
+        "nuts": {
+          "title": "Unsalted nuts",
+          "body": "A small handful a day.",
+          "items": {
+            "peanuts": "Peanuts",
+            "almonds": "Almonds",
+            "walnuts": "Walnuts"
+          }
+        },
+        "dairy": {
+          "title": "Low-fat dairy",
+          "body": "A good source of calcium and protein.",
+          "items": {
+            "lowFatMilk": "Low-fat milk",
+            "lowFatYoghurt": "Low-fat yoghurt"
+          }
+        },
+        "oils": {
+          "title": "Healthy oils",
+          "body": "Use small amounts for cooking.",
+          "items": {
+            "canola": "Canola oil",
+            "sunflower": "Sunflower oil",
+            "olive": "Olive oil"
+          }
+        },
+        "salt": {
+          "title": "Salt",
+          "body": "No more than 5 g a day — about one teaspoon. Most salt comes from processed and packaged food.",
+          "items": {
+            "cannedFoods": "Canned foods",
+            "deliMeats": "Deli meats",
+            "bakedGoods": "Packaged baked goods"
+          }
+        },
+        "badFats": {
+          "title": "Saturated & trans fats",
+          "body": "They raise the \"bad\" LDL cholesterol.",
+          "items": {
+            "friedFoods": "Fried foods",
+            "takeaway": "Takeaway foods",
+            "biscuits": "Biscuits",
+            "pastries": "Pastries"
+          }
+        },
+        "processedMeat": {
+          "title": "Processed meats",
+          "body": "High in salt and saturated fat.",
+          "items": {
+            "processedMeats": "Processed meats"
+          }
+        },
+        "redMeat": {
+          "title": "Red meat",
+          "body": "Limit lean red meat to 1–3 times a week.",
+          "items": {}
+        },
+        "sugar": {
+          "title": "Added sugar",
+          "body": "Choose foods and drinks with no added sugar.",
+          "items": {
+            "sugaryDrinks": "Sugary drinks",
+            "flavouredDairy": "Flavoured milk and yoghurt"
+          }
+        },
+        "fullFatDairy": {
+          "title": "Full-fat dairy",
+          "body": "With heart disease or high cholesterol, choose reduced-fat instead.",
+          "items": {
+            "fullFatMilk": "Full-fat milk",
+            "fullFatCheese": "Full-fat cheese"
+          }
+        }
+      }
+    }
+  },
+  "visitSummary": {
+    "title": "Visit summary",
+    "subtitle": "For your clinician · {date}",
+    "entryBody": "Your vitals, medicines and symptoms on one page to show at your next visit.",
+    "homeTitle": "Clinic visit soon?",
+    "homeBody": "Show your clinician a one-page summary.",
+    "homeCta": "Open",
+    "patient": "{name} · {date}",
+    "window": "{days}-day",
+    "overall": "Overall status",
+    "status": {
+      "needsAttention": "Needs attention",
+      "stable": "Stable",
+      "noData": "Not enough data"
+    },
+    "stableBody": "No warning signs in this period. Keep up your routine.",
+    "noDataBody": "Nothing was recorded in this period. Log your vitals, doses and check-ins to build a summary.",
+    "reason": {
+      "bpCritical": "A blood pressure reading reached the critical level (180/120).",
+      "bpAboveTarget": "Average blood pressure is above the target of {sys}/{dia}.",
+      "heartRateOutOfRange": "Average heart rate is outside the safe range.",
+      "glucoseOutOfRange": "Average blood glucose is outside the target range.",
+      "lowAdherence": "Fewer than 8 in 10 medication doses were taken.",
+      "chestPain": "Chest pain was reported.",
+      "urgentSymptoms": "A check-in had urgent symptoms."
+    },
+    "vitalsTitle": "Vitals · {window}",
+    "bp": "BP avg",
+    "heartRate": "Heart rate",
+    "glucose": "Glucose avg",
+    "weight": "Weight",
+    "chip": {
+      "critical": "Critical",
+      "aboveTarget": "Above target",
+      "onTarget": "On target",
+      "normal": "Normal",
+      "outOfRange": "Out of range",
+      "inRange": "In range"
+    },
+    "medsTitle": "Medications",
+    "adherence": "Adherence ({window})",
+    "doses": "{taken} of {due} doses",
+    "noDoses": "No doses were due in this period.",
+    "symptomsTitle": "Symptoms · {window}",
+    "chestPain": "Chest pain",
+    "swelling": "Leg swelling",
+    "breath": "Shortness of breath",
+    "energy": "Avg energy",
+    "episodes": {
+      "one": "{} episode",
+      "other": "{} episodes"
+    },
+    "days": {
+      "one": "{} day",
+      "other": "{} days"
+    },
+    "breathMild": {
+      "one": "{} mild day",
+      "other": "{} mild days"
+    },
+    "breathSevere": "{mild} mild, {severe} severe days",
+    "checkIns": {
+      "one": "{} check-in in this period",
+      "other": "{} check-ins in this period"
+    },
+    "savePdf": "Save as PDF",
+    "pdfFailed": "Could not create the PDF. Please try again."
+  },
+  "clinic": {
+    "homeTitle": "Your clinic",
+    "homeEmpty": "Add your clinic's name and phone number so you can call them quickly when you need to.",
+    "add": "Add clinic",
+    "callCta": "Call clinic",
+    "call": {
+      "title": "Call your clinic?",
+      "body": "{name}\n{phone}",
+      "noClinic": "You haven't saved your clinic's number yet. Add it now to call them.",
+      "callNow": "Call now",
+      "notNow": "Not now"
+    },
+    "reminder": {
+      "title": "Call your clinic",
+      "body": "{count} of your readings were high in the last 7 days. Please call your clinic now.",
+      "call": "Call clinic",
+      "dismiss": "Dismiss"
+    }
+  },
+  "activityGuidance": {
+    "title": "Activity for today",
+    "good": "Good today",
+    "avoid": "Avoid today",
+    "note": "General advice based on your check-in. Always follow your doctor's advice, and stop if you feel chest pain, dizziness or very short of breath.",
+    "learnTitle": "Healthy exercises for your heart",
+    "learnBody": "Staying physically active: why it helps and how to start",
+    "message": {
+      "rest": "No exercise today. Rest, and call your caregiver or clinic if you feel unwell.",
+      "gentle": "Take it very easy today. Only gentle stretching, and only if you feel well.",
+      "light": "Light activity only today. Keep it easy and stop if you feel unwell.",
+      "moderate": "You are fine to be active today. Aim for about 30 minutes of moderate activity."
+    }
+  },
+  "appointments": {
+    "title": "Appointments",
+    "homeTitle": "Clinic visits",
+    "homeEmpty": "Add your next clinic visit and we will remind you 2 days before, the day before, and on the day.",
+    "entryBody": "Your clinic visits and their reminders",
+    "intro": "We remind you 2 days before, the day before, and on the day, so you are ready for your visit. Saved on this phone.",
+    "add": "Add appointment",
+    "seeAll": "See all",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "emptyTitle": "No upcoming appointments",
+    "emptyBody": "Add your next clinic visit to get reminders.",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "inDays": "In {days} days",
+    "openSummary": "Open visit summary",
+    "prepare": {
+      "title": "Get ready for your visit",
+      "medicines": "Bring all your medicines, or a list of them",
+      "readings": "Bring your recent readings: open the visit summary below",
+      "questions": "Write down questions or symptoms to tell your doctor"
+    },
+    "reminder": {
+      "2d": "2 days before (6 PM)",
+      "1d": "The day before (6 PM)",
+      "0d": "On the day (2 hours before)"
+    },
+    "form": {
+      "addTitle": "Add appointment",
+      "editTitle": "Appointment",
+      "when": "Date and time",
+      "pickWhen": "Choose date and time",
+      "whenRequired": "Choose the date and time of the visit",
+      "whenPast": "Choose a date and time in the future",
+      "place": "Clinic or doctor",
+      "note": "Reason or note (optional)",
+      "noteHint": "e.g. Check-up, blood test",
+      "remindMe": "Remind me",
+      "save": "Save appointment",
+      "saved": "Appointment saved. Reminders are set.",
+      "delete": "Delete appointment",
+      "deleteTitle": "Delete this appointment?",
+      "deleteMessage": "Its reminders will be cancelled too."
+    },
+    "notification": {
+      "yourClinic": "Your clinic visit",
+      "2d": {
+        "title": "Clinic visit in 2 days",
+        "body": "{place}, {date} at {time}. Start writing down any questions for your doctor."
+      },
+      "1d": {
+        "title": "Clinic visit tomorrow",
+        "body": "{place} at {time}. Get your medicines ready to take with you."
+      },
+      "0d": {
+        "title": "Clinic visit today",
+        "body": "{place} at {time}. Bring your medicines and show your visit summary."
+      }
     }
   }
 }

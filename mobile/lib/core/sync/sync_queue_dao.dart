@@ -5,7 +5,6 @@ import 'package:drift/drift.dart';
 import '../db/app_database.dart';
 
 abstract interface class SyncEnqueuer {
-
   Future<void> enqueue({
     required String clientRecordId,
     required SyncEntityType entityType,
@@ -40,7 +39,21 @@ class SyncQueueDao implements SyncEnqueuer {
             createdLocallyAt: DateTime.now(),
           ),
 
-          mode: InsertMode.insertOrIgnore,
+          // A record edited before it is sent (a dose note changed while
+          // offline) replaces the queued payload. Once sent it is left alone:
+          // the server keeps the first version and would answer CONFLICT.
+          onConflict: DoUpdate(
+            ($SyncQueueEntriesTable old) => SyncQueueEntriesCompanion(
+              payloadJson: Value<String>(jsonEncode(payload)),
+              recordedAt: Value<DateTime>(recordedAt),
+            ),
+            target: <Column<Object>>[
+              _db.syncQueueEntries.entityType,
+              _db.syncQueueEntries.clientRecordId,
+            ],
+            where: ($SyncQueueEntriesTable old) =>
+                old.status.equalsValue(LocalSyncStatus.pending),
+          ),
         );
   }
 
@@ -148,6 +161,26 @@ class SyncQueueDao implements SyncEnqueuer {
       for (final SyncQueueEntry r in rows)
         if (r.serverId != null) r.clientRecordId: r.serverId!,
     };
+  }
+
+  /// Records the server refused for good (a second check-in on one day, a
+  /// dose after the medication was turned off...), for the patient to see.
+  Stream<List<SyncQueueEntry>> watchRejected() {
+    return (_db.select(_db.syncQueueEntries)..where(
+          ($SyncQueueEntriesTable t) =>
+              t.status.equalsValue(LocalSyncStatus.rejected),
+        ))
+        .watch();
+  }
+
+  /// The patient has seen why: forget the refused entries. The records stay
+  /// on the phone; only their failed delivery is cleared.
+  Future<void> dismissRejected() async {
+    await (_db.delete(_db.syncQueueEntries)..where(
+          ($SyncQueueEntriesTable t) =>
+              t.status.equalsValue(LocalSyncStatus.rejected),
+        ))
+        .go();
   }
 
   Future<List<SyncQueueEntry>> rejected() {

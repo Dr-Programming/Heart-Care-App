@@ -20,7 +20,11 @@ void main() {
   });
 
   test('records a change with the old PIN as its proof', () async {
-    await store.recordChange(phone: '+251911234567', currentPin: '1234', newPin: '5678');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '1234',
+      newPin: '5678',
+    );
 
     final PendingPinChange? pending = await store.read();
     expect(pending!.kind, PendingPinChangeKind.change);
@@ -31,7 +35,11 @@ void main() {
   });
 
   test('records a reset with the answers as its proof', () async {
-    await store.recordReset(phone: '+251911234567', answers: _answers, newPin: '5678');
+    await store.recordReset(
+      phone: '+251911234567',
+      answers: _answers,
+      newPin: '5678',
+    );
 
     final PendingPinChange? pending = await store.read();
     expect(pending!.kind, PendingPinChangeKind.reset);
@@ -41,10 +49,18 @@ void main() {
 
   test('a second change keeps the first proof, takes the newest PIN and a new changeId', () async {
     // The server still has 1234, so 1234 is what will prove the change when it syncs.
-    await store.recordChange(phone: '+251911234567', currentPin: '1234', newPin: '5678');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '1234',
+      newPin: '5678',
+    );
     final String firstId = (await store.read())!.changeId;
 
-    await store.recordChange(phone: '+251911234567', currentPin: '5678', newPin: '9999');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '5678',
+      newPin: '9999',
+    );
 
     final PendingPinChange pending = (await store.read())!;
     expect(pending.kind, PendingPinChangeKind.change);
@@ -54,9 +70,17 @@ void main() {
   });
 
   test('a reset on top of a pending change keeps the old-PIN proof', () async {
-    await store.recordChange(phone: '+251911234567', currentPin: '1234', newPin: '5678');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '1234',
+      newPin: '5678',
+    );
 
-    await store.recordReset(phone: '+251911234567', answers: _answers, newPin: '2468');
+    await store.recordReset(
+      phone: '+251911234567',
+      answers: _answers,
+      newPin: '2468',
+    );
 
     final PendingPinChange pending = (await store.read())!;
     expect(pending.kind, PendingPinChangeKind.change);
@@ -65,9 +89,17 @@ void main() {
   });
 
   test('a change for a different phone replaces the pending one', () async {
-    await store.recordChange(phone: '+251911234567', currentPin: '1234', newPin: '5678');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '1234',
+      newPin: '5678',
+    );
 
-    await store.recordChange(phone: '+251922222222', currentPin: '1111', newPin: '2222');
+    await store.recordChange(
+      phone: '+251922222222',
+      currentPin: '1111',
+      newPin: '2222',
+    );
 
     final PendingPinChange pending = (await store.read())!;
     expect(pending.phone, '+251922222222');
@@ -75,7 +107,11 @@ void main() {
   });
 
   test('clear removes it', () async {
-    await store.recordChange(phone: '+251911234567', currentPin: '1234', newPin: '5678');
+    await store.recordChange(
+      phone: '+251911234567',
+      currentPin: '1234',
+      newPin: '5678',
+    );
     await store.clear();
     expect(await store.read(), isNull);
   });

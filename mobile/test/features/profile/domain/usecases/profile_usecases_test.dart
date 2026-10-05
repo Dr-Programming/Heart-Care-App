@@ -27,11 +27,14 @@ class _FakeProfileRepository implements ProfileRepository {
 }
 
 void main() {
-  test('GetProfile forwards the user id and returns the repository result', () async {
-    final repo = _FakeProfileRepository();
-    final result = await GetProfile(repo)('u1');
-    expect(result, _profile);
-  });
+  test(
+    'GetProfile forwards the user id and returns the repository result',
+    () async {
+      final repo = _FakeProfileRepository();
+      final result = await GetProfile(repo)('u1');
+      expect(result, _profile);
+    },
+  );
 
   test('SaveProfile forwards the profile to the repository', () async {
     final repo = _FakeProfileRepository();

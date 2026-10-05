@@ -11,9 +11,12 @@ import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
+import 'package:libu_care/features/auth/auth_providers.dart';
+import 'package:libu_care/features/auth/domain/security_question.dart';
 import 'package:libu_care/features/profile/presentation/screens/settings_screen.dart';
 
 import '../../../../helpers/fake_dio.dart';
+import '../../../../helpers/fake_pin_repository.dart';
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_database.dart';
 
@@ -143,6 +146,66 @@ void main() {
     }
   });
 
+  testWidgets(
+    'questions set on the account show as set even when this phone has no copy',
+    (tester) async {
+      final FakePinRepository pins = FakePinRepository()
+        ..configured = const <SecurityQuestion>[]
+        ..status = true;
+      await pumpApp(
+        tester,
+        const SettingsScreen(),
+        overrides: <Override>[
+          appDatabaseProvider.overrideWithValue(await seededDatabase()),
+          dioProvider.overrideWithValue(FakeDio().dio),
+          isOnlineProvider.overrideWithValue(() async => true),
+          pinRepositoryProvider.overrideWithValue(pins),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('profile.settings.securityQuestions.set'.tr()),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('the caregiver can be added from settings', (tester) async {
+    await pumpApp(
+      tester,
+      const SettingsScreen(),
+      overrides: <Override>[
+        appDatabaseProvider.overrideWithValue(await seededDatabase()),
+        dioProvider.overrideWithValue(FakeDio().dio),
+        isOnlineProvider.overrideWithValue(() async => false),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('profile.caregiver.notSet'.tr()), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('settings_caregiver_row')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('caregiver_name')),
+        matching: find.byType(TextField),
+      ),
+      'Almaz',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('caregiver_phone')),
+        matching: find.byType(TextField),
+      ),
+      '0911555666',
+    );
+    await tester.tap(find.text('profile.caregiver.save'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Almaz · 0911555666'), findsOneWidget);
+  });
+
   testWidgets('no "Large text" row is present', (tester) async {
     await pumpApp(
       tester,
@@ -206,9 +269,14 @@ void main() {
 
       await tester.tap(find.byKey(const Key('settings_language_option_am')));
       await tester.pump();
-      await tester.runAsync(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      });
+      // Saving the choice and loading the Amharic file both take real time;
+      // give them up to 5 seconds rather than a fixed guess.
+      for (int i = 0; i < 50 && find.text('ማሳወቂያዎች').evaluate().isEmpty; i++) {
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pump();
+      }
       await tester.pumpAndSettle(
         const Duration(milliseconds: 100),
         EnginePhase.sendSemanticsUpdate,
@@ -262,6 +330,7 @@ void main() {
       ],
     );
 
+    await tester.ensureVisible(find.byKey(const Key('settings_sign_out_row')));
     await tester.tap(find.byKey(const Key('settings_sign_out_row')));
     await tester.pumpAndSettle();
 

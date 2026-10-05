@@ -30,7 +30,19 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
     required this.pending,
     required this.isOnline,
     this.fallbackTimeout = const Duration(seconds: 8),
-  });
+    Future<void> Function()? onPatientSwitch,
+    Future<int> Function()? unsentRecordCount,
+  }) : _onPatientSwitch = onPatientSwitch ?? _noSwitchHandler,
+       _unsentRecordCount = unsentRecordCount ?? _noUnsentRecords;
+
+  static Future<void> _noSwitchHandler() async {}
+  static Future<int> _noUnsentRecords() async => 0;
+
+  /// How many records on this phone the server hasn't received yet.
+  final Future<int> Function() _unsentRecordCount;
+
+  /// Clears the previous patient's local data when someone else signs in.
+  final Future<void> Function() _onPatientSwitch;
 
   final AuthRemoteDataSource remote;
   final AuthLocalDataSource local;
@@ -43,6 +55,19 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
   static const Uuid _uuid = Uuid();
 
   SignOutReason? _signOutReason;
+
+  /// Set when an offline session was traded for a server one in the
+  /// background (a queued PIN change or reset went through, or the PIN was
+  /// re-checked). The app then downloads the patient's records, as after a
+  /// sign-in.
+  bool _serverSessionStarted = false;
+
+  /// Whether that happened since the last call; reading it clears it.
+  bool takeServerSessionStarted() {
+    final bool started = _serverSessionStarted;
+    _serverSessionStarted = false;
+    return started;
+  }
 
   final Future<bool> Function() isOnline;
 
@@ -59,6 +84,7 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
   @override
   Future<AuthUser> login({required String phone, required String pin}) async {
     if (!await isOnline()) return _loginOffline(phone: phone, pin: pin);
+    await _checkPatientSwitch(phone);
 
     // A PIN changed on this phone while offline isn't on the server yet, so an
     // ordinary sign-in with it would be refused. Send the change first.
@@ -105,6 +131,7 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
     List<SecurityAnswer>? securityAnswers,
   }) async {
     if (!await isOnline()) throw const NetworkFailure(_offlineMessage);
+    await _checkPatientSwitch(phone);
     try {
       final response = await remote.register(
         phone: phone,
@@ -114,8 +141,13 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         securityAnswers: securityAnswers,
       );
       final AuthUser user = await _startSession(response, pin: pin);
+      // A new account goes through the setup wizard (health details,
+      // reminders, clinic) once; it can be skipped.
+      await local.setNeedsOnboarding(true);
       // Kept here too, so this phone can reset a forgotten PIN offline from day one.
-      if (securityAnswers != null) await offline.rememberAnswers(securityAnswers);
+      if (securityAnswers != null) {
+        await offline.rememberAnswers(securityAnswers);
+      }
       return user;
     } on DioException catch (e) {
       throw failureFromDioException(e);
@@ -127,10 +159,66 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
     required String pin,
   }) async {
     final user = response.user.toDomain();
-    await local.saveSession(token: response.token, user: user);
+    await _claimLocalData(user);
+    await local.saveSession(
+      token: response.token,
+      refreshToken: response.refreshToken,
+      refreshTokenExpiresAt: response.refreshTokenExpiresAt,
+      user: user,
+    );
     await offline.remember(user: user, pin: pin);
     session.end();
     return user;
+  }
+
+  /// Offline, the patient with [phone] proved who they are. They may be an
+  /// earlier patient on this phone: make theirs the active account and clear
+  /// the other patient's data, as an online sign-in would.
+  Future<AuthUser> _becomeActive(String phone) async {
+    await _checkPatientSwitch(phone, online: false);
+    await offline.makeActive(phone);
+    final AuthUser user = (await offline.rememberedUser())!;
+    await _claimLocalData(user);
+    await local.saveUser(user);
+    return user;
+  }
+
+  /// Another patient's records are on this phone. Switching to [phone] would
+  /// replace them, so it is allowed only when nothing is lost: online, where
+  /// the new patient's records can be downloaded, and with everything the
+  /// previous patient recorded already on the server. To go ahead anyway the
+  /// app first deletes those records (see `discardUnsentRecordsProvider`).
+  Future<void> _checkPatientSwitch(String phone, {bool online = true}) async {
+    final String? owner = await local.dataOwner();
+    final AuthUser? previous = await offline.rememberedUser();
+    if (previous == null || (owner != null && owner != previous.id)) return;
+    if (previous.phone == phone) return;
+    if (!online) {
+      throw PatientSwitchFailure(
+        'Connect to the internet to switch to a different patient',
+        needsConnection: true,
+        previousPatient: previous.name,
+      );
+    }
+    final int unsent = await _unsentRecordCount();
+    if (unsent > 0) {
+      throw PatientSwitchFailure(
+        '${previous.name} has $unsent records that are not on the server yet',
+        needsConnection: false,
+        previousPatient: previous.name,
+        unsentRecords: unsent,
+      );
+    }
+  }
+
+  /// The local tables have no user column, so the phone remembers whose data
+  /// it holds. Phones from before that was recorded fall back to the account
+  /// remembered for offline sign-in, which is the last one that signed in.
+  Future<void> _claimLocalData(AuthUser user) async {
+    final String? owner =
+        await local.dataOwner() ?? (await offline.rememberedUser())?.id;
+    if (owner != null && owner != user.id) await _onPatientSwitch();
+    await local.setDataOwner(user.id);
   }
 
   Future<AuthUser> _loginOffline({
@@ -140,14 +228,13 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
   }) async {
     switch (await offline.verify(phone: phone, pin: pin)) {
       case OfflineCheck.match:
-        final AuthUser user = (await offline.rememberedUser())!;
-        await local.saveUser(user);
+        final AuthUser user = await _becomeActive(phone);
         session.begin(phone: phone, pin: pin);
         return user;
       case OfflineCheck.wrongPin:
         throw const InvalidCredentialsFailure('Invalid phone or PIN');
       case OfflineCheck.locked:
-        final int? minutes = await offline.lockedFor();
+        final int? minutes = await offline.lockedFor(phone: phone);
         throw AccountLockedFailure(
           'Too many attempts. Try again in $minutes minutes',
           minutesRemaining: minutes,
@@ -167,7 +254,9 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
       case PinSyncResult.conflict:
         return false;
       case PinSyncResult.kept:
+        return true;
       case PinSyncResult.applied:
+        _serverSessionStarted = true;
         return true;
       case PinSyncResult.nothingPending:
         break;
@@ -181,6 +270,7 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         pin: credentials.pin,
       );
       await _startSession(response, pin: credentials.pin);
+      _serverSessionStarted = true;
       return true;
     } on DioException catch (e) {
       if (failureFromDioException(e) is! InvalidCredentialsFailure) return true;
@@ -218,7 +308,9 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         if (failure is InvalidCredentialsFailure) {
           throw const InvalidCredentialsFailure('Current PIN is incorrect');
         }
-        if (failure is! NetworkFailure && failure is! ServerFailure) throw failure;
+        if (failure is! NetworkFailure && failure is! ServerFailure) {
+          throw failure;
+        }
         // Unreachable: fall through to the offline path.
       }
     }
@@ -238,10 +330,15 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         throw const NetworkFailure(_offlineMessage);
     }
     await offline.changePin(newPin);
-    await pending.recordChange(phone: user.phone, currentPin: currentPin, newPin: newPin);
+    await pending.recordChange(
+      phone: user.phone,
+      currentPin: currentPin,
+      newPin: newPin,
+    );
     if (session.isActive) session.begin(phone: user.phone, pin: newPin);
 
-    if (await isOnline() && await flushPendingPinChange() == PinSyncResult.applied) {
+    if (await isOnline() &&
+        await flushPendingPinChange() == PinSyncResult.applied) {
       return PinChangeOutcome.applied;
     }
     return PinChangeOutcome.queued;
@@ -254,10 +351,14 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         return await remote.recoveryQuestions(phone);
       } on DioException catch (e) {
         final Failure failure = failureFromDioException(e);
-        if (failure is! NetworkFailure && failure is! ServerFailure) throw failure;
+        if (failure is! NetworkFailure && failure is! ServerFailure) {
+          throw failure;
+        }
       }
     }
-    final List<SecurityQuestion> stored = await offline.rememberedQuestions(phone);
+    final List<SecurityQuestion> stored = await offline.rememberedQuestions(
+      phone,
+    );
     if (stored.isEmpty) throw const NetworkFailure(_recoveryNeedsConnection);
     return stored;
   }
@@ -267,8 +368,15 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
     required String phone,
     required List<SecurityAnswer> answers,
     required String newPin,
+    String? customAnswer,
   }) async {
+    // The patient's own question lives on this phone only, so the phone
+    // checks it; online, the server then checks the other answers.
     if (await isOnline()) {
+      await _throwFor(
+        await offline.verifyCustomAnswer(phone: phone, answer: customAnswer),
+        phone,
+      );
       try {
         final AuthResponseModel response = await remote.resetPin(
           phone: phone,
@@ -286,17 +394,36 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
         if (failure is ValidationFailure) {
           throw const InvalidCredentialsFailure(_answersDontMatch);
         }
-        if (failure is! NetworkFailure && failure is! ServerFailure) throw failure;
+        if (failure is! NetworkFailure && failure is! ServerFailure) {
+          throw failure;
+        }
       }
     }
 
-    switch (await offline.verifyAnswers(phone: phone, answers: answers)) {
+    await _throwFor(
+      await offline.verifyAnswers(
+        phone: phone,
+        answers: answers,
+        customAnswer: customAnswer,
+      ),
+      phone,
+    );
+    await _becomeActive(phone);
+    await offline.changePin(newPin);
+    await pending.recordReset(phone: phone, answers: answers, newPin: newPin);
+    session.begin(phone: phone, pin: newPin);
+    return PinChangeOutcome.queued;
+  }
+
+  /// Turns a recovery check into the failure the patient sees.
+  Future<void> _throwFor(OfflineCheck check, String phone) async {
+    switch (check) {
       case OfflineCheck.match:
-        break;
+        return;
       case OfflineCheck.wrongPin:
         throw const InvalidCredentialsFailure(_answersDontMatch);
       case OfflineCheck.locked:
-        final int? minutes = await offline.recoveryLockedFor();
+        final int? minutes = await offline.recoveryLockedFor(phone: phone);
         throw AccountLockedFailure(
           'Too many attempts. Try again in $minutes minutes',
           minutesRemaining: minutes,
@@ -304,12 +431,45 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
       case OfflineCheck.unknownAccount:
         throw const NetworkFailure(_recoveryNeedsConnection);
     }
-    await offline.changePin(newPin);
-    await pending.recordReset(phone: phone, answers: answers, newPin: newPin);
-    final AuthUser user = (await offline.rememberedUser())!;
-    await local.saveUser(user);
-    session.begin(phone: phone, pin: newPin);
-    return PinChangeOutcome.queued;
+  }
+
+  @override
+  Future<String?> customRecoveryQuestion(String phone) =>
+      offline.customQuestion(phone);
+
+  /// Checks [currentPin] on this phone for the signed-in patient.
+  Future<void> _checkCurrentPin(String currentPin) async {
+    final AuthUser? user = await offline.rememberedUser();
+    if (user == null) throw const SessionExpiredFailure('Not signed in');
+    switch (await offline.verify(phone: user.phone, pin: currentPin)) {
+      case OfflineCheck.match:
+        return;
+      case OfflineCheck.locked:
+        final int? minutes = await offline.lockedFor(phone: user.phone);
+        throw AccountLockedFailure(
+          'Too many attempts. Try again in $minutes minutes',
+          minutesRemaining: minutes,
+        );
+      case OfflineCheck.wrongPin:
+      case OfflineCheck.unknownAccount:
+        throw const InvalidCredentialsFailure('Current PIN is incorrect');
+    }
+  }
+
+  @override
+  Future<void> setCustomQuestion({
+    required String currentPin,
+    required String question,
+    required String answer,
+  }) async {
+    await _checkCurrentPin(currentPin);
+    await offline.rememberCustomQuestion(question: question, answer: answer);
+  }
+
+  @override
+  Future<void> clearCustomQuestion({required String currentPin}) async {
+    await _checkCurrentPin(currentPin);
+    await offline.clearCustomQuestion();
   }
 
   @override
@@ -376,7 +536,8 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
       return PinSyncResult.applied;
     } on DioException catch (e) {
       final Failure failure = failureFromDioException(e);
-      if (failure is InvalidCredentialsFailure || failure is ValidationFailure) {
+      if (failure is InvalidCredentialsFailure ||
+          failure is ValidationFailure) {
         // The server's PIN (or answers) changed elsewhere first: it wins.
         await pending.clear();
         session.end();
@@ -397,8 +558,11 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
   }
 
   Future<AuthUser> _rememberedOrCached() async {
-    final AuthUser? user = await offline.rememberedUser() ?? await local.cachedUser();
-    if (user == null) throw const SessionExpiredFailure('Sign in again to change your PIN');
+    final AuthUser? user =
+        await offline.rememberedUser() ?? await local.cachedUser();
+    if (user == null) {
+      throw const SessionExpiredFailure('Sign in again to change your PIN');
+    }
     return user;
   }
 
@@ -424,6 +588,23 @@ class AuthRepositoryImpl implements AuthRepository, PinRepository {
   @override
   Future<void> logout() async {
     session.end();
+    final String? refreshToken = await local.refreshToken();
+    if (refreshToken != null && await isOnline()) {
+      try {
+        // Best effort: the token expires on its own if this never arrives.
+        await remote.logout(refreshToken).timeout(fallbackTimeout);
+      } on Object {
+        // Offline, slow or refused: the session still ends on this phone.
+      }
+    }
+    await local.clearSession();
+  }
+
+  /// The server refused to renew the session. A patient signed in offline
+  /// keeps going (the next sync signs them in again with their PIN); anyone
+  /// else goes back to the sign-in screen.
+  Future<void> expireSession() async {
+    if (session.isActive) return;
     await local.clearSession();
   }
 

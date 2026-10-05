@@ -9,16 +9,22 @@ import 'package:libu_care/features/auth/data/datasources/pending_pin_change_stor
 class FakeTokenStore extends TokenStore {
   FakeTokenStore() : super(const FlutterSecureStorage());
 
-  String? value;
+  final Map<String, String> values = <String, String>{};
+
+  /// The access token, for tests that only care about that.
+  String? get value => values[TokenStore.accessKey];
+  set value(String? token) => token == null
+      ? values.remove(TokenStore.accessKey)
+      : values[TokenStore.accessKey] = token;
 
   @override
-  Future<void> clear() async => value = null;
+  Future<String?> readRaw(String key) async => values[key];
 
   @override
-  Future<String?> read() async => value;
+  Future<void> writeRaw(String key, String value) async => values[key] = value;
 
   @override
-  Future<void> write(String token) async => value = token;
+  Future<void> deleteRaw(String key) async => values.remove(key);
 }
 
 class MemoryCredentialStore extends OfflineCredentialStore {

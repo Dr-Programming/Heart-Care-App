@@ -15,10 +15,7 @@ void main() {
       note: null,
     );
 
-    final VitalReading synced = reading.copyWith(
-      serverId: 's1',
-      bmi: 22.9,
-    );
+    final VitalReading synced = reading.copyWith(serverId: 's1', bmi: 22.9);
 
     expect(synced.serverId, 's1');
     expect(synced.bmi, 22.9);

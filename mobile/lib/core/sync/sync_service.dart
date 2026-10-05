@@ -60,7 +60,10 @@ class SyncService {
 
   void start(Stream<bool> onlineChanges) {
     _connectivity?.cancel();
-    bool wasOnline = true;
+    // Starts false: connectivity_plus does not always report the state at
+    // launch, so an app started offline would otherwise miss its first
+    // reconnect. An extra "online" event at launch only costs one empty sync.
+    bool wasOnline = false;
     _connectivity = onlineChanges.listen((bool online) {
       final bool cameBack = online && !wasOnline;
       wasOnline = online;
@@ -68,7 +71,31 @@ class SyncService {
     });
   }
 
+  StreamSubscription<int>? _queueWatch;
+  Timer? _queueDebounce;
+
+  /// Sends new records soon after they are saved instead of at the next
+  /// retry. [debounce] gathers a burst of saves (one form saving several
+  /// readings) into one request.
+  void watchQueue(
+    Stream<int> pendingCount, {
+    Duration debounce = const Duration(seconds: 2),
+  }) {
+    _queueWatch?.cancel();
+    int previous = 0;
+    _queueWatch = pendingCount.listen((int count) {
+      final bool grew = count > previous;
+      previous = count;
+      if (!grew) return;
+      _queueDebounce?.cancel();
+      _queueDebounce = Timer(debounce, () => unawaited(syncNow()));
+    });
+  }
+
   Future<void> dispose() async {
+    _queueDebounce?.cancel();
+    await _queueWatch?.cancel();
+    _queueWatch = null;
     await _connectivity?.cancel();
     _connectivity = null;
   }

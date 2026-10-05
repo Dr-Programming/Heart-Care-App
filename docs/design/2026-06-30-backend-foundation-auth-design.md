@@ -180,7 +180,7 @@ CREATE TABLE users (
 - `docker-compose.yml` (repo root) — PostgreSQL 16 service (db `heartcare`, port 5432, named volume, healthcheck) + optional pgAdmin.
 - `.env.example` (repo root) — `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRET`. Real `.env` is gitignored.
 
-> **Discrepancy to fix:** `CLAUDE.md` references `docs/docker-compose.yml`; this design places it at **repo root** per `PROJECT_STRUCTURE.md`. The stale `CLAUDE.md` command reference will be corrected.
+> **Discrepancy to fix:** The project rules file references `docs/docker-compose.yml`; this design places it at **repo root** per `PROJECT_STRUCTURE.md`. The stale project rules file command reference will be corrected.
 
 ### 6.7 Testing strategy (TDD)
 - **`AuthServiceTest`** (unit, mocked `UserRepository` + encoder):

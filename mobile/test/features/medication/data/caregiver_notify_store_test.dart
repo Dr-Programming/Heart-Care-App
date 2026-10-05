@@ -22,7 +22,10 @@ void main() {
   });
 
   test('round-trips enabled + phone for one medication', () async {
-    await store.set('m1', const CaregiverNotifySettings(enabled: true, phone: '+251911234567'));
+    await store.set(
+      'm1',
+      const CaregiverNotifySettings(enabled: true, phone: '+251911234567'),
+    );
 
     final settings = await store.get('m1');
     expect(settings.enabled, isTrue);
@@ -30,8 +33,14 @@ void main() {
   });
 
   test('settings for different medications do not collide', () async {
-    await store.set('m1', const CaregiverNotifySettings(enabled: true, phone: '+251911111111'));
-    await store.set('m2', const CaregiverNotifySettings(enabled: false, phone: ''));
+    await store.set(
+      'm1',
+      const CaregiverNotifySettings(enabled: true, phone: '+251911111111'),
+    );
+    await store.set(
+      'm2',
+      const CaregiverNotifySettings(enabled: false, phone: ''),
+    );
 
     expect((await store.get('m1')).phone, '+251911111111');
     expect((await store.get('m2')).enabled, isFalse);

@@ -10,6 +10,7 @@ import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart
 import 'package:libu_care/features/auth/presentation/controllers/auth_controller.dart';
 
 import '../../../../helpers/test_database.dart';
+
 import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const _user = AuthUser(
@@ -65,12 +66,6 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
-  
-  
-  
-  
-  
-  
   late AppDatabase db;
 
   setUp(() => db = testDatabase());
@@ -87,21 +82,24 @@ void main() {
     return container;
   }
 
-  test('cold start with a stored session restores from disk with no request', () async {
-    final repo = _FakeAuthRepository()..stored = _user;
-    final container = makeContainer(repo);
+  test(
+    'cold start with a stored session restores from disk with no request',
+    () async {
+      final repo = _FakeAuthRepository()..stored = _user;
+      final container = makeContainer(repo);
 
-    final state = await container.read(authControllerProvider.future);
+      final state = await container.read(authControllerProvider.future);
 
-    expect(state, isA<AuthState>());
-    expect(state.isAuthenticated, isTrue);
-    expect(state.user, _user);
-  });
+      expect(state, isA<AuthState>());
+      expect(state.isAuthenticated, isTrue);
+      expect(state.user, _user);
+    },
+  );
 
   test('login moves through loading to authenticated', () async {
     final repo = _FakeAuthRepository();
     final container = makeContainer(repo);
-    await container.read(authControllerProvider.future); 
+    await container.read(authControllerProvider.future);
 
     final controller = container.read(authControllerProvider.notifier);
     await controller.login(phone: '+251911234567', pin: '1234');
@@ -113,7 +111,8 @@ void main() {
   });
 
   test('a login failure lands in AsyncError carrying the Failure', () async {
-    final repo = _FakeAuthRepository()..loginError = const InvalidCredentialsFailure('Invalid phone or PIN');
+    final repo = _FakeAuthRepository()
+      ..loginError = const InvalidCredentialsFailure('Invalid phone or PIN');
     final container = makeContainer(repo);
     await container.read(authControllerProvider.future);
 
@@ -140,14 +139,75 @@ void main() {
     expect(state.value!.user, isNull);
   });
 
+  test('sign-out sends unsent records before ending the session', () async {
+    final repo = _FakeAuthRepository()..stored = _user;
+    bool? signedInDuringSync;
+    final container = ProviderContainer(
+      overrides: <Override>[
+        authRepositoryProvider.overrideWithValue(repo),
+        appDatabaseProvider.overrideWithValue(db),
+        beforeSignOutProvider.overrideWithValue(
+          () async => signedInDuringSync = repo.stored != null,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+
+    await container.read(authControllerProvider.notifier).signOut();
+
+    expect(signedInDuringSync, isTrue);
+    expect(repo.stored, isNull);
+  });
+
+  test('signing in or out resets what the screens hold in memory', () async {
+    final repo = _FakeAuthRepository();
+    int resets = 0;
+    final container = ProviderContainer(
+      overrides: <Override>[
+        authRepositoryProvider.overrideWithValue(repo),
+        appDatabaseProvider.overrideWithValue(db),
+        sessionChangedHandlerProvider.overrideWithValue(() => resets++),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+    final controller = container.read(authControllerProvider.notifier);
+
+    await controller.login(phone: '+251911234567', pin: '1234');
+    await controller.signOut();
+
+    expect(resets, 2);
+  });
+
+  test(
+    'signing in downloads the patient’s records, signing out does not',
+    () async {
+      final repo = _FakeAuthRepository();
+      int restores = 0;
+      final container = ProviderContainer(
+        overrides: <Override>[
+          authRepositoryProvider.overrideWithValue(repo),
+          appDatabaseProvider.overrideWithValue(db),
+          restoreFromServerProvider.overrideWithValue(() async => restores++),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authControllerProvider.future);
+      final controller = container.read(authControllerProvider.notifier);
+
+      await controller.login(phone: '+251911234567', pin: '1234');
+      await controller.signOut();
+
+      expect(restores, 1);
+    },
+  );
+
   test('a successful login refreshes realAuthGateProvider so the router sees the new session', () async {
     final repo = _FakeAuthRepository();
     final container = makeContainer(repo);
     await container.read(authControllerProvider.future);
 
-    
-    
-    
     await container.read(realAuthGateProvider.notifier).refresh();
     expect(container.read(realAuthGateProvider).isSignedIn, isFalse);
 
@@ -171,7 +231,8 @@ void main() {
   });
 
   test('a login failure does not touch realAuthGateProvider', () async {
-    final repo = _FakeAuthRepository()..loginError = const InvalidCredentialsFailure('Invalid phone or PIN');
+    final repo = _FakeAuthRepository()
+      ..loginError = const InvalidCredentialsFailure('Invalid phone or PIN');
     final container = makeContainer(repo);
     await container.read(authControllerProvider.future);
     await container.read(realAuthGateProvider.notifier).refresh();
@@ -193,15 +254,20 @@ void main() {
       SecurityAnswer(SecurityQuestion.favoriteTeacher, 'Ato Kebede'),
     ];
 
-    await container.read(authControllerProvider.notifier).register(
-      phone: '+251911234567',
-      pin: '1234',
-      name: 'Abebe Girma',
-      preferredLanguage: 'en',
-      securityAnswers: answers,
-    );
+    await container
+        .read(authControllerProvider.notifier)
+        .register(
+          phone: '+251911234567',
+          pin: '1234',
+          name: 'Abebe Girma',
+          preferredLanguage: 'en',
+          securityAnswers: answers,
+        );
 
     expect(repo.registeredAnswers, answers);
-    expect(container.read(authControllerProvider).value!.isAuthenticated, isTrue);
+    expect(
+      container.read(authControllerProvider).value!.isAuthenticated,
+      isTrue,
+    );
   });
 }

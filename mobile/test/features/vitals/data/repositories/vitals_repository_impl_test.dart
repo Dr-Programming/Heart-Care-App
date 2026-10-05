@@ -22,35 +22,36 @@ void main() {
 
   tearDown(() => db.close());
 
-  test('logging writes to Drift, enqueues a VITAL record and makes no request', () async {
-    await repository.logReading(
-      type: VitalType.bloodPressure,
-      values: <String, double>{'systolic': 190, 'diastolic': 100},
-    );
-
-    final int pending =
-        await (db.select(db.syncQueueEntries)).get().then((rows) => rows.length);
-    expect(pending, 1);
-    final history = await repository.history();
-    expect(history.length, 1);
-  });
-
   test(
-    'the locally computed flagged matches what the server would return for the same reading',
+    'logging writes to Drift, enqueues a VITAL record and makes no request',
     () async {
-      final result = await repository.logReading(
+      await repository.logReading(
         type: VitalType.bloodPressure,
         values: <String, double>{'systolic': 190, 'diastolic': 100},
       );
-      expect(result.flagged, true);
 
-      final normal = await repository.logReading(
-        type: VitalType.bloodPressure,
-        values: <String, double>{'systolic': 120, 'diastolic': 80},
-      );
-      expect(normal.flagged, false);
+      final int pending = await (db.select(db.syncQueueEntries))
+          .get()
+          .then((rows) => rows.length);
+      expect(pending, 1);
+      final history = await repository.history();
+      expect(history.length, 1);
     },
   );
+
+  test('the locally computed flagged matches what the server would return for the same reading', () async {
+    final result = await repository.logReading(
+      type: VitalType.bloodPressure,
+      values: <String, double>{'systolic': 190, 'diastolic': 100},
+    );
+    expect(result.flagged, true);
+
+    final normal = await repository.logReading(
+      type: VitalType.bloodPressure,
+      values: <String, double>{'systolic': 120, 'diastolic': 80},
+    );
+    expect(normal.flagged, false);
+  });
 
   test('a WEIGHT reading with no stored height has null bmi', () async {
     final result = await repository.logReading(

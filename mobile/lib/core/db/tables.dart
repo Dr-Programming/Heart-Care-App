@@ -24,10 +24,18 @@ abstract final class PreferenceKeys {
   static const String languageChosen = 'language_chosen';
 
   static const String notificationsEnabled = 'notifications_enabled';
-  static const String securityQuestionsPromptDismissed = 'security_questions_prompt_dismissed';
+  static const String securityQuestionsPromptDismissed =
+      'security_questions_prompt_dismissed';
   static const String symptomPromptTime = 'symptom_prompt_time';
 
   static const String lastSyncAt = 'last_sync_at';
+
+  /// Whose health records are stored on this phone. The tables carry no user
+  /// id, so a different patient signing in must not inherit them.
+  static const String dataOwnerUserId = 'data_owner_user_id';
+
+  /// Settings that belong to the phone, not the patient; kept on a switch.
+  static const Set<String> deviceScoped = <String>{language, languageChosen};
 }
 
 class PatientProfiles extends Table {
@@ -63,6 +71,9 @@ class Medications extends Table {
   BoolColumn get active => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
+
+  /// When the medication was turned off; null while active. Schema v3.
+  DateTimeColumn get deactivatedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{clientRecordId};
