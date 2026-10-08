@@ -53,6 +53,24 @@ class VitalsScreen extends ConsumerWidget {
         data: (Map<VitalType, VitalReading?> latest) => ListView(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
           children: <Widget>[
+            // The BP trend graph also opens from the Blood pressure card; this
+            // makes it easy to find.
+            Padding(
+              // Same width as the cards below.
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: AppButton(
+                key: const Key('vitalsOpenBpTrend'),
+                label: 'vitals.bpTrend.open'.tr(),
+                icon: Iconsax.chart_2,
+                variant: AppButtonVariant.secondary,
+                onPressed: () => context.pushNamed(
+                  AppRoutes.vitalsTrend,
+                  pathParameters: <String, String>{
+                    'type': VitalType.bloodPressure.wire,
+                  },
+                ),
+              ),
+            ),
             for (final VitalType type in VitalType.values)
               VitalAccentCard(
                 accent: vitalAccents[type]!,

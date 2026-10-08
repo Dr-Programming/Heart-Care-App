@@ -48,7 +48,11 @@ class _LongLabelAssetLoader extends AssetLoader {
       });
 }
 
-Future<void> _pumpWithAssetLoader(WidgetTester tester, Widget child, AssetLoader loader) async {
+Future<void> _pumpWithAssetLoader(
+  WidgetTester tester,
+  Widget child,
+  AssetLoader loader,
+) async {
   final ProviderContainer container = ProviderContainer();
   addTearDown(container.dispose);
 
@@ -57,7 +61,9 @@ Future<void> _pumpWithAssetLoader(WidgetTester tester, Widget child, AssetLoader
       UncontrolledProviderScope(
         container: container,
         child: EasyLocalization(
-          supportedLocales: AppLanguage.values.map((AppLanguage l) => l.locale).toList(growable: false),
+          supportedLocales: AppLanguage.values
+              .map((AppLanguage l) => l.locale)
+              .toList(growable: false),
           path: 'assets/translations',
           fallbackLocale: AppLanguage.en.locale,
           startLocale: AppLanguage.en.locale,
@@ -94,46 +100,70 @@ Future<void> _pumpWithLongLabels(WidgetTester tester, Widget child) =>
 void main() {
   setUpWidgetTests();
 
-  testWidgets('MedicationCard shows the name, dose and schedule', (tester) async {
+  testWidgets('MedicationCard shows the name, dose and schedule', (
+    tester,
+  ) async {
     final Medication medication = Medication(
-      clientRecordId: 'm1', serverId: null, name: 'Atorvastatin', doseMg: 20,
-      frequency: MedicationFrequency.onceDaily, scheduleTimes: const <String>['08:00'],
-      active: true, createdAt: DateTime(2026, 8, 1), updatedAt: DateTime(2026, 8, 1),
+      clientRecordId: 'm1',
+      serverId: null,
+      name: 'Atorvastatin',
+      doseMg: 20,
+      frequency: MedicationFrequency.onceDaily,
+      scheduleTimes: const <String>['08:00'],
+      active: true,
+      createdAt: DateTime(2026, 8, 1),
+      updatedAt: DateTime(2026, 8, 1),
     );
-    await pumpApp(tester, Material(child: MedicationCard(medication: medication)));
+    await pumpApp(
+      tester,
+      Material(child: MedicationCard(medication: medication)),
+    );
 
     expect(find.textContaining('Atorvastatin'), findsOneWidget);
     expect(find.textContaining('08:00'), findsOneWidget);
   });
 
-  testWidgets('DoseRow shows a StatusSelector when pending and a chip when logged', (tester) async {
-    const ScheduledDose pending = ScheduledDose(
-      medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
-      scheduledDate: '2026-08-25', scheduledTime: '08:00',
-      status: ScheduledDoseStatus.pending, doseLog: null,
-    );
-    await pumpApp(tester, Material(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})));
-    expect(find.byType(StatusSelector), findsOneWidget);
-  });
+  testWidgets(
+    'DoseRow shows a StatusSelector when pending and a chip when logged',
+    (tester) async {
+      const ScheduledDose pending = ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'Aspirin',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
+      );
+      await pumpApp(
+        tester,
+        Material(
+          child: DoseRow(dose: pending, onLog: (_, {String? note}) {}),
+        ),
+      );
+      expect(find.byType(StatusSelector), findsOneWidget);
+    },
+  );
 
-  testWidgets('tapping Taken in StatusSelector calls onSelected with DoseStatus.taken', (tester) async {
+  testWidgets(
+    'tapping Taken in StatusSelector calls onSelected with DoseStatus.taken',
+    (tester) async {
+      DoseStatus? selected;
+      await pumpApp(
+        tester,
+        Material(child: StatusSelector(onSelected: (s) => selected = s)),
+      );
 
-    DoseStatus? selected;
-    await pumpApp(
-      tester,
-      Material(child: StatusSelector(onSelected: (s) => selected = s)),
-    );
+      await tester.tap(find.text('Taken'));
+      await tester.pump();
 
-    await tester.tap(find.text('Taken'));
-    await tester.pump();
-
-    expect(selected, DoseStatus.taken);
-  });
+      expect(selected, DoseStatus.taken);
+    },
+  );
 
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (pending)',
     (tester) async {
-
       const ScheduledDose pending = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -165,7 +195,6 @@ void main() {
   testWidgets(
     'DoseRow does not overflow a narrow row with long status labels (logged)',
     (tester) async {
-
       final ScheduledDose logged = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'A very long medication name that keeps going',
@@ -203,35 +232,36 @@ void main() {
     },
   );
 
-  testWidgets(
-    'StatusSelector does not overflow an even narrower width',
-    (tester) async {
-
-      await _pumpWithLongLabels(
-        tester,
-        Material(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width: 200,
-              child: StatusSelector(onSelected: (_) {}),
-            ),
+  testWidgets('StatusSelector does not overflow an even narrower width', (
+    tester,
+  ) async {
+    await _pumpWithLongLabels(
+      tester,
+      Material(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 200,
+            child: StatusSelector(onSelected: (_) {}),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'DoseRow gives the trailing status widget the actual leftover width, not a blind 50/50 split',
     (tester) async {
-
       const ScheduledDose pending = ScheduledDose(
-        medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
-        scheduledDate: '2026-08-25', scheduledTime: '08:00',
-        status: ScheduledDoseStatus.pending, doseLog: null,
+        medicationClientRecordId: 'm1',
+        medicationName: 'Aspirin',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
       );
 
       Future<void> pumpAt(double width) => _pumpWithRealisticLabels(
@@ -242,25 +272,44 @@ void main() {
             child: SizedBox(
               width: width,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                child: SectionCard(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.gutter,
+                ),
+                child: SectionCard(
+                  child: DoseRow(dose: pending, onLog: (_, {String? note}) {}),
+                ),
               ),
             ),
           ),
         ),
       );
 
-      Finder leadingColumn() => find.descendant(of: find.byType(DoseRow), matching: find.byType(Column));
+      Finder leadingColumn() => find.descendant(
+        of: find.byType(DoseRow),
+        matching: find.byType(Column),
+      );
 
       await pumpAt(500);
       expect(tester.takeException(), isNull);
-      final double leadingWidthAt500 = tester.renderObject<RenderBox>(leadingColumn()).size.width;
-      final double trailingWidthAt500 = tester.renderObject<RenderBox>(find.byType(StatusSelector)).size.width;
+      final double leadingWidthAt500 = tester
+          .renderObject<RenderBox>(leadingColumn())
+          .size
+          .width;
+      final double trailingWidthAt500 = tester
+          .renderObject<RenderBox>(find.byType(StatusSelector))
+          .size
+          .width;
 
       await pumpAt(700);
       expect(tester.takeException(), isNull);
-      final double leadingWidthAt700 = tester.renderObject<RenderBox>(leadingColumn()).size.width;
-      final double trailingWidthAt700 = tester.renderObject<RenderBox>(find.byType(StatusSelector)).size.width;
+      final double leadingWidthAt700 = tester
+          .renderObject<RenderBox>(leadingColumn())
+          .size
+          .width;
+      final double trailingWidthAt700 = tester
+          .renderObject<RenderBox>(find.byType(StatusSelector))
+          .size
+          .width;
 
       expect(
         (leadingWidthAt700 - leadingWidthAt500).abs(),
@@ -279,11 +328,14 @@ void main() {
   testWidgets(
     'StatusSelector does not overflow under a larger accessibility text scale',
     (tester) async {
-
       const ScheduledDose pending = ScheduledDose(
-        medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
-        scheduledDate: '2026-08-25', scheduledTime: '08:00',
-        status: ScheduledDoseStatus.pending, doseLog: null,
+        medicationClientRecordId: 'm1',
+        medicationName: 'Aspirin',
+        doseMg: 75,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
       );
 
       await _pumpWithRealisticLabels(
@@ -296,8 +348,15 @@ void main() {
               child: SizedBox(
                 width: 360,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-                  child: SectionCard(child: DoseRow(dose: pending, onLog: (_, {String? note}) {})),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.gutter,
+                  ),
+                  child: SectionCard(
+                    child: DoseRow(
+                      dose: pending,
+                      onLog: (_, {String? note}) {},
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -313,7 +372,6 @@ void main() {
   testWidgets(
     'a note typed on a logged dose reaches onLog with the same status (I6)',
     (tester) async {
-
       DoseStatus? loggedStatus;
       String? loggedNote;
       int calls = 0;
@@ -441,28 +499,30 @@ void main() {
     expect(find.text('meds.note.add'.tr()), findsNothing);
   });
 
-  testWidgets('TimeListField renders a chip per time and adds one via the picker', (tester) async {
-    List<String> current = const <String>['08:00'];
-    await pumpApp(
-      tester,
-      StatefulBuilder(
-        builder: (context, setState) => Material(
-          child: TimeListField(
-            times: current,
-            onChanged: (t) => setState(() => current = t),
+  testWidgets(
+    'TimeListField renders a chip per time and adds one via the picker',
+    (tester) async {
+      List<String> current = const <String>['08:00'];
+      await pumpApp(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) => Material(
+            child: TimeListField(
+              times: current,
+              onChanged: (t) => setState(() => current = t),
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('08:00'), findsOneWidget);
-  });
+      expect(find.text('08:00'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'TimeListField restyled chips do not overflow a narrow width with '
     'several times (styling pass)',
     (tester) async {
-
       await pumpApp(
         tester,
         Material(
@@ -471,7 +531,13 @@ void main() {
             child: SizedBox(
               width: 220,
               child: TimeListField(
-                times: const <String>['06:00', '08:00', '12:00', '18:00', '22:00'],
+                times: const <String>[
+                  '06:00',
+                  '08:00',
+                  '12:00',
+                  '18:00',
+                  '22:00',
+                ],
                 onChanged: (_) {},
               ),
             ),
@@ -488,7 +554,6 @@ void main() {
   testWidgets(
     'DoseRow renders real Amharic on a phone-width row without overflowing (I9)',
     (tester) async {
-
       final ScheduledDose logged = ScheduledDose(
         medicationClientRecordId: 'm1',
         medicationName: 'Atorvastatin',
@@ -517,7 +582,9 @@ void main() {
             child: SizedBox(
               width: 360,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.gutter,
+                ),
                 child: SectionCard(
                   child: DoseRow(dose: logged, onLog: (_, {String? note}) {}),
                 ),
@@ -541,56 +608,54 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the Amharic note sheet opens and returns what was typed (I9)',
-    (tester) async {
-
-      String? loggedNote;
-      final ScheduledDose logged = ScheduledDose(
+  testWidgets('the Amharic note sheet opens and returns what was typed (I9)', (
+    tester,
+  ) async {
+    String? loggedNote;
+    final ScheduledDose logged = ScheduledDose(
+      medicationClientRecordId: 'm1',
+      medicationName: 'Atorvastatin',
+      doseMg: 20,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      status: ScheduledDoseStatus.logged,
+      doseLog: DoseLog(
+        clientRecordId: 'd1',
+        serverId: null,
         medicationClientRecordId: 'm1',
-        medicationName: 'Atorvastatin',
-        doseMg: 20,
+        medicationServerId: null,
+        status: DoseStatus.taken,
         scheduledDate: '2026-08-25',
         scheduledTime: '08:00',
-        status: ScheduledDoseStatus.logged,
-        doseLog: DoseLog(
-          clientRecordId: 'd1',
-          serverId: null,
-          medicationClientRecordId: 'm1',
-          medicationServerId: null,
-          status: DoseStatus.taken,
-          scheduledDate: '2026-08-25',
-          scheduledTime: '08:00',
-          loggedAt: DateTime(2026, 8, 25, 8, 5),
-          note: null,
+        loggedAt: DateTime(2026, 8, 25, 8, 5),
+        note: null,
+      ),
+    );
+
+    await pumpApp(
+      tester,
+      Material(
+        child: DoseRow(
+          dose: logged,
+          onLog: (_, {String? note}) => loggedNote = note,
         ),
-      );
+      ),
+      language: AppLanguage.am,
+    );
 
-      await pumpApp(
-        tester,
-        Material(
-          child: DoseRow(
-            dose: logged,
-            onLog: (_, {String? note}) => loggedNote = note,
-          ),
-        ),
-        language: AppLanguage.am,
-      );
+    await tester.tap(find.text('meds.note.add'.tr()));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('meds.note.add'.tr()));
-      await tester.pumpAndSettle();
+    final String sheetTitle = 'meds.note.title'.tr();
+    expect(sheetTitle, isNot('Note'));
+    expect(find.text(sheetTitle), findsOneWidget);
+    expect(find.text('meds.note.hint'.tr()), findsOneWidget);
 
-      final String sheetTitle = 'meds.note.title'.tr();
-      expect(sheetTitle, isNot('Note'));
-      expect(find.text(sheetTitle), findsOneWidget);
-      expect(find.text('meds.note.hint'.tr()), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'ማዞር ተሰማኝ');
+    await tester.tap(find.text('meds.note.save'.tr()));
+    await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'ማዞር ተሰማኝ');
-      await tester.tap(find.text('meds.note.save'.tr()));
-      await tester.pumpAndSettle();
-
-      expect(loggedNote, 'ማዞር ተሰማኝ');
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(loggedNote, 'ማዞር ተሰማኝ');
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -12,17 +12,18 @@ import 'package:libu_care/features/medication/presentation/controllers/dose_hist
 import '../../../../helpers/test_database.dart';
 import '../../helpers/fake_medication_repository.dart';
 
-DoseLog _log(String clientRecordId, String medicationId, String date) => DoseLog(
-  clientRecordId: clientRecordId,
-  serverId: null,
-  medicationClientRecordId: medicationId,
-  medicationServerId: null,
-  status: DoseStatus.taken,
-  scheduledDate: date,
-  scheduledTime: '08:00',
-  loggedAt: DateTime.utc(2026, 8, 25),
-  note: null,
-);
+DoseLog _log(String clientRecordId, String medicationId, String date) =>
+    DoseLog(
+      clientRecordId: clientRecordId,
+      serverId: null,
+      medicationClientRecordId: medicationId,
+      medicationServerId: null,
+      status: DoseStatus.taken,
+      scheduledDate: date,
+      scheduledTime: '08:00',
+      loggedAt: DateTime.utc(2026, 8, 25),
+      note: null,
+    );
 
 void main() {
   late AppDatabase db;
@@ -33,7 +34,11 @@ void main() {
     repo = FakeMedicationRepository(
       medications: <Medication>[
         fakeMedication(clientRecordId: 'm1', name: 'Aspirin'),
-        fakeMedication(clientRecordId: 'm2', name: 'Atorvastatin', active: false),
+        fakeMedication(
+          clientRecordId: 'm2',
+          name: 'Atorvastatin',
+          active: false,
+        ),
       ],
       history: <DoseLog>[
         _log('d1', 'm1', '2026-08-25'),
@@ -89,15 +94,14 @@ void main() {
   });
 
   test('the filter offers deactivated medications too (I5)', () async {
-
     final DoseHistoryState state = await container().read(
       doseHistoryControllerProvider.future,
     );
 
-    expect(
-      state.medications.map((Medication m) => m.clientRecordId),
-      <String>['m1', 'm2'],
-    );
+    expect(state.medications.map((Medication m) => m.clientRecordId), <String>[
+      'm1',
+      'm2',
+    ]);
   });
 
   test('each row carries its sync status from the shared queue (I5)', () async {

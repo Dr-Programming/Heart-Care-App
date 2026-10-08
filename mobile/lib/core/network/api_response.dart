@@ -1,5 +1,3 @@
-
-
 class ApiResponse<T> {
   const ApiResponse({
     required this.success,

@@ -12,11 +12,10 @@
 
 This is a design document, not a plan. Your first task is to turn it into one.
 
-1. `/superpowers:brainstorming` — settle what is left open below.
-2. `/superpowers:writing-plans` → `docs/plans/2026-XX-XX-mobile-m2-profile.md`.
-3. `/superpowers:subagent-driven-development` — execute task by task.
-4. `/superpowers:requesting-code-review`, then
-   `/superpowers:finishing-a-development-branch` — PR into `mobile`.
+1. Review the spec and settle what is left open below.
+2. Write the plan: `docs/plans/2026-XX-XX-mobile-m2-profile.md`.
+3. Carry out the plan task by task.
+4. Review your own branch, then open the PR into `mobile`.
 
 Read `mobile/CONTRIBUTING.md` first. Build bottom-up:
 domain → data → presentation.
@@ -328,6 +327,5 @@ are at least 44dp.
       single-field edit preserves the rest of the profile
 - [ ] No edits to shared files outside the marked regions
 - [ ] Screenshots in the PR, English and Amharic
-- [ ] No AI co-author trailer on any commit
 - [ ] PR into `mobile`, title `feat(mobile): M2 — Profile, onboarding & settings`
 - [ ] Told M3 which `Preferences` keys hold the reminder times

@@ -48,9 +48,15 @@ class _FakeMedicationListController extends MedicationListController {
 }
 
 Medication _medication(String id) => Medication(
-  clientRecordId: id, serverId: null, name: 'Aspirin', doseMg: 75,
-  frequency: MedicationFrequency.onceDaily, scheduleTimes: const <String>['08:00'],
-  active: true, createdAt: DateTime(2026, 8, 1), updatedAt: DateTime(2026, 8, 1),
+  clientRecordId: id,
+  serverId: null,
+  name: 'Aspirin',
+  doseMg: 75,
+  frequency: MedicationFrequency.onceDaily,
+  scheduleTimes: const <String>['08:00'],
+  active: true,
+  createdAt: DateTime(2026, 8, 1),
+  updatedAt: DateTime(2026, 8, 1),
 );
 
 Widget _routedMedicationsScreen() {
@@ -61,7 +67,8 @@ Widget _routedMedicationsScreen() {
         GoRoute(
           path: '/medications',
           name: AppRoutes.medications,
-          builder: (BuildContext _, GoRouterState _) => const MedicationsScreen(),
+          builder: (BuildContext _, GoRouterState _) =>
+              const MedicationsScreen(),
         ),
         GoRoute(
           path: '/medications/adherence',
@@ -89,7 +96,12 @@ void main() {
       const MedicationsScreen(),
       overrides: <Override>[
         medicationListControllerProvider.overrideWith(
-          () => _FakeMedicationListController(const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[])),
+          () => _FakeMedicationListController(
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
+            ),
+          ),
         ),
       ],
     );
@@ -108,7 +120,10 @@ void main() {
         overrides: <Override>[
           medicationListControllerProvider.overrideWith(
             () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+              const MedicationListState(
+                todaysDoses: <ScheduledDose>[],
+                medications: <Medication>[],
+              ),
             ),
           ),
         ],
@@ -130,7 +145,10 @@ void main() {
         overrides: <Override>[
           medicationListControllerProvider.overrideWith(
             () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+              const MedicationListState(
+                todaysDoses: <ScheduledDose>[],
+                medications: <Medication>[],
+              ),
             ),
           ),
         ],
@@ -146,11 +164,17 @@ void main() {
     },
   );
 
-  testWidgets('shows today\'s doses and the medication list when loaded', (tester) async {
+  testWidgets('shows today\'s doses and the medication list when loaded', (
+    tester,
+  ) async {
     const ScheduledDose dose = ScheduledDose(
-      medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
-      scheduledDate: '2026-08-25', scheduledTime: '08:00',
-      status: ScheduledDoseStatus.pending, doseLog: null,
+      medicationClientRecordId: 'm1',
+      medicationName: 'Aspirin',
+      doseMg: 75,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      status: ScheduledDoseStatus.pending,
+      doseLog: null,
     );
     await pumpApp(
       tester,
@@ -158,7 +182,10 @@ void main() {
       overrides: <Override>[
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            MedicationListState(todaysDoses: const <ScheduledDose>[dose], medications: <Medication>[_medication('m1')]),
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[dose],
+              medications: <Medication>[_medication('m1')],
+            ),
           ),
         ),
       ],
@@ -222,7 +249,6 @@ void main() {
   testWidgets(
     'a note typed on a logged dose reaches the repository (I6, FR-MED-008)',
     (tester) async {
-
       final FakeMedicationRepository repository = FakeMedicationRepository(
         medications: <Medication>[_medication('m1')],
         todays: <ScheduledDose>[
@@ -279,13 +305,16 @@ void main() {
       overrides: <Override>[
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
+            ),
           ),
         ),
       ],
     );
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
     await tester.pumpAndSettle();
 
     expect(find.byType(MedicationSearchScreen), findsOneWidget);
@@ -300,13 +329,16 @@ void main() {
         overrides: <Override>[
           medicationListControllerProvider.overrideWith(
             () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+              const MedicationListState(
+                todaysDoses: <ScheduledDose>[],
+                medications: <Medication>[],
+              ),
             ),
           ),
         ],
       );
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).first, 'Metoprolol');
@@ -339,13 +371,16 @@ void main() {
       overrides: <Override>[
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
+            ),
           ),
         ),
       ],
     );
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('common.enterManually'.tr()));
@@ -359,32 +394,36 @@ void main() {
     expect(state.doseMg, isEmpty);
   });
 
-  testWidgets('pressing back on the search screen returns to MedicationsScreen with no further navigation', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      const MedicationsScreen(),
-      overrides: <Override>[
-        medicationListControllerProvider.overrideWith(
-          () => _FakeMedicationListController(
-            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+  testWidgets(
+    'pressing back on the search screen returns to MedicationsScreen with no further navigation',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const MedicationsScreen(),
+        overrides: <Override>[
+          medicationListControllerProvider.overrideWith(
+            () => _FakeMedicationListController(
+              const MedicationListState(
+                todaysDoses: <ScheduledDose>[],
+                medications: <Medication>[],
+              ),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
 
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
-    expect(find.byType(MedicationSearchScreen), findsOneWidget);
+      await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
+      await tester.pumpAndSettle();
+      expect(find.byType(MedicationSearchScreen), findsOneWidget);
 
-    Navigator.of(tester.element(find.byType(MedicationSearchScreen))).pop();
-    await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(MedicationSearchScreen))).pop();
+      await tester.pumpAndSettle();
 
-    expect(find.byType(MedicationsScreen), findsOneWidget);
-    expect(find.byType(MedicationSearchScreen), findsNothing);
-    expect(find.byType(MedicationFormScreen), findsNothing);
-  });
+      expect(find.byType(MedicationsScreen), findsOneWidget);
+      expect(find.byType(MedicationSearchScreen), findsNothing);
+      expect(find.byType(MedicationFormScreen), findsNothing);
+    },
+  );
 
   testWidgets(
     'the full add flow (FAB -> search -> form -> review -> save) lands '
@@ -401,7 +440,9 @@ void main() {
             body: Center(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(builder: (_) => const MedicationsScreen()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MedicationsScreen(),
+                  ),
                 ),
                 child: const Text('app root'),
               ),
@@ -411,7 +452,10 @@ void main() {
         overrides: <Override>[
           medicationListControllerProvider.overrideWith(
             () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+              const MedicationListState(
+                todaysDoses: <ScheduledDose>[],
+                medications: <Medication>[],
+              ),
             ),
           ),
           medicationRepositoryProvider.overrideWithValue(repository),
@@ -432,7 +476,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(MedicationsScreen), findsOneWidget);
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
       await tester.pumpAndSettle();
       expect(find.byType(MedicationSearchScreen), findsOneWidget);
 
@@ -467,123 +511,139 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the full add flow persists caregiver settings and instructions, '
-    'entered while there was still no clientRecordId to key them by',
-    (tester) async {
-      final AppDatabase db = testDatabase();
-      addTearDown(db.close);
-      final FakeMedicationRepository repository = FakeMedicationRepository();
-      final CaregiverNotifyStore caregiverStore = CaregiverNotifyStore(db.preferencesDao);
-      final MedicationInstructionsStore instructionsStore = MedicationInstructionsStore(
-        db.preferencesDao,
-      );
+  testWidgets('the full add flow persists caregiver settings and instructions, '
+      'entered while there was still no clientRecordId to key them by', (
+    tester,
+  ) async {
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+    final FakeMedicationRepository repository = FakeMedicationRepository();
+    final CaregiverNotifyStore caregiverStore = CaregiverNotifyStore(
+      db.preferencesDao,
+    );
+    final MedicationInstructionsStore instructionsStore =
+        MedicationInstructionsStore(db.preferencesDao);
 
-      await pumpApp(
-        tester,
-        const MedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
             ),
           ),
-          medicationRepositoryProvider.overrideWithValue(repository),
-          medicationNotificationsProvider.overrideWithValue(
-            MedicationNotifications(RecordingScheduler(), db.preferencesDao),
-          ),
-          caregiverNotifyStoreProvider.overrideWithValue(caregiverStore),
-          medicationInstructionsStoreProvider.overrideWithValue(instructionsStore),
-        ],
-      );
+        ),
+        medicationRepositoryProvider.overrideWithValue(repository),
+        medicationNotificationsProvider.overrideWithValue(
+          MedicationNotifications(RecordingScheduler(), db.preferencesDao),
+        ),
+        caregiverNotifyStoreProvider.overrideWithValue(caregiverStore),
+        medicationInstructionsStoreProvider.overrideWithValue(
+          instructionsStore,
+        ),
+      ],
+    );
 
-      await tester.tap(find.byType(FloatingActionButton));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('common.enterManually'.tr()));
-      await tester.pumpAndSettle();
-      expect(find.byType(MedicationFormScreen), findsOneWidget);
+    await tester.tap(find.widgetWithText(AppButton, 'meds.add'.tr()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('common.enterManually'.tr()));
+    await tester.pumpAndSettle();
+    expect(find.byType(MedicationFormScreen), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
-      await tester.enterText(find.byType(TextField).at(1), '20');
+    await tester.enterText(find.byType(TextField).at(0), 'Atorvastatin');
+    await tester.enterText(find.byType(TextField).at(1), '20');
 
-      await tester.pump();
-      await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
-      await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
-      await tester.pump();
+    await tester.pump();
+    await tester.ensureVisible(find.text('meds.frequency.onceDaily'.tr()));
+    await tester.tap(find.text('meds.frequency.onceDaily'.tr()));
+    await tester.pump();
 
-      final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
-      expect(toggle.onChanged, isNotNull, reason: 'no longer disabled in add mode');
+    final SwitchListTile toggle = tester.widget(find.byType(SwitchListTile));
+    expect(
+      toggle.onChanged,
+      isNotNull,
+      reason: 'no longer disabled in add mode',
+    );
 
-      await tester.ensureVisible(find.byType(SwitchListTile));
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byType(TextField).at(2));
-      await tester.enterText(find.byType(TextField).at(2), '+251900000000');
-      await tester.pump();
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextField).at(2));
+    await tester.enterText(find.byType(TextField).at(2), '+251900000000');
+    await tester.pump();
 
-      await tester.ensureVisible(find.text('meds.form.instructions.afterMeal'.tr()));
-      await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
-      await tester.pump();
+    await tester.ensureVisible(
+      find.text('meds.form.instructions.afterMeal'.tr()),
+    );
+    await tester.tap(find.text('meds.form.instructions.afterMeal'.tr()));
+    await tester.pump();
 
-      await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
-      await tester.tap(find.text('meds.form.reviewButton'.tr()));
-      await tester.pumpAndSettle();
-      expect(find.byType(ReviewMedicationScreen), findsOneWidget);
+    await tester.ensureVisible(find.text('meds.form.reviewButton'.tr()));
+    await tester.tap(find.text('meds.form.reviewButton'.tr()));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReviewMedicationScreen), findsOneWidget);
 
-      await tester.ensureVisible(find.text('meds.review.save'.tr()));
-      await tester.tap(find.text('meds.review.save'.tr()));
-      await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('meds.review.save'.tr()));
+    await tester.tap(find.text('meds.review.save'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(MedicationsScreen), findsOneWidget);
-      expect(repository.medications, hasLength(1));
-      final String newId = repository.medications.single.clientRecordId;
+    expect(find.byType(MedicationsScreen), findsOneWidget);
+    expect(repository.medications, hasLength(1));
+    final String newId = repository.medications.single.clientRecordId;
 
-      final CaregiverNotifySettings savedCaregiver = await caregiverStore.get(newId);
-      expect(savedCaregiver.enabled, isTrue);
-      expect(savedCaregiver.phone, '+251900000000');
+    final CaregiverNotifySettings savedCaregiver = await caregiverStore.get(
+      newId,
+    );
+    expect(savedCaregiver.enabled, isTrue);
+    expect(savedCaregiver.phone, '+251900000000');
 
-      final MedicationInstructions savedInstructions = await instructionsStore.get(newId);
-      expect(savedInstructions, MedicationInstructions.afterMeal);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    final MedicationInstructions savedInstructions = await instructionsStore
+        .get(newId);
+    expect(savedInstructions, MedicationInstructions.afterMeal);
+    expect(tester.takeException(), isNull);
+  });
 
-  testWidgets(
-    'renders in Amharic without overflowing, alert and all (I9)',
-    (tester) async {
+  testWidgets('renders in Amharic without overflowing, alert and all (I9)', (
+    tester,
+  ) async {
+    const ScheduledDose dose = ScheduledDose(
+      medicationClientRecordId: 'm1',
+      medicationName: 'Aspirin',
+      doseMg: 75,
+      scheduledDate: '2026-08-25',
+      scheduledTime: '08:00',
+      status: ScheduledDoseStatus.pending,
+      doseLog: null,
+    );
 
-      const ScheduledDose dose = ScheduledDose(
-        medicationClientRecordId: 'm1', medicationName: 'Aspirin', doseMg: 75,
-        scheduledDate: '2026-08-25', scheduledTime: '08:00',
-        status: ScheduledDoseStatus.pending, doseLog: null,
-      );
-
-      await pumpApp(
-        tester,
-        const MedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              MedicationListState(
-                todaysDoses: const <ScheduledDose>[dose],
-                medications: <Medication>[_medication('m1')],
-                missedRunAlerts: <Medication>[_medication('m1')],
-              ),
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[dose],
+              medications: <Medication>[_medication('m1')],
+              missedRunAlerts: <Medication>[_medication('m1')],
             ),
           ),
-        ],
-        language: AppLanguage.am,
-      );
+        ),
+      ],
+      language: AppLanguage.am,
+    );
 
-      final String title = 'meds.title'.tr();
-      expect(title, isNot('Medications'));
-      expect(title, isNot('meds.title'));
-      expect(find.text(title), findsOneWidget);
-      expect(find.text('meds.alert.missedRunTitle'.tr()), findsOneWidget);
+    final String title = 'meds.title'.tr();
+    expect(title, isNot('Medications'));
+    expect(title, isNot('meds.title'));
+    expect(find.text(title), findsOneWidget);
+    expect(find.text('meds.alert.missedRunTitle'.tr()), findsOneWidget);
 
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     "the tab bar's selected-tab fill uses AppColors.ink, not AppColors.primary",
@@ -612,128 +672,129 @@ void main() {
     },
   );
 
-  testWidgets(
-    'switching to the Schedule tab shows the medication list',
-    (tester) async {
-      await pumpApp(
-        tester,
-        const MedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              MedicationListState(
-                todaysDoses: const <ScheduledDose>[],
-                medications: <Medication>[_medication('m1')],
-              ),
+  testWidgets('switching to the Schedule tab shows the medication list', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[],
+              medications: <Medication>[_medication('m1')],
             ),
           ),
-        ],
-      );
-
-      await tester.tap(find.text('meds.schedule'.tr()));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(MedicationCard), findsOneWidget);
-      expect(find.text('meds.yourMedications'.tr()), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'switching to the History tab shows dose history content',
-    (tester) async {
-      final _FakeDoseHistoryController historyController = _FakeDoseHistoryController(
-        DoseHistoryState(
-          entries: <DoseHistoryEntry>[
-            DoseHistoryEntry(
-              log: DoseLog(
-                clientRecordId: 'd1',
-                serverId: null,
-                medicationClientRecordId: 'm1',
-                medicationServerId: null,
-                status: DoseStatus.taken,
-                scheduledDate: '2026-08-25',
-                scheduledTime: '08:00',
-                loggedAt: DateTime.utc(2026, 8, 25),
-                note: null,
-              ),
-              medicationName: 'Aspirin',
-              syncStatus: null,
-            ),
-          ],
-          medications: <Medication>[_medication('m1')],
-          filter: const DoseHistoryFilter(),
         ),
-      );
+      ],
+    );
 
-      await pumpApp(
-        tester,
-        const MedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              MedicationListState(
-                todaysDoses: const <ScheduledDose>[],
-                medications: <Medication>[_medication('m1')],
+    await tester.tap(find.text('meds.schedule'.tr()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MedicationCard), findsOneWidget);
+    expect(find.text('meds.yourMedications'.tr()), findsOneWidget);
+  });
+
+  testWidgets('switching to the History tab shows dose history content', (
+    tester,
+  ) async {
+    final _FakeDoseHistoryController historyController =
+        _FakeDoseHistoryController(
+          DoseHistoryState(
+            entries: <DoseHistoryEntry>[
+              DoseHistoryEntry(
+                log: DoseLog(
+                  clientRecordId: 'd1',
+                  serverId: null,
+                  medicationClientRecordId: 'm1',
+                  medicationServerId: null,
+                  status: DoseStatus.taken,
+                  scheduledDate: '2026-08-25',
+                  scheduledTime: '08:00',
+                  loggedAt: DateTime.utc(2026, 8, 25),
+                  note: null,
+                ),
+                medicationName: 'Aspirin',
+                syncStatus: null,
               ),
+            ],
+            medications: <Medication>[_medication('m1')],
+            filter: const DoseHistoryFilter(),
+          ),
+        );
+
+    await pumpApp(
+      tester,
+      const MedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            MedicationListState(
+              todaysDoses: const <ScheduledDose>[],
+              medications: <Medication>[_medication('m1')],
             ),
           ),
-          doseHistoryControllerProvider.overrideWith(() => historyController),
-        ],
-      );
+        ),
+        doseHistoryControllerProvider.overrideWith(() => historyController),
+      ],
+    );
 
-      await tester.tap(find.text('meds.historyTab'.tr()));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('meds.historyTab'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(DoseHistoryContent), findsOneWidget);
-      expect(find.text('meds.history.syncPending'.tr()), findsNothing);
-    },
-  );
+    expect(find.byType(DoseHistoryContent), findsOneWidget);
+    expect(find.text('meds.history.syncPending'.tr()), findsNothing);
+  });
 
-  testWidgets(
-    'the app-bar menu navigates to Adherence',
-    (tester) async {
-      await pumpApp(
-        tester,
-        _routedMedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+  testWidgets('the app-bar menu navigates to Adherence', (tester) async {
+    await pumpApp(
+      tester,
+      _routedMedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
             ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('meds.adherence.title'.tr()));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('meds.adherence.title'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(find.text('adherence destination'), findsOneWidget);
-    },
-  );
+    expect(find.text('adherence destination'), findsOneWidget);
+  });
 
-  testWidgets(
-    'the app-bar menu navigates to Reminder Settings',
-    (tester) async {
-      await pumpApp(
-        tester,
-        _routedMedicationsScreen(),
-        overrides: <Override>[
-          medicationListControllerProvider.overrideWith(
-            () => _FakeMedicationListController(
-              const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+  testWidgets('the app-bar menu navigates to Reminder Settings', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      _routedMedicationsScreen(),
+      overrides: <Override>[
+        medicationListControllerProvider.overrideWith(
+          () => _FakeMedicationListController(
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
             ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
 
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('meds.reminders.title'.tr()));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('meds.reminders.title'.tr()));
+    await tester.pumpAndSettle();
 
-      expect(find.text('reminder settings destination'), findsOneWidget);
-    },
-  );
+    expect(find.text('reminder settings destination'), findsOneWidget);
+  });
 }

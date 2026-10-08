@@ -6,14 +6,17 @@ import '../../../../core/theme/app_spacing.dart';
 import 'simple_time_picker.dart';
 
 class TimeListField extends StatelessWidget {
-  const TimeListField({required this.times, required this.onChanged, super.key});
+  const TimeListField({
+    required this.times,
+    required this.onChanged,
+    super.key,
+  });
 
   final List<String> times;
   final ValueChanged<List<String>> onChanged;
 
   @override
   Widget build(BuildContext context) {
-
     final OutlinedBorder chipShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppSpacing.lg),
     );
@@ -25,10 +28,10 @@ class TimeListField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-
         Text(
           'meds.form.reminderTimesLabel'.tr(),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textTertiary),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(color: AppColors.textTertiary),
         ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
@@ -38,14 +41,16 @@ class TimeListField extends StatelessWidget {
             for (final String time in times)
               InputChip(
                 label: Text(time),
-                onDeleted: () => onChanged(times.where((String t) => t != time).toList()),
+                onDeleted: () =>
+                    onChanged(times.where((String t) => t != time).toList()),
                 backgroundColor: AppColors.surfaceAlt,
                 side: const BorderSide(color: AppColors.border),
                 shape: chipShape,
                 padding: chipPadding,
-                labelStyle: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.ink, fontWeight: FontWeight.w600),
+                labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w600,
+                ),
                 deleteIconColor: AppColors.textSecondary,
               ),
             ActionChip(
@@ -56,9 +61,10 @@ class TimeListField extends StatelessWidget {
               side: const BorderSide(color: AppColors.accent),
               shape: chipShape,
               padding: chipPadding,
-              labelStyle: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.accent, fontWeight: FontWeight.w600),
+              labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -67,7 +73,6 @@ class TimeListField extends StatelessWidget {
   }
 
   Future<void> _pickTime(BuildContext context) async {
-
     final TimeOfDay? picked = await SimpleTimePicker.show(context);
     if (picked == null) return;
     final String formatted =

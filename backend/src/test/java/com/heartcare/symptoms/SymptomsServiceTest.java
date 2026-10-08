@@ -2,6 +2,7 @@ package com.heartcare.symptoms;
 
 import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.symptoms.dto.SymptomLogRequest;
 import com.heartcare.symptoms.dto.SymptomLogResponse;
 import com.heartcare.symptoms.model.SymptomLog;
@@ -43,7 +44,8 @@ class SymptomsServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new SymptomsService(symptomsRepository, new SymptomAssessment(), saver);
+        service = new SymptomsService(symptomsRepository, new SymptomAssessment(), saver,
+                new ClientZone("Africa/Addis_Ababa", 300));
         // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
         // saved, mirroring a successful (non-racing) insert.
         lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
@@ -175,11 +177,12 @@ class SymptomsServiceTest {
     }
 
     @Test
-    void historyDelegatesWithUtcDayBounds() {
+    void historyDelegatesWithClientZoneDayBounds() {
         LocalDate from = LocalDate.of(2026, 7, 1);
         LocalDate to = LocalDate.of(2026, 7, 31);
-        OffsetDateTime fromTs = OffsetDateTime.of(2026, 7, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime toTs = OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        // Outside a request ClientZone falls back to Africa/Addis_Ababa (UTC+3).
+        OffsetDateTime fromTs = OffsetDateTime.of(2026, 7, 1, 0, 0, 0, 0, ZoneOffset.ofHours(3));
+        OffsetDateTime toTs = OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.ofHours(3));
         when(symptomsRepository.findHistory(userId, fromTs, toTs)).thenReturn(List.of());
 
         service.history(userId, from, to);

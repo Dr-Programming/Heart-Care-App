@@ -5,7 +5,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 
 class RangeToggle extends StatelessWidget {
-  const RangeToggle({required this.selectedDays, required this.onChanged, super.key});
+  const RangeToggle({
+    required this.selectedDays,
+    required this.onChanged,
+    super.key,
+  });
 
   final int selectedDays;
   final ValueChanged<int> onChanged;

@@ -38,7 +38,10 @@ class _FakeScheduler implements NotificationScheduler {
   Future<List<PendingScheduledNotification>> pending() async {
     return scheduled
         .where((_Scheduled s) => !cancelledIds.contains(s.id))
-        .map((_Scheduled s) => PendingScheduledNotification(id: s.id, payload: s.payload))
+        .map(
+          (_Scheduled s) =>
+              PendingScheduledNotification(id: s.id, payload: s.payload),
+        )
         .toList();
   }
 
@@ -85,15 +88,23 @@ void main() {
   });
 
   test('the follow-up fires one hour after the main notification', () async {
-    await notifications.scheduleFor(_medication(times: const <String>['08:00']));
-    final _Scheduled main = scheduler.scheduled.firstWhere((_Scheduled s) => s.payload.endsWith('|main'));
-    final _Scheduled followUp = scheduler.scheduled.firstWhere((_Scheduled s) => s.payload.endsWith('|follow'));
+    await notifications.scheduleFor(
+      _medication(times: const <String>['08:00']),
+    );
+    final _Scheduled main = scheduler.scheduled.firstWhere(
+      (_Scheduled s) => s.payload.endsWith('|main'),
+    );
+    final _Scheduled followUp = scheduler.scheduled.firstWhere(
+      (_Scheduled s) => s.payload.endsWith('|follow'),
+    );
     expect(followUp.when.difference(main.when), const Duration(hours: 1));
   });
 
   test('rescheduling replaces rather than duplicating', () async {
     await notifications.scheduleFor(_medication());
-    final Set<int> firstIds = scheduler.scheduled.map((_Scheduled s) => s.id).toSet();
+    final Set<int> firstIds = scheduler.scheduled
+        .map((_Scheduled s) => s.id)
+        .toSet();
 
     await notifications.scheduleFor(_medication());
 

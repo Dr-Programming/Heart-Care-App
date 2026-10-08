@@ -99,7 +99,8 @@ class ResearchAnalyticsIntegrationTest extends ResearchTestSupport {
         for (int d = 1; d <= 10; d++) {
             mockMvc.perform(post("/api/v1/medications/" + medId + "/doses").header("Authorization", auth)
                             .contentType(APPLICATION_JSON)
-                            .content("{ \"status\": \"%s\", \"scheduledDate\": \"2026-03-%02d\" }".formatted(d <= taken ? "TAKEN" : "MISSED", d)))
+                            .content("{ \"status\": \"%s\", \"scheduledDate\": \"2026-03-%02d\", \"clientRecordId\": \"%s\" }"
+                                    .formatted(d <= taken ? "TAKEN" : "MISSED", d, java.util.UUID.randomUUID())))
                     .andExpect(status().isOk());
         }
     }

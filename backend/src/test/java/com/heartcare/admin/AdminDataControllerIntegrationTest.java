@@ -140,7 +140,7 @@ class AdminDataControllerIntegrationTest extends AbstractIntegrationTest {
                     "bloodPressure": { "systolic": 165, "diastolic": 92 },
                     "swelling": true,
                     "energyLevel": 4
-                }, "note": "tight chest" }""");
+                }, "note": "tight chest", "measuredAt": "2026-07-01T09:00:00Z" }""");
         asPatient(token, "/api/v1/symptoms", """
                 { "data": {
                     "chestPain": { "present": false },
@@ -166,8 +166,8 @@ class AdminDataControllerIntegrationTest extends AbstractIntegrationTest {
         String med = asPatient(token, "/api/v1/medications",
                 "{ \"name\": \"Aspirin\", \"doseMg\": 81, \"frequency\": \"ONCE_DAILY\", \"scheduleTimes\": [\"08:00\"] }");
         String medId = JsonPath.read(med, "$.data.id");
-        asPatient(token, "/api/v1/medications/" + medId + "/doses", "{ \"status\": \"TAKEN\", \"scheduledDate\": \"2026-07-01\" }");
-        asPatient(token, "/api/v1/medications/" + medId + "/doses", "{ \"status\": \"MISSED\", \"scheduledDate\": \"2026-07-02\" }");
+        asPatient(token, "/api/v1/medications/" + medId + "/doses", "{ \"status\": \"TAKEN\", \"scheduledDate\": \"2026-07-01\", \"clientRecordId\": \"%s\" }".formatted(java.util.UUID.randomUUID()));
+        asPatient(token, "/api/v1/medications/" + medId + "/doses", "{ \"status\": \"MISSED\", \"scheduledDate\": \"2026-07-02\", \"clientRecordId\": \"%s\" }".formatted(java.util.UUID.randomUUID()));
         String userId = userIdOf(token);
 
         adminGet("/api/v1/admin/users/" + userId + "/medications")

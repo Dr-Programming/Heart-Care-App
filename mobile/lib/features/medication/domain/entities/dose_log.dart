@@ -1,4 +1,3 @@
-
 class DoseLog {
   const DoseLog({
     required this.clientRecordId,

@@ -1,3 +1,4 @@
+import '../../../../core/sync/history_window.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/db/app_database.dart' show SyncEntityType;
 import '../../../../core/sync/sync_queue_dao.dart';
@@ -8,13 +9,45 @@ import '../../domain/entities/vital_reading.dart';
 import '../../domain/entities/vital_type.dart';
 import '../../domain/repositories/vitals_repository.dart';
 import '../datasources/vitals_local_datasource.dart';
+import '../datasources/vitals_remote_datasource.dart';
 import '../models/vital_model.dart';
 
 class VitalsRepositoryImpl implements VitalsRepository {
-  VitalsRepositoryImpl({required this.local, required this.syncEnqueuer});
+  VitalsRepositoryImpl({
+    required this.local,
+    required this.syncEnqueuer,
+    this.remote,
+    Future<bool> Function()? isOnline,
+  }) : isOnline = isOnline ?? _offline;
 
   final VitalsLocalDataSource local;
   final SyncEnqueuer syncEnqueuer;
+  final VitalsRemoteDataSource? remote;
+  final Future<bool> Function() isOnline;
+
+  static Future<bool> _offline() async => false;
+
+  /// Brings back readings the server has and the phone doesn't (a new phone,
+  /// or another patient used this one). Never overwrites a local reading.
+  Future<void> restoreFromServer() async {
+    final VitalsRemoteDataSource? source = remote;
+    if (source == null || !await isOnline()) return;
+    // Newest week first, then the rest of the month kept on the phone.
+    for (final DayRange range in restoreRanges()) {
+      for (final VitalModel server in await source.history(
+        from: range.fromParam,
+        to: range.toParam,
+      )) {
+        final String clientRecordId = server.clientRecordId.isNotEmpty
+            ? server.clientRecordId
+            : (server.serverId ?? '');
+        if (clientRecordId.isEmpty || await local.exists(clientRecordId)) {
+          continue;
+        }
+        await local.insert(server.copyWith(clientRecordId: clientRecordId));
+      }
+    }
+  }
 
   @override
   Future<VitalReading> logReading({

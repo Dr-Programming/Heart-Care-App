@@ -7,6 +7,7 @@ import com.heartcare.activity.model.ActivityType;
 import com.heartcare.activity.model.Intensity;
 import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,10 +41,13 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final IdempotentSaver saver;
+    private final ClientZone clientZone;
 
-    public ActivityService(ActivityRepository activityRepository, IdempotentSaver saver) {
+    public ActivityService(ActivityRepository activityRepository, IdempotentSaver saver,
+                           ClientZone clientZone) {
         this.activityRepository = activityRepository;
         this.saver = saver;
+        this.clientZone = clientZone;
     }
 
     // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
@@ -57,6 +61,7 @@ public class ActivityService {
             return toResponse(existing.get());
         }
 
+        clientZone.assertNotFuture(request.measuredAt(), "measuredAt");
         Map<String, Object> data = validate(request.data());
 
         ActivityLog log = new ActivityLog();
@@ -72,9 +77,10 @@ public class ActivityService {
 
     @Transactional(readOnly = true)
     public List<ActivityLogResponse> history(UUID userId, LocalDate from, LocalDate to) {
-        // Bucket calendar-date filters by UTC day; the query range is half-open [fromTs, toTs).
-        OffsetDateTime fromTs = from == null ? MIN_INSTANT : from.atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
-        OffsetDateTime toTs = to == null ? MAX_INSTANT : to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toOffsetDateTime();
+        // Bucket calendar-date filters by the patient's local day (ClientZone); the query range
+        // is half-open [fromTs, toTs).
+        OffsetDateTime fromTs = from == null ? MIN_INSTANT : clientZone.startOfDay(from);
+        OffsetDateTime toTs = to == null ? MAX_INSTANT : clientZone.startOfDay(to.plusDays(1));
         return activityRepository.findHistory(userId, fromTs, toTs)
                 .stream().map(this::toResponse).toList();
     }

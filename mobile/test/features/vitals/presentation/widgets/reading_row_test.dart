@@ -9,7 +9,9 @@ import '../../../../helpers/pump_app.dart';
 void main() {
   setUpWidgetTests();
 
-  testWidgets('saving a systolic of 190 shows an urgent status', (WidgetTester tester) async {
+  testWidgets('saving a systolic of 190 shows an urgent status', (
+    WidgetTester tester,
+  ) async {
     final VitalReading reading = VitalReading(
       clientRecordId: 'c1',
       serverId: null,
@@ -23,7 +25,9 @@ void main() {
 
     await pumpApp(
       tester,
-      Scaffold(body: ReadingRow(reading: reading, localeCode: 'en')),
+      Scaffold(
+        body: ReadingRow(reading: reading, localeCode: 'en'),
+      ),
     );
 
     expect(find.text('190/100 mmHg'), findsOneWidget);

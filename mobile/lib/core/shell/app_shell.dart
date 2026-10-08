@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
+import '../sync/history_window.dart';
 import '../providers/core_providers.dart';
 import '../theme/app_colors.dart';
 
@@ -73,9 +74,7 @@ class _AppShellState extends ConsumerState<AppShell>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(syncServiceProvider).syncNow();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncAndTidy());
     _startRetrying();
   }
 
@@ -89,11 +88,25 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.read(syncServiceProvider).syncNow();
+      _syncAndTidy();
       _startRetrying();
     } else if (state == AppLifecycleState.paused) {
       _retryTimer?.cancel();
     }
+  }
+
+  /// Sends what is waiting, then deletes records older than the month kept
+  /// on the phone that are safely on the server.
+  void _syncAndTidy() {
+    unawaited(() async {
+      try {
+        await ref.read(syncServiceProvider).syncNow();
+        if (!mounted) return;
+        await ref.read(appDatabaseProvider).pruneOldSyncedRecords();
+      } on Object {
+        // Tidying is best effort; it runs again next time the app opens.
+      }
+    }());
   }
 
   void _startRetrying() {

@@ -118,7 +118,6 @@ GoRouter buildRouter(Ref ref, FeatureRoutes features) {
 }
 
 String? _redirect(AuthGate gate, String location) {
-
   if (!gate.isResolved) {
     return location == AppRoutes.splashPath ? null : AppRoutes.splashPath;
   }

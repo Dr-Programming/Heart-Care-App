@@ -231,218 +231,200 @@ class _FormBody extends ConsumerWidget {
         state.frequency == MedicationFrequency.custom &&
         state.scheduleTimes.isEmpty;
 
-    return AppScaffold.banded(
-      showBack: false,
+    return UnsavedChangesGuard(
+      dirty: editingId == null && state.isDirty,
+      child: AppScaffold.banded(
+        showBack: false,
 
-      scrollable: true,
-      bandChild: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(height: AppSpacing.xs),
+        scrollable: true,
+        bandChild: BandHeader(
+          title: 'meds.form.title'.tr(),
+          subtitle: 'meds.form.subtitle'.tr(),
+        ),
 
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'meds.form.title'.tr(),
-              style: Theme.of(context).textTheme.headlineLarge
-                  ?.copyWith(fontSize: 28),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(height: AppSpacing.xl),
+            AppTextField(
+              controller: nameController,
+              label: 'meds.form.name'.tr(),
+              hint: 'meds.form.nameHint'.tr(),
+              errorText: state.nameError?.tr(),
+              onChanged: controller.setName,
             ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
 
-          Text(
-            'meds.form.subtitle'.tr(),
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(color: AppColors.ink),
-          ),
-        ],
-      ),
+            if (editingId == null && state.doseMg.trim().isEmpty)
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: nameController,
+                builder:
+                    (BuildContext context, TextEditingValue value, Widget? _) {
+                      final String query = value.text.trim();
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const SizedBox(height: AppSpacing.xl),
-          AppTextField(
-            controller: nameController,
-            label: 'meds.form.name'.tr(),
-            hint: 'meds.form.nameHint'.tr(),
-            errorText: state.nameError?.tr(),
-            onChanged: controller.setName,
-          ),
-
-          if (editingId == null && state.doseMg.trim().isEmpty)
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: nameController,
-              builder:
-                  (BuildContext context, TextEditingValue value, Widget? _) {
-                    final String query = value.text.trim();
-
-                    if (query.length < 2) return const SizedBox.shrink();
-                    final List<MedicationLibraryEntry> suggestions =
-                        searchMedicationLibrary(query).take(4).toList();
-                    if (suggestions.isEmpty) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          for (final MedicationLibraryEntry entry
-                              in suggestions)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.xs,
+                      if (query.length < 2) return const SizedBox.shrink();
+                      final List<MedicationLibraryEntry> suggestions =
+                          searchMedicationLibrary(query).take(4).toList();
+                      if (suggestions.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            for (final MedicationLibraryEntry entry
+                                in suggestions)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.xs,
+                                ),
+                                child: _NameSuggestionTile(
+                                  entry: entry,
+                                  onTap: () {
+                                    controller.setName(entry.name);
+                                    nameController.text = entry.name;
+                                    final String dose = _formatDose(
+                                      entry.doseMg,
+                                    );
+                                    controller.setDoseMg(dose);
+                                    doseController.text = dose;
+                                  },
+                                ),
                               ),
-                              child: _NameSuggestionTile(
-                                entry: entry,
-                                onTap: () {
-                                  controller.setName(entry.name);
-                                  nameController.text = entry.name;
-                                  final String dose = _formatDose(entry.doseMg);
-                                  controller.setDoseMg(dose);
-                                  doseController.text = dose;
-                                },
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-            ),
-          const SizedBox(height: AppSpacing.lg),
-
-          Text(
-            'meds.form.dosageLabel'.tr(),
-            style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _DoseQuickPicks(
-            medicationName: state.name,
-            onSelected: (String dose) {
-              controller.setDoseMg(dose);
-              doseController.text = dose;
-            },
-          ),
-          AppTextField(
-            controller: doseController,
-            label: 'meds.form.doseMg'.tr(),
-            keyboardType: TextInputType.number,
-            errorText: state.doseError?.tr(),
-            onChanged: controller.setDoseMg,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'meds.form.frequencyLabel'.tr(),
-            style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: <Widget>[
-              for (final MedicationFrequency f in MedicationFrequency.values)
-                _FrequencyChip(
-                  frequency: f,
-
-                  selected: f == MedicationFrequency.custom
-                      ? (state.frequency == MedicationFrequency.custom &&
-                            state.scheduleTimes.isNotEmpty)
-                      : state.frequency == f,
-                  onSelected: () => controller.setFrequency(f),
-                ),
-              _AsNeededChip(
-                selected: isAsNeeded,
-                onSelected: () {
-                  controller.setFrequency(MedicationFrequency.custom);
-
-                  controller.setScheduleTimes(const <String>[]);
-                },
+                          ],
+                        ),
+                      );
+                    },
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (isAsNeeded) ...<Widget>[
+            const SizedBox(height: AppSpacing.lg),
+
             Text(
-              'meds.form.asNeededCaption'.tr(),
-              style: Theme.of(context).textTheme.bodySmall
+              'meds.form.dosageLabel'.tr(),
+              style: Theme.of(context).textTheme.labelSmall
                   ?.copyWith(color: AppColors.textTertiary),
             ),
-          ] else ...<Widget>[
-            TimeListField(
-              times: state.scheduleTimes,
-              onChanged: controller.setScheduleTimes,
+            const SizedBox(height: AppSpacing.sm),
+            _DoseQuickPicks(
+              medicationName: state.name,
+              currentDose: doseController.text,
+              onSelected: (String dose) {
+                controller.setDoseMg(dose);
+                doseController.text = dose;
+              },
             ),
-            if (state.scheduleError != null) ...<Widget>[
-              const SizedBox(height: AppSpacing.xs),
+            AppTextField(
+              controller: doseController,
+              label: 'meds.form.doseMg'.tr(),
+              keyboardType: TextInputType.number,
+              errorText: state.doseError?.tr(),
+              onChanged: controller.setDoseMg,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'meds.form.frequencyLabel'.tr(),
+              style: Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(color: AppColors.textTertiary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: <Widget>[
+                for (final MedicationFrequency f in MedicationFrequency.values)
+                  _FrequencyChip(
+                    frequency: f,
+
+                    selected: f == MedicationFrequency.custom
+                        ? (state.frequency == MedicationFrequency.custom &&
+                              state.scheduleTimes.isNotEmpty)
+                        : state.frequency == f,
+                    onSelected: () => controller.setFrequency(f),
+                  ),
+                _AsNeededChip(
+                  selected: isAsNeeded,
+                  onSelected: () {
+                    controller.setFrequency(MedicationFrequency.custom);
+
+                    controller.setScheduleTimes(const <String>[]);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            if (isAsNeeded) ...<Widget>[
               Text(
-                state.scheduleError!.tr(),
-                style: Theme.of(context).textTheme.bodySmall,
+                'meds.form.asNeededCaption'.tr(),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textTertiary),
+              ),
+            ] else ...<Widget>[
+              TimeListField(
+                times: state.scheduleTimes,
+                onChanged: controller.setScheduleTimes,
+              ),
+              if (state.scheduleError != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  state.scheduleError!.tr(),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppColors.critical),
+                ),
+              ],
+            ],
+
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'meds.form.instructions.sectionLabel'.tr(),
+              style: Theme.of(context).textTheme.labelSmall
+                  ?.copyWith(color: AppColors.textTertiary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: <Widget>[
+                for (final MedicationInstructions option
+                    in const <MedicationInstructions>[
+                      MedicationInstructions.afterMeal,
+                      MedicationInstructions.withFood,
+                      MedicationInstructions.beforeMeal,
+                    ])
+                  _InstructionsChip(
+                    option: option,
+                    selected: instructions == option,
+                    onSelected: () => onInstructionsChanged(option),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('meds.form.notifyCaregiver'.tr()),
+              value: caregiverEnabled,
+              onChanged: onCaregiverEnabledChanged,
+            ),
+            if (caregiverEnabled) ...<Widget>[
+              const SizedBox(height: AppSpacing.sm),
+              AppTextField(
+                label: 'meds.form.caregiverPhone'.tr(),
+                controller: caregiverPhoneController,
+                keyboardType: TextInputType.phone,
+                onChanged: onCaregiverPhoneChanged,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xxl),
+            _ReviewButton(
+              isLoading: state.isSaving,
+              onPressed: () => _reviewIfValid(context, controller),
+            ),
+            if (editingId != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                label: 'meds.deactivate'.tr(),
+                variant: AppButtonVariant.danger,
+                onPressed: () => _confirmDeactivate(context, ref, editingId!),
               ),
             ],
           ],
-
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'meds.form.instructions.sectionLabel'.tr(),
-            style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: <Widget>[
-              for (final MedicationInstructions option
-                  in const <MedicationInstructions>[
-                    MedicationInstructions.afterMeal,
-                    MedicationInstructions.withFood,
-                    MedicationInstructions.beforeMeal,
-                  ])
-                _InstructionsChip(
-                  option: option,
-                  selected: instructions == option,
-                  onSelected: () => onInstructionsChanged(option),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text('meds.form.notifyCaregiver'.tr()),
-            value: caregiverEnabled,
-            onChanged: onCaregiverEnabledChanged,
-          ),
-          if (caregiverEnabled) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
-            AppTextField(
-              label: 'meds.form.caregiverPhone'.tr(),
-              controller: caregiverPhoneController,
-              keyboardType: TextInputType.phone,
-              onChanged: onCaregiverPhoneChanged,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.xxl),
-          _ReviewButton(
-            isLoading: state.isSaving,
-            onPressed: () => _reviewIfValid(context, controller),
-          ),
-          if (editingId != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'meds.deactivate'.tr(),
-              variant: AppButtonVariant.danger,
-              onPressed: () => _confirmDeactivate(context, ref, editingId!),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -488,10 +470,14 @@ class _DoseQuickPicks extends StatelessWidget {
   const _DoseQuickPicks({
     required this.medicationName,
     required this.onSelected,
+    this.currentDose = '',
   });
 
   final String medicationName;
   final ValueChanged<String> onSelected;
+
+  /// The dose in the field; its pick is shown as selected.
+  final String currentDose;
 
   @override
   Widget build(BuildContext context) {
@@ -511,16 +497,28 @@ class _DoseQuickPicks extends StatelessWidget {
         runSpacing: AppSpacing.sm,
         children: <Widget>[
           for (final double dose in doses)
-            ActionChip(
-              label: Text('${_formatDose(dose)} mg'),
-              onPressed: () => onSelected(_formatDose(dose)),
-              backgroundColor: AppColors.surfaceAlt,
-              side: const BorderSide(color: AppColors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.lg),
-              ),
-              labelStyle: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.ink, fontWeight: FontWeight.w600),
+            Builder(
+              builder: (BuildContext context) {
+                final bool selected = currentDose.trim() == _formatDose(dose);
+                return ChoiceChip(
+                  label: Text('${_formatDose(dose)} mg'),
+                  selected: selected,
+                  showCheckmark: false,
+                  onSelected: (_) => onSelected(_formatDose(dose)),
+                  selectedColor: AppColors.ink,
+                  backgroundColor: AppColors.surfaceAlt,
+                  side: BorderSide(
+                    color: selected ? AppColors.ink : AppColors.border,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.lg),
+                  ),
+                  labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: selected ? AppColors.surface : AppColors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
             ),
         ],
       ),

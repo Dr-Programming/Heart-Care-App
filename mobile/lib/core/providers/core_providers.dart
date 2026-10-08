@@ -5,11 +5,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../caregiver/caregiver_contact.dart';
+import '../clinic/clinic_contact.dart';
 import '../config/env.dart';
 import '../db/app_database.dart';
 import '../localization/language.dart';
 import '../network/dio_client.dart';
 import '../network/server_reachability.dart';
+import '../network/token_refresher.dart';
 import '../security/token_store.dart';
 import '../sync/sync_queue_dao.dart';
 import '../sync/sync_service.dart';
@@ -33,8 +36,22 @@ final Provider<TokenStore> tokenStoreProvider = Provider<TokenStore>(
 
 final Provider<Dio> dioProvider = Provider<Dio>((Ref ref) {
   final TokenStore tokens = ref.watch(tokenStoreProvider);
-  return buildDio(baseUrl: Env.apiBaseUrl, readToken: tokens.read);
+  return buildDio(
+    baseUrl: Env.apiBaseUrl,
+    readToken: tokens.read,
+    refresh: (Dio plain) =>
+        TokenRefresher(dio: plain, tokens: tokens).refresh(),
+    // Read at call time, not watched: the auth feature's handler itself
+    // depends on this Dio.
+    onSessionExpired: () => ref.read(sessionExpiredHandlerProvider)(),
+  );
 });
+
+/// Called when the server refuses to renew the session (the refresh token
+/// expired or was revoked). Core cannot see auth, so the default does
+/// nothing; the auth feature overrides it to send the patient to sign-in.
+final Provider<Future<void> Function()> sessionExpiredHandlerProvider =
+    Provider<Future<void> Function()>((Ref ref) => () async {});
 
 final Provider<Future<bool> Function()> isOnlineProvider =
     Provider<Future<bool> Function()>((Ref ref) {
@@ -125,6 +142,18 @@ final StreamProvider<CachedUser?> cachedUserProvider =
       (Ref ref) => ref.watch(appDatabaseProvider).cachedUserDao.watchCurrent(),
     );
 
+final Provider<ClinicContactStore> clinicContactStoreProvider =
+    Provider<ClinicContactStore>(
+      (Ref ref) =>
+          ClinicContactStore(ref.watch(appDatabaseProvider).preferencesDao),
+    );
+
+final Provider<CaregiverContactStore> caregiverContactStoreProvider =
+    Provider<CaregiverContactStore>(
+      (Ref ref) =>
+          CaregiverContactStore(ref.watch(appDatabaseProvider).preferencesDao),
+    );
+
 final Provider<SyncQueueDao> syncQueueDaoProvider = Provider<SyncQueueDao>(
   (Ref ref) => SyncQueueDao(ref.watch(appDatabaseProvider)),
 );
@@ -143,6 +172,45 @@ final Provider<Future<bool> Function()> sessionRefresherProvider =
           () async => true,
     );
 
+/// Run when a different patient signs in on this phone: the previous
+/// patient's records must not be shown to, or synced as, the new one.
+/// Features add their own clean-up (scheduled reminders) in app wiring.
+final Provider<Future<void> Function()> patientSwitchHandlerProvider =
+    Provider<Future<void> Function()>(
+      (Ref ref) =>
+          () => ref.read(appDatabaseProvider).clearPatientData(),
+    );
+
+/// Run on sign-out before the session ends, while the token still works, so
+/// records waiting to sync are not stranded. App wiring sets the real work.
+final Provider<Future<void> Function()> beforeSignOutProvider =
+    Provider<Future<void> Function()>((Ref ref) => () async {});
+
+/// Run after a sign-in: downloads the patient's records the phone doesn't
+/// have (a new phone, or another patient used this one). App wiring sets
+/// which features take part.
+final Provider<Future<void> Function()> restoreFromServerProvider =
+    Provider<Future<void> Function()>((Ref ref) => () async {});
+
+/// Run after every sign-in and sign-out so screens drop the data they hold
+/// in memory. App wiring lists the feature providers to reset.
+final Provider<void Function()> sessionChangedHandlerProvider =
+    Provider<void Function()>((Ref ref) => () {});
+
+/// Deletes the previous patient's records, including any the server hasn't
+/// received, so a different patient can sign in. Only run after the patient
+/// has confirmed. App wiring also stops that patient's reminders.
+final Provider<Future<void> Function()> discardUnsentRecordsProvider =
+    Provider<Future<void> Function()>(
+      (Ref ref) =>
+          () => ref.read(appDatabaseProvider).clearPatientData(),
+    );
+
+/// Run when the setup wizard is finished or skipped, so the sign-in gate
+/// stops sending the patient back to it. App wiring re-checks the gate.
+final Provider<Future<void> Function()> onboardingDoneHandlerProvider =
+    Provider<Future<void> Function()>((Ref ref) => () async {});
+
 final Provider<SyncService> syncServiceProvider = Provider<SyncService>((
   Ref ref,
 ) {
@@ -152,14 +220,19 @@ final Provider<SyncService> syncServiceProvider = Provider<SyncService>((
     isOnline: ref.watch(isOnlineProvider),
     refreshSession: ref.watch(sessionRefresherProvider),
   );
-  service.start(
-    ref.watch(connectivityStreamProvider).handleError((Object _) {}),
-  );
+  service
+    ..start(ref.watch(connectivityStreamProvider).handleError((Object _) {}))
+    ..watchQueue(ref.watch(syncQueueDaoProvider).watchPendingCount());
 
   unawaited(service.syncNow());
   ref.onDispose(service.dispose);
   return service;
 });
+
+final StreamProvider<List<SyncQueueEntry>> rejectedSyncProvider =
+    StreamProvider<List<SyncQueueEntry>>(
+      (Ref ref) => ref.watch(syncQueueDaoProvider).watchRejected(),
+    );
 
 final StreamProvider<int> pendingSyncCountProvider = StreamProvider<int>(
   (Ref ref) => ref.watch(syncQueueDaoProvider).watchPendingCount(),

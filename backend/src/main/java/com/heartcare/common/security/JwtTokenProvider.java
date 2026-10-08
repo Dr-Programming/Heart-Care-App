@@ -38,6 +38,11 @@ public class JwtTokenProvider {
         this.expirationMs = expirationMs;
     }
 
+    /** Lifetime of tokens from {@link #generateToken(UUID, String)}, i.e. patient access tokens. */
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public String generateToken(UUID userId, String role) {
         return generateToken(userId, role, expirationMs);
     }

@@ -16,13 +16,12 @@ Widget _harness(_PopResult box) {
       body: Center(
         child: ElevatedButton(
           onPressed: () async {
-            final MedicationSearchOutcome? outcome = await Navigator.of(
-              context,
-            ).push<MedicationSearchOutcome>(
-              MaterialPageRoute<MedicationSearchOutcome>(
-                builder: (_) => const MedicationSearchScreen(),
-              ),
-            );
+            final MedicationSearchOutcome? outcome = await Navigator.of(context)
+                .push<MedicationSearchOutcome>(
+                  MaterialPageRoute<MedicationSearchOutcome>(
+                    builder: (_) => const MedicationSearchScreen(),
+                  ),
+                );
             box
               ..popped = true
               ..value = outcome;
@@ -46,17 +45,16 @@ void main() {
     expect(find.textContaining('Metoprolol'), findsWidgets);
   });
 
-  testWidgets(
-    'shows the cantFind guidance on the initial empty-query state',
-    (tester) async {
-      await pumpApp(tester, const MedicationSearchScreen());
+  testWidgets('shows the cantFind guidance on the initial empty-query state', (
+    tester,
+  ) async {
+    await pumpApp(tester, const MedicationSearchScreen());
 
-      expect(find.text('meds.search.libraryHint'.tr()), findsOneWidget);
-      expect(find.text('meds.search.cantFind'.tr()), findsOneWidget);
+    expect(find.text('meds.search.libraryHint'.tr()), findsOneWidget);
+    expect(find.text('meds.search.cantFind'.tr()), findsOneWidget);
 
-      expect(find.text('meds.search.suggestions'.tr()), findsNothing);
-    },
-  );
+    expect(find.text('meds.search.suggestions'.tr()), findsNothing);
+  });
 
   testWidgets(
     'shows the cantFind guidance when a search returns zero results',

@@ -4,7 +4,12 @@ import 'package:libu_care/features/medication/domain/entities/dose_log.dart';
 import 'package:libu_care/features/medication/domain/entities/medication.dart';
 import 'package:libu_care/features/medication/domain/schedule.dart';
 
-Medication _daily(String id, DateTime createdAt, {bool active = true, DateTime? updatedAt}) {
+Medication _daily(
+  String id,
+  DateTime createdAt, {
+  bool active = true,
+  DateTime? updatedAt,
+}) {
   return Medication(
     clientRecordId: id,
     serverId: null,
@@ -41,7 +46,6 @@ void main() {
         _log('m1', '2026-08-19', DoseStatus.taken),
         _log('m1', '2026-08-20', DoseStatus.taken),
         _log('m1', '2026-08-21', DoseStatus.taken),
-
       ],
       windowStart: DateTime(2026, 8, 19),
       now: DateTime(2026, 8, 22, 12),

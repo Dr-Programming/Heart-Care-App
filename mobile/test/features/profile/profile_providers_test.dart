@@ -8,23 +8,26 @@ import '../../helpers/fake_dio.dart';
 import '../../helpers/test_database.dart';
 
 void main() {
-  test('profileRepositoryProvider builds a real, usable ProfileRepository', () async {
-    final db = testDatabase();
-    addTearDown(db.close);
-    final fake = FakeDio();
-    final container = ProviderContainer(
-      overrides: <Override>[
-        appDatabaseProvider.overrideWithValue(db),
-        dioProvider.overrideWithValue(fake.dio),
-        isOnlineProvider.overrideWithValue(() async => true),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'profileRepositoryProvider builds a real, usable ProfileRepository',
+    () async {
+      final db = testDatabase();
+      addTearDown(db.close);
+      final fake = FakeDio();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          appDatabaseProvider.overrideWithValue(db),
+          dioProvider.overrideWithValue(fake.dio),
+          isOnlineProvider.overrideWithValue(() async => true),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final repo = container.read(profileRepositoryProvider);
-    final profile = await repo.getProfile('u1');
+      final repo = container.read(profileRepositoryProvider);
+      final profile = await repo.getProfile('u1');
 
-    expect(profile.userId, 'u1');
-    expect(profile.birthYear, isNull);
-  });
+      expect(profile.userId, 'u1');
+      expect(profile.birthYear, isNull);
+    },
+  );
 }

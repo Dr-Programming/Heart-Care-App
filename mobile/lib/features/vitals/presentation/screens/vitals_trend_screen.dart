@@ -33,7 +33,8 @@ class VitalsTrendScreen extends ConsumerWidget {
     );
 
     return AppScaffold(
-      title: '${vitalDescriptors[type]!.labelKey.tr()} — ${'vitals.trend.title'.tr()}',
+      title:
+          '${vitalDescriptors[type]!.labelKey.tr()} — ${'vitals.trend.title'.tr()}',
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -48,7 +49,9 @@ class VitalsTrendScreen extends ConsumerWidget {
             child: state.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (Object error, StackTrace _) => ErrorView(
-                failure: error is Failure ? error : UnknownFailure(error.toString()),
+                failure: error is Failure
+                    ? error
+                    : UnknownFailure(error.toString()),
                 onRetry: () => controller.setWindowDays(controller.windowDays),
               ),
               data: (VitalSeriesResult result) => switch (result) {
@@ -99,12 +102,16 @@ class _TrendBody extends StatelessWidget {
     );
   }
 
-  double _min(ChartSeries s) =>
-      s.points.map((MapEntry<DateTime, double> e) => e.value).reduce((a, b) => a < b ? a : b);
-  double _max(ChartSeries s) =>
-      s.points.map((MapEntry<DateTime, double> e) => e.value).reduce((a, b) => a > b ? a : b);
+  double _min(ChartSeries s) => s.points
+      .map((MapEntry<DateTime, double> e) => e.value)
+      .reduce((a, b) => a < b ? a : b);
+  double _max(ChartSeries s) => s.points
+      .map((MapEntry<DateTime, double> e) => e.value)
+      .reduce((a, b) => a > b ? a : b);
   double _average(ChartSeries s) {
-    final List<double> values = s.points.map((MapEntry<DateTime, double> e) => e.value).toList();
+    final List<double> values = s.points
+        .map((MapEntry<DateTime, double> e) => e.value)
+        .toList();
     return values.reduce((a, b) => a + b) / values.length;
   }
 }
@@ -120,7 +127,10 @@ class _Stat extends StatelessWidget {
     return Column(
       children: <Widget>[
         Text(label, style: Theme.of(context).textTheme.bodySmall),
-        Text(value.toStringAsFixed(1), style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          value.toStringAsFixed(1),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
       ],
     );
   }

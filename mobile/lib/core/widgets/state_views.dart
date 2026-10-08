@@ -72,6 +72,7 @@ class ErrorView extends StatelessWidget {
     InvalidCredentialsFailure() ||
     AccountLockedFailure() ||
     PhoneAlreadyRegisteredFailure() ||
+    PatientSwitchFailure() ||
     SessionExpiredFailure() => false,
   };
 

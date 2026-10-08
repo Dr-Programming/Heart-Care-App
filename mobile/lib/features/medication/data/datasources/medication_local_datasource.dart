@@ -17,14 +17,15 @@ class MedicationLocalDataSource {
       _db.into(_db.medications).insertOnConflictUpdate(model.toCompanion());
 
   Future<List<Medication>> activeMedications() async {
-    final List<drift_db.Medication> rows =
-        await (_db.select(_db.medications)
-              ..where((drift_db.$MedicationsTable t) => t.active.equals(true)))
-            .get();
+    final List<drift_db.Medication> rows = await (_db.select(
+      _db.medications,
+    )..where((drift_db.$MedicationsTable t) => t.active.equals(true))).get();
     return rows.map(_medicationFromRow).toList();
   }
 
-  Future<List<Medication>> allMedications({bool includeInactive = false}) async {
+  Future<List<Medication>> allMedications({
+    bool includeInactive = false,
+  }) async {
     final SimpleSelectStatement<drift_db.$MedicationsTable, drift_db.Medication>
     query = _db.select(_db.medications);
     if (!includeInactive) {
@@ -43,6 +44,14 @@ class MedicationLocalDataSource {
             .getSingleOrNull();
     return row == null ? null : _medicationFromRow(row);
   }
+
+  Future<bool> hasDoseLog(String clientRecordId) async =>
+      await (_db.select(_db.doseLogs)..where(
+            (drift_db.$DoseLogsTable t) =>
+                t.clientRecordId.equals(clientRecordId),
+          ))
+          .getSingleOrNull() !=
+      null;
 
   Future<void> setServerId(String clientRecordId, String serverId) =>
       (_db.update(_db.medications)..where(
@@ -104,7 +113,8 @@ class MedicationLocalDataSource {
       Expression<bool> predicate = const Constant<bool>(true);
       if (medicationClientRecordId != null) {
         predicate =
-            predicate & t.medicationClientRecordId.equals(medicationClientRecordId);
+            predicate &
+            t.medicationClientRecordId.equals(medicationClientRecordId);
       }
       if (from != null) {
         predicate = predicate & t.scheduledDate.isBiggerOrEqualValue(from);
@@ -136,6 +146,7 @@ class MedicationLocalDataSource {
       active: row.active,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      deactivatedAt: row.deactivatedAt,
     );
   }
 

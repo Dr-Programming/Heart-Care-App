@@ -17,7 +17,11 @@ class SplashScreen extends StatelessWidget {
             SizedBox(height: 12),
             Text(
               'Libu Care',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.ink),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.ink,
+              ),
             ),
           ],
         ),

@@ -3,6 +3,7 @@ package com.heartcare.common.config;
 import com.heartcare.common.security.JwtAccessDeniedHandler;
 import com.heartcare.common.security.JwtAuthFilter;
 import com.heartcare.common.security.JwtAuthenticationEntryPoint;
+import com.heartcare.common.security.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,13 +22,16 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                           JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-                          JwtAccessDeniedHandler jwtAccessDeniedHandler) {
+                          JwtAccessDeniedHandler jwtAccessDeniedHandler,
+                          RateLimitFilter rateLimitFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     /**
@@ -44,7 +48,11 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login",
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout",
+                                "/api/v1/auth/recovery/questions", "/api/v1/auth/reset-pin",
+                                "/api/v1/auth/pin-change").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/security-questions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/auth/login").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -54,7 +62,8 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtAuthFilter.class);
         return http.build();
     }
 }

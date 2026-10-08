@@ -18,34 +18,37 @@ void main() {
     }
   });
 
-  test('all 7 topics exist in both languages with the same ids, in the same order', () {
-    final List<dynamic> en = jsonDecode(
-      File('assets/content/topics_en.json').readAsStringSync(),
-    ) as List<dynamic>;
-    final List<dynamic> am = jsonDecode(
-      File('assets/content/topics_am.json').readAsStringSync(),
-    ) as List<dynamic>;
+  test(
+    'all 7 topics exist in both languages with the same ids, in the same order',
+    () {
+      final List<dynamic> en = jsonDecode(
+        File('assets/content/topics_en.json').readAsStringSync(),
+      ) as List<dynamic>;
+      final List<dynamic> am = jsonDecode(
+        File('assets/content/topics_am.json').readAsStringSync(),
+      ) as List<dynamic>;
 
-    expect(en.length, 7);
-    expect(am.length, 7);
+      expect(en.length, 7);
+      expect(am.length, 7);
 
-    final List<String> enIds = en
-        .map((dynamic e) => (e as Map<Object?, Object?>)['id'] as String)
-        .toList();
-    final List<String> amIds = am
-        .map((dynamic e) => (e as Map<Object?, Object?>)['id'] as String)
-        .toList();
-    expect(enIds, amIds);
-    expect(enIds, <String>[
-      'chd-basics',
-      'symptoms',
-      'heart-attack',
-      'diet',
-      'exercise',
-      'medication-adherence',
-      'psychosocial',
-    ]);
-  });
+      final List<String> enIds = en
+          .map((dynamic e) => (e as Map<Object?, Object?>)['id'] as String)
+          .toList();
+      final List<String> amIds = am
+          .map((dynamic e) => (e as Map<Object?, Object?>)['id'] as String)
+          .toList();
+      expect(enIds, amIds);
+      expect(enIds, <String>[
+        'chd-basics',
+        'symptoms',
+        'heart-attack',
+        'diet',
+        'exercise',
+        'medication-adherence',
+        'psychosocial',
+      ]);
+    },
+  );
 
   test('all 7 quizzes exist in both languages, one per topic, every question has exactly one correct option', () {
     for (final String lang in <String>['en', 'am']) {

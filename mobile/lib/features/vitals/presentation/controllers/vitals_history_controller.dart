@@ -23,7 +23,8 @@ class VitalsHistoryController extends AsyncNotifier<List<VitalReading>> {
 }
 
 final AsyncNotifierProvider<VitalsHistoryController, List<VitalReading>>
-vitalsHistoryControllerProvider = AsyncNotifierProvider.autoDispose<
-  VitalsHistoryController,
-  List<VitalReading>
->(VitalsHistoryController.new);
+vitalsHistoryControllerProvider =
+    AsyncNotifierProvider.autoDispose<
+      VitalsHistoryController,
+      List<VitalReading>
+    >(VitalsHistoryController.new);

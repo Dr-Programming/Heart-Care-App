@@ -1,6 +1,6 @@
 # Slice 6 — Activity Logging Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a patient-scoped physical-activity log (`POST /activities`, `GET /activities`) — the fourth time-series-log feature — persisting one activity session per row and serving date-filtered history.
 
@@ -19,7 +19,7 @@
 - **Append-only:** no update or delete endpoints; a correction is a new row.
 - **Hibernate DDL:** runs under `ddl-auto=validate` — the entity mapping MUST match the `V7` migration columns exactly.
 - **Migration numbering:** next free version is `V7`; place SQL in `backend/src/main/resources/db/migration/`.
-- **Commits:** Conventional-commit style, e.g. `feat(backend): ...`. **Do NOT add a Claude/AI co-author trailer** — the repository owner is the sole commit author.
+- **Commits:** Conventional-commit style, e.g. `feat(backend): ...`. The repository owner is the sole commit author.
 - **Working directory for all commands:** `backend/`.
 
 ---

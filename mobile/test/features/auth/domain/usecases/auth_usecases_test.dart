@@ -5,6 +5,7 @@ import 'package:libu_care/features/auth/domain/usecases/get_me.dart';
 import 'package:libu_care/features/auth/domain/usecases/login.dart';
 import 'package:libu_care/features/auth/domain/usecases/logout.dart';
 import 'package:libu_care/features/auth/domain/usecases/register.dart';
+import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const _user = AuthUser(
   id: 'u1',
@@ -17,7 +18,8 @@ const _user = AuthUser(
 class _FakeAuthRepository implements AuthRepository {
   bool loggedOut = false;
   ({String phone, String pin})? loginArgs;
-  ({String phone, String pin, String name, String preferredLanguage})? registerArgs;
+  ({String phone, String pin, String name, String preferredLanguage})?
+  registerArgs;
 
   @override
   Future<AuthUser> login({required String phone, required String pin}) async {
@@ -31,8 +33,14 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async {
-    registerArgs = (phone: phone, pin: pin, name: name, preferredLanguage: preferredLanguage);
+    registerArgs = (
+      phone: phone,
+      pin: pin,
+      name: name,
+      preferredLanguage: preferredLanguage,
+    );
     return _user;
   }
 
@@ -72,10 +80,12 @@ void main() {
       preferredLanguage: 'en',
     );
     expect(result, _user);
-    expect(
-      repo.registerArgs,
-      (phone: '+251911234567', pin: '1234', name: 'Abebe Girma', preferredLanguage: 'en'),
-    );
+    expect(repo.registerArgs, (
+      phone: '+251911234567',
+      pin: '1234',
+      name: 'Abebe Girma',
+      preferredLanguage: 'en',
+    ));
   });
 
   test('GetMe forwards to the repository', () async {

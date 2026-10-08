@@ -18,6 +18,8 @@ import 'package:libu_care/features/auth/presentation/screens/splash_screen.dart'
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_database.dart';
 
+import 'package:libu_care/features/auth/domain/security_question.dart';
+
 const AuthUser _user = AuthUser(
   id: 'u1',
   name: 'Abebe Girma',
@@ -26,15 +28,12 @@ const AuthUser _user = AuthUser(
   role: 'PATIENT',
 );
 
-
-
-
-
 class _FakeAuthRepository implements AuthRepository {
   bool signedIn = false;
 
   @override
-  Future<AuthUser> login({required String phone, required String pin}) async => _user;
+  Future<AuthUser> login({required String phone, required String pin}) async =>
+      _user;
 
   @override
   Future<AuthUser> register({
@@ -42,6 +41,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async => _user;
 
   @override
@@ -68,12 +68,17 @@ class _FakeAuthRepository implements AuthRepository {
 void main() {
   setUpWidgetTests();
 
-  testWidgets('SplashScreen shows the app logo/name and no interactive controls', (tester) async {
-    await pumpApp(tester, const SplashScreen());
-    expect(find.text('Libu Care'), findsOneWidget);
-  });
+  testWidgets(
+    'SplashScreen shows the app logo/name and no interactive controls',
+    (tester) async {
+      await pumpApp(tester, const SplashScreen());
+      expect(find.text('Libu Care'), findsOneWidget);
+    },
+  );
 
-  testWidgets('LanguageScreen offers both languages, each in its own script', (tester) async {
+  testWidgets('LanguageScreen offers both languages, each in its own script', (
+    tester,
+  ) async {
     await pumpApp(tester, const LanguageScreen());
     expect(find.text('English'), findsOneWidget);
     expect(find.text('አማርኛ'), findsOneWidget);
@@ -81,15 +86,9 @@ void main() {
 
   testWidgets('LanguageScreen renders correctly in Amharic', (tester) async {
     await pumpApp(tester, const LanguageScreen(), language: AppLanguage.am);
-    expect(find.text('ቋንቋዎን ይምረጡ'.tr()), findsWidgets); 
+    expect(find.text('ቋንቋዎን ይምረጡ'.tr()), findsWidgets);
   });
 
-  
-  
-  
-  
-  
-  
   testWidgets(
     'choosing a language refreshes the gate so the router lands on Login, '
     'not back on the language picker',
@@ -105,7 +104,6 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      
       expect(container.read(realAuthGateProvider).hasChosenLanguage, isFalse);
 
       final GoRouter router = GoRouter(

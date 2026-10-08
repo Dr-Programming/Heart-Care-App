@@ -55,7 +55,7 @@ Each decision records the choice, the rationale, and the rejected alternative.
 
 **Rationale:** The queue's job is tracking what *this device* still owes the server (`sync_status: PENDING | SYNCING | SYNCED`). That is device-local state by definition — a second device would have a different queue for the same patient. Once a record is committed to `vitals_logs`, a server-side row restating it is a duplicate whose only readers would be audit tooling nobody has asked for. Every log table already carries `client_record_id` with a `UNIQUE (user_id, client_record_id)` constraint, which is the entire deduplication mechanism. A server queue would add an unbounded-growth table and a second source of truth for zero functional gain.
 
-**⚠️ DEVIATION:** `CLAUDE.md` lists `sync_queue` among the PostgreSQL tables. `ARCHITECTURE.md §7.1` lists it under **"Local Database Schema (Drift / SQLite)"**, alongside `patients_local`. These contradict; this design follows `ARCHITECTURE.md`, which matches the table's actual purpose. **`CLAUDE.md` must be corrected** (§10).
+**⚠️ DEVIATION:** The project rules file lists `sync_queue` among the PostgreSQL tables. `ARCHITECTURE.md §7.1` lists it under **"Local Database Schema (Drift / SQLite)"**, alongside `patients_local`. These contradict; this design follows `ARCHITECTURE.md`, which matches the table's actual purpose. **The project rules file must be corrected** (§10).
 
 **Rejected alternative — server-side receipt log:** An append-only table of every submitted envelope, for field debugging. Real but speculative value, unbounded growth, and duplicates data already in the log tables. If sync bugs appear in the field, structured logging answers the same questions without a schema change.
 
@@ -251,7 +251,7 @@ com.heartcare.medication/MedicationSyncHandler.java
 com.heartcare.medication/DoseLogSyncHandler.java
 ```
 
-**Naming note:** `CLAUDE.md` specifies `core/sync/` for the sync processor, but **no `core/` package exists** — shared code has always lived in `common/` (`common/config`, `common/security`, `common/exception`, `common/response`). This design follows the code. `CLAUDE.md` must be corrected (§10).
+**Naming note:** The project rules file specifies `core/sync/` for the sync processor, but **no `core/` package exists** — shared code has always lived in `common/` (`common/config`, `common/security`, `common/exception`, `common/response`). This design follows the code. The project rules file must be corrected (§10).
 
 **No feature service changes its public API.** Handlers adapt to the existing methods, so every existing controller and test keeps working unchanged. The only edits inside feature packages are the `@Transactional` relocation required by §8.
 
@@ -379,10 +379,10 @@ Two threads, same `client_record_id`, released together by a `CountDownLatch`, a
 - `backend/docs/API.md` — the `/sync` contract, statuses, error levels
 - `backend/docs/DATABASE.md` — note that no migration was added; `sync_queue` is device-side
 - `backend/README.md` — Build Progress table: Slice 7 complete
-- **`CLAUDE.md` — two corrections this slice proves wrong:**
+- **The project rules file — two corrections this slice proves wrong:**
   - remove `sync_queue` from the PostgreSQL table list (device-side per Decision 1)
   - `core/sync/` → `common/sync/`; no `core/` package exists
-- **`CLAUDE.md` — pre-existing staleness worth fixing while here:** it claims the repo "is in planning/architecture phase" with "no source code yet" (six slices are merged); says migrations `V1__`–`V10__` (there are `V1`–`V7`); lists a `patients` table (it is `patient_profiles`); omits `activity_logs`; lists `alerts` (never built)
+- **The project rules file — pre-existing staleness worth fixing while here:** it claims the repo "is in planning/architecture phase" with "no source code yet" (six slices are merged); says migrations `V1__`–`V10__` (there are `V1`–`V7`); lists a `patients` table (it is `patient_profiles`); omits `activity_logs`; lists `alerts` (never built)
 - `FUNCTIONAL_REQUIREMENTS.md` — annotate FR-OFF-007 with the Decision 3 deviation
 - `ARCHITECTURE.md §7.3` — annotate that conflicts are detected and reported, not overwritten
 

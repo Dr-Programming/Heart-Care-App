@@ -13,9 +13,12 @@ abstract final class DoseNoteSheet {
       backgroundColor: AppColors.surface,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.xl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.xl),
+        ),
       ),
-      builder: (BuildContext sheetContext) => _NoteSheetBody(initialNote: initialNote),
+      builder: (BuildContext sheetContext) =>
+          _NoteSheetBody(initialNote: initialNote),
     );
   }
 }
@@ -45,8 +48,9 @@ class _NoteSheetBodyState extends State<_NoteSheetBody> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SafeArea(
         minimum: const EdgeInsets.fromLTRB(
           AppSpacing.gutter,

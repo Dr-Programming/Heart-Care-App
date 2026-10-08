@@ -1,6 +1,6 @@
 # Slice 3 — Medications & Dose Logs Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add medication CRUD and append-only per-dose logging for the authenticated patient via `/api/v1/medications` and `/api/v1/dose-logs`, persisted in new `medications` and `dose_logs` tables.
 
@@ -16,7 +16,7 @@
 - DTOs are Java `record`s and stay inside the `medication` package.
 - No new Maven dependencies — JSONB uses Hibernate's built-in `@JdbcTypeCode(SqlTypes.JSON)`.
 - Ownership is enforced on every by-id operation: a medication or dose not owned by the token's user → `404` via `ResourceNotFoundException` (handled by `GlobalExceptionHandler`). Never reveal existence with a 403.
-- Commit messages: **no AI co-author trailer** (project rule).
+- Commit messages: conventional-commit subjects (project rule).
 - Build/test from the `backend/` directory: `mvn test` (Docker must be running for Testcontainers).
 - Entities use `@Id @GeneratedValue(strategy = GenerationType.UUID)` for generated primary keys (matches `User`).
 - `SecurityConfig` already permits only `/auth/register` + `/auth/login` and requires auth for `.anyRequest()`, so all new routes are protected automatically — no security change needed.

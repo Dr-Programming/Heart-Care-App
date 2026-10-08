@@ -37,7 +37,10 @@ void main() {
         _noBootstrap,
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            const MedicationListState(todaysDoses: <ScheduledDose>[], medications: <Medication>[]),
+            const MedicationListState(
+              todaysDoses: <ScheduledDose>[],
+              medications: <Medication>[],
+            ),
           ),
         ),
       ],
@@ -47,8 +50,24 @@ void main() {
 
   testWidgets('shows a DoseRow per due dose, up to three', (tester) async {
     const List<ScheduledDose> doses = <ScheduledDose>[
-      ScheduledDose(medicationClientRecordId: 'm1', medicationName: 'A', doseMg: 1, scheduledDate: '2026-08-25', scheduledTime: '08:00', status: ScheduledDoseStatus.pending, doseLog: null),
-      ScheduledDose(medicationClientRecordId: 'm2', medicationName: 'B', doseMg: 1, scheduledDate: '2026-08-25', scheduledTime: '09:00', status: ScheduledDoseStatus.pending, doseLog: null),
+      ScheduledDose(
+        medicationClientRecordId: 'm1',
+        medicationName: 'A',
+        doseMg: 1,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '08:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
+      ),
+      ScheduledDose(
+        medicationClientRecordId: 'm2',
+        medicationName: 'B',
+        doseMg: 1,
+        scheduledDate: '2026-08-25',
+        scheduledTime: '09:00',
+        status: ScheduledDoseStatus.pending,
+        doseLog: null,
+      ),
     ];
     await pumpApp(
       tester,
@@ -57,7 +76,10 @@ void main() {
         _noBootstrap,
         medicationListControllerProvider.overrideWith(
           () => _FakeMedicationListController(
-            const MedicationListState(todaysDoses: doses, medications: <Medication>[]),
+            const MedicationListState(
+              todaysDoses: doses,
+              medications: <Medication>[],
+            ),
           ),
         ),
       ],

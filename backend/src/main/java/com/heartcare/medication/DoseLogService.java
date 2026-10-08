@@ -1,10 +1,13 @@
 package com.heartcare.medication;
 
+import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.medication.dto.DoseLogRequest;
 import com.heartcare.medication.dto.DoseLogResponse;
 import com.heartcare.medication.model.DoseLog;
+import com.heartcare.medication.model.Medication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,27 +25,33 @@ public class DoseLogService {
     private final DoseLogRepository doseLogRepository;
     private final MedicationRepository medicationRepository;
     private final IdempotentSaver saver;
+    private final ClientZone clientZone;
 
     public DoseLogService(DoseLogRepository doseLogRepository, MedicationRepository medicationRepository,
-                           IdempotentSaver saver) {
+                           IdempotentSaver saver, ClientZone clientZone) {
         this.doseLogRepository = doseLogRepository;
         this.medicationRepository = medicationRepository;
         this.saver = saver;
+        this.clientZone = clientZone;
     }
 
     // Deliberately NOT @Transactional — see IdempotentSaver and design §8.
     public DoseLogResponse log(UUID userId, UUID medicationId, DoseLogRequest request) {
-        medicationRepository.findByIdAndUserId(medicationId, userId)
+        Medication medication = medicationRepository.findByIdAndUserId(medicationId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
 
-        Supplier<Optional<DoseLog>> finder = () -> request.clientRecordId() == null
-                ? Optional.empty()
-                : doseLogRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
+        // DoseLogRequest declares clientRecordId @NotNull; the sync path always supplies one.
+        Supplier<Optional<DoseLog>> finder =
+                () -> doseLogRepository.findByUserIdAndClientRecordId(userId, request.clientRecordId());
 
         var existing = finder.get();
         if (existing.isPresent()) {
             return toResponse(existing.get());
         }
+
+        clientZone.assertNotFutureDate(request.scheduledDate(), "scheduledDate");
+        clientZone.assertNotFuture(request.loggedAt(), "loggedAt");
+        requireActiveOn(medication, request.scheduledDate());
 
         DoseLog dose = new DoseLog();
         dose.setMedicationId(medicationId);
@@ -56,6 +65,23 @@ public class DoseLogService {
         dose.setClientRecordId(request.clientRecordId());
 
         return toResponse(saver.saveOrGetExisting(doseLogRepository, finder, dose));
+    }
+
+    /**
+     * Date-aware rather than a plain {@code active} check (Issue 2). The app works offline, so a
+     * dose taken while the medication was active can reach the server after it was switched off;
+     * that is real history. Only doses scheduled after the deactivation day are refused. BadRequest
+     * makes the sync path report REJECTED, so the client stops retrying the record.
+     */
+    private void requireActiveOn(Medication medication, LocalDate scheduledDate) {
+        if (medication.isActive() || medication.getDeactivatedAt() == null) {
+            return;
+        }
+        LocalDate deactivatedOn = clientZone.localDateOf(medication.getDeactivatedAt());
+        if (scheduledDate.isAfter(deactivatedOn)) {
+            throw new BadRequestException(
+                    "Medication is inactive: it was deactivated before " + scheduledDate);
+        }
     }
 
     @Transactional(readOnly = true)

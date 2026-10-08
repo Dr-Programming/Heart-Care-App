@@ -22,8 +22,9 @@ void main() {
         .whereType<CategoryRangesChartBlock>()
         .single;
 
-    expect(chart.ranges.map((CategoryRange r) => r.severity).toList(), <
-      Severity
-    >[Severity.urgent, Severity.none, Severity.urgent]);
+    expect(
+      chart.ranges.map((CategoryRange r) => r.severity).toList(),
+      <Severity>[Severity.urgent, Severity.none, Severity.urgent],
+    );
   });
 }

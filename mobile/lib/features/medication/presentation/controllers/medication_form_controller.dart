@@ -35,7 +35,11 @@ class MedicationFormState {
 
   final bool reminderSchedulingFailed;
 
-  bool get isValid => nameError == null && doseError == null && scheduleError == null;
+  bool get isValid =>
+      nameError == null && doseError == null && scheduleError == null;
+
+  /// A new medication was started and not yet saved.
+  bool get isDirty => !saved && !isSaving && name.trim().isNotEmpty;
 
   MedicationFormState copyWith({
     String? name,
@@ -54,12 +58,19 @@ class MedicationFormState {
       doseMg: doseMg ?? this.doseMg,
       frequency: frequency ?? this.frequency,
       scheduleTimes: scheduleTimes ?? this.scheduleTimes,
-      nameError: identical(nameError, _sentinel) ? this.nameError : nameError as String?,
-      doseError: identical(doseError, _sentinel) ? this.doseError : doseError as String?,
-      scheduleError: identical(scheduleError, _sentinel) ? this.scheduleError : scheduleError as String?,
+      nameError: identical(nameError, _sentinel)
+          ? this.nameError
+          : nameError as String?,
+      doseError: identical(doseError, _sentinel)
+          ? this.doseError
+          : doseError as String?,
+      scheduleError: identical(scheduleError, _sentinel)
+          ? this.scheduleError
+          : scheduleError as String?,
       isSaving: isSaving ?? this.isSaving,
       saved: saved ?? this.saved,
-      reminderSchedulingFailed: reminderSchedulingFailed ?? this.reminderSchedulingFailed,
+      reminderSchedulingFailed:
+          reminderSchedulingFailed ?? this.reminderSchedulingFailed,
     );
   }
 }
@@ -80,8 +91,10 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     );
   }
 
-  void setName(String value) =>
-      state = state.copyWith(name: value, nameError: validateMedicationName(value));
+  void setName(String value) => state = state.copyWith(
+    name: value,
+    nameError: validateMedicationName(value),
+  );
 
   void setDoseMg(String value) =>
       state = state.copyWith(doseMg: value, doseError: validateDoseMg(value));
@@ -96,27 +109,57 @@ class MedicationFormController extends Notifier<MedicationFormState> {
     final int suggested = value.suggestedTimeCount;
     final List<String> times = <String>[...state.scheduleTimes];
 
-    for (final String candidate in _suggestedTimes[suggested] ?? const <String>[]) {
+    for (final String candidate
+        in _suggestedTimes[suggested] ?? const <String>[]) {
       if (times.length >= suggested) break;
 
       if (times.contains(candidate)) continue;
       times.add(candidate);
     }
+    // A fixed frequency takes exactly its number of times; the server rejects
+    // a BID medication that still carries a third time from TID.
+    if (value != MedicationFrequency.custom && times.length > suggested) {
+      final List<String> defaults =
+          _suggestedTimes[suggested] ?? const <String>[];
+      final bool allDefaults = times.every(
+        (String t) =>
+            _suggestedTimes.values.any((List<String> d) => d.contains(t)),
+      );
+      // Untouched suggested times are swapped for this frequency's own
+      // (twice daily is 08:00 and 20:00, not the first two of three); times
+      // the patient chose are kept, in order.
+      if (allDefaults && defaults.length == suggested) {
+        times
+          ..clear()
+          ..addAll(defaults);
+      } else {
+        times.removeRange(suggested, times.length);
+      }
+    }
 
     state = state.copyWith(frequency: value, scheduleTimes: times);
   }
 
-  void setScheduleTimes(List<String> times) =>
-      state = state.copyWith(scheduleTimes: times, scheduleError: validateScheduleTimes(times));
+  void setScheduleTimes(List<String> times) => state = state.copyWith(
+    scheduleTimes: times,
+    scheduleError: validateScheduleTimes(times),
+  );
 
   bool validate() {
     final String? nameError = validateMedicationName(state.name);
     final String? doseError = validateDoseMg(state.doseMg);
     final bool isAsNeeded =
-        state.frequency == MedicationFrequency.custom && state.scheduleTimes.isEmpty;
-    final String? scheduleError =
-        isAsNeeded ? null : validateScheduleTimes(state.scheduleTimes);
-    state = state.copyWith(nameError: nameError, doseError: doseError, scheduleError: scheduleError);
+        state.frequency == MedicationFrequency.custom &&
+        state.scheduleTimes.isEmpty;
+    final String? scheduleError = isAsNeeded
+        ? null
+        : validateScheduleTimes(state.scheduleTimes) ??
+              validateScheduleCount(state.scheduleTimes, state.frequency);
+    state = state.copyWith(
+      nameError: nameError,
+      doseError: doseError,
+      scheduleError: scheduleError,
+    );
     return nameError == null && doseError == null && scheduleError == null;
   }
 
@@ -140,8 +183,10 @@ class MedicationFormController extends Notifier<MedicationFormState> {
           scheduleTimes: state.scheduleTimes,
         );
       } else {
-        final Medication current = (await repository.allMedications(includeInactive: true))
-            .firstWhere((Medication m) => m.clientRecordId == _editingClientRecordId);
+        final Medication current =
+            (await repository.allMedications(includeInactive: true)).firstWhere(
+              (Medication m) => m.clientRecordId == _editingClientRecordId,
+            );
         medication = await repository.edit(
           current.copyWith(
             name: state.name.trim(),
@@ -152,7 +197,6 @@ class MedicationFormController extends Notifier<MedicationFormState> {
         );
       }
     } catch (_) {
-
       state = state.copyWith(isSaving: false);
       rethrow;
     }
@@ -169,18 +213,14 @@ class MedicationFormController extends Notifier<MedicationFormState> {
         await ref
             .read(caregiverNotifyStoreProvider)
             .set(medication.clientRecordId, caregiverSettings);
-      } catch (_) {
-
-      }
+      } catch (_) {}
     }
     if (instructions != null) {
       try {
         await ref
             .read(medicationInstructionsStoreProvider)
             .set(medication.clientRecordId, instructions);
-      } catch (_) {
-
-      }
+      } catch (_) {}
     }
 
     ref.invalidate(medicationListControllerProvider);

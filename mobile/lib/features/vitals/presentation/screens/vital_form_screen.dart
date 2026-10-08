@@ -4,6 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/clinic/clinic_call.dart';
+import '../../../../core/clinical/alert_evaluator.dart';
+
+import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -83,112 +87,133 @@ class _VitalFormScreenState extends ConsumerState<VitalFormScreen> {
     );
     final TextTheme text = Theme.of(context).textTheme;
 
-    return AppScaffold(
-      title: 'vitals.log.title'.tr(),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        children: <Widget>[
-          Text('vitals.log.chooseType'.tr(), style: text.bodyMedium),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  '${'vitals.log.measuredAt'.tr()}: ${DateFormatter.displayDateTime(state.measuredAt, context.locale.languageCode)}',
+    return UnsavedChangesGuard(
+      dirty: ref.watch(vitalFormControllerProvider).isDirty,
+      child: AppScaffold.banded(
+        showBack: false,
+        scrollable: false,
+        bandChild: BandHeader(
+          title: 'vitals.log.title'.tr(),
+          subtitle: 'vitals.log.chooseType'.tr(),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    '${'vitals.log.measuredAt'.tr()} ${DateFormatter.displayDateTime(state.measuredAt, context.locale.languageCode)}',
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final DateTime? date = await showDatePicker(
+                      context: context,
+                      initialDate: state.measuredAt,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date == null || !context.mounted) return;
+                    final TimeOfDay? time = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(state.measuredAt),
+                    );
+                    if (time == null || !context.mounted) return;
+                    controller.updateMeasuredAt(
+                      DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        time.hour,
+                        time.minute,
+                      ),
+                    );
+                  },
+                  child: Text('vitals.log.edit'.tr()),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            for (final VitalType type in VitalType.values) ...<Widget>[
+              VitalAccentCard(
+                accent: vitalAccents[type]!,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    VitalAccentHeader(
+                      icon: vitalDescriptors[type]!.icon,
+                      accent: vitalAccents[type]!,
+                      label: vitalDescriptors[type]!.labelKey.tr(),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    for (final VitalFieldSpec field
+                        in vitalDescriptors[type]!.fields) ...<Widget>[
+                      AppTextField(
+                        label: '${field.labelKey.tr()} (${field.unit})',
+                        controller: _controllers[type]![field.key],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d*'),
+                          ),
+                        ],
+                        errorText: _fieldError(
+                          state.errorsByType[type]?[field.key],
+                          field,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                  ],
                 ),
               ),
-              TextButton(
-                onPressed: () async {
-                  final DateTime? date = await showDatePicker(
-                    context: context,
-                    initialDate: state.measuredAt,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  );
-                  if (date == null || !context.mounted) return;
-                  final TimeOfDay? time = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.fromDateTime(state.measuredAt),
-                  );
-                  if (time == null || !context.mounted) return;
-                  controller.updateMeasuredAt(
-                    DateTime(
-                      date.year,
-                      date.month,
-                      date.day,
-                      time.hour,
-                      time.minute,
-                    ),
-                  );
-                },
-                child: Text('vitals.log.edit'.tr()),
+            ],
+            AppTextField(
+              label: 'vitals.log.note'.tr(),
+              controller: _noteController,
+              maxLines: 3,
+            ),
+            if (state.generalError != null) ...<Widget>[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                state.generalError!.tr(),
+                style: text.bodyMedium?.copyWith(color: Colors.red),
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          for (final VitalType type in VitalType.values) ...<Widget>[
-            VitalAccentCard(
-              accent: vitalAccents[type]!,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  VitalAccentHeader(
-                    icon: vitalDescriptors[type]!.icon,
-                    accent: vitalAccents[type]!,
-                    label: vitalDescriptors[type]!.labelKey.tr(),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  for (final VitalFieldSpec field
-                      in vitalDescriptors[type]!.fields) ...<Widget>[
-                    AppTextField(
-                      label: '${field.labelKey.tr()} (${field.unit})',
-                      controller: _controllers[type]![field.key],
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
-                      ],
-                      errorText: _fieldError(
-                        state.errorsByType[type]?[field.key],
-                        field,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                  ],
-                ],
-              ),
+            const SizedBox(height: AppSpacing.lg),
+            AppButton(
+              label: 'vitals.log.confirmAndSave'.tr(),
+              isLoading: state.isSaving,
+              onPressed: () async {
+                final bool ok = await controller.save();
+                if (ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('vitals.log.saved'.tr())),
+                  );
+                  final Severity worst = ref
+                      .read(vitalFormControllerProvider)
+                      .worstSeverity;
+                  if (worst == Severity.emergency) {
+                    await showCriticalAlertFor(
+                      context,
+                      ref.read(caregiverContactStoreProvider),
+                    );
+                  } else if (worst == Severity.urgent && context.mounted) {
+                    await remindToCallClinicIfNeeded(
+                      context,
+                      db: ref.read(appDatabaseProvider),
+                      store: ref.read(clinicContactStoreProvider),
+                    );
+                  }
+                  if (context.mounted) context.pop();
+                }
+              },
             ),
           ],
-          AppTextField(
-            label: 'vitals.log.note'.tr(),
-            controller: _noteController,
-            maxLines: 3,
-          ),
-          if (state.generalError != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              state.generalError!.tr(),
-              style: text.bodyMedium?.copyWith(color: Colors.red),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(
-            label: 'vitals.log.confirmAndSave'.tr(),
-            isLoading: state.isSaving,
-            onPressed: () async {
-              final bool ok = await controller.save();
-              if (ok && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('vitals.log.saved'.tr())),
-                );
-                context.pop();
-              }
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

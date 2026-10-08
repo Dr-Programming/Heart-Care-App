@@ -9,7 +9,11 @@ import '../../domain/entities/vital_reading.dart';
 import '../../domain/vital_descriptors.dart';
 
 class ReadingRow extends StatelessWidget {
-  const ReadingRow({required this.reading, required this.localeCode, super.key});
+  const ReadingRow({
+    required this.reading,
+    required this.localeCode,
+    super.key,
+  });
 
   final VitalReading reading;
   final String localeCode;
@@ -54,7 +58,10 @@ class ReadingRow extends StatelessWidget {
                   vitalDescriptors[reading.type]!.labelKey.tr(),
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
-                Text(_formatValue(), style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  _formatValue(),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 Text(
                   DateFormatter.displayDateTime(reading.measuredAt, localeCode),
                   style: Theme.of(context).textTheme.labelSmall,

@@ -23,7 +23,6 @@ class _NotificationsEnabledController extends AsyncNotifier<bool> {
   }
 
   Future<void> setEnabled(bool value) async {
-
     await ref
         .read(appDatabaseProvider)
         .preferencesDao
@@ -53,7 +52,9 @@ class ReminderSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<MedicationListState> meds = ref.watch(medicationListControllerProvider);
+    final AsyncValue<MedicationListState> meds = ref.watch(
+      medicationListControllerProvider,
+    );
     final AsyncValue<bool> enabled = ref.watch(_notificationsEnabledProvider);
 
     return AppScaffold(
@@ -67,8 +68,9 @@ class ReminderSettingsScreen extends ConsumerWidget {
             SwitchListTile(
               title: Text('meds.reminders.enabled'.tr()),
               value: enabled.value ?? true,
-              onChanged: (bool value) =>
-                  ref.read(_notificationsEnabledProvider.notifier).setEnabled(value),
+              onChanged: (bool value) => ref
+                  .read(_notificationsEnabledProvider.notifier)
+                  .setEnabled(value),
             ),
             const SizedBox(height: AppSpacing.lg),
             for (final Medication medication in data.medications)

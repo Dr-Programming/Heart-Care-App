@@ -27,7 +27,9 @@ class AdherenceScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<AdherenceState> state = ref.watch(adherenceControllerProvider);
+    final AsyncValue<AdherenceState> state = ref.watch(
+      adherenceControllerProvider,
+    );
 
     return AppScaffold(
       title: 'meds.adherence.title'.tr(),
@@ -39,9 +41,15 @@ class AdherenceScreen extends ConsumerWidget {
         ),
         data: (AdherenceState data) => ListView(
           children: <Widget>[
-            _AdherenceCard(title: 'meds.adherence.overall7'.tr(), adherence: data.overall7),
+            _AdherenceCard(
+              title: 'meds.adherence.overall7'.tr(),
+              adherence: data.overall7,
+            ),
             const SizedBox(height: AppSpacing.md),
-            _AdherenceCard(title: 'meds.adherence.overall30'.tr(), adherence: data.overall30),
+            _AdherenceCard(
+              title: 'meds.adherence.overall30'.tr(),
+              adherence: data.overall30,
+            ),
             if (data.medications.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
               _PerMedicationCard(state: data),

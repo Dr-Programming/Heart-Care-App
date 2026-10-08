@@ -2,12 +2,26 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/network/list_request.dart';
 import '../models/vital_model.dart';
 
 class VitalsRemoteDataSource {
   const VitalsRemoteDataSource(this._dio);
 
   final Dio _dio;
+
+  /// Every reading the server holds for the signed-in patient.
+  /// Readings between [from] and [to] (yyyy-MM-dd, both included); all of
+  /// them when left out.
+  Future<List<VitalModel>> history({String? from, String? to}) async =>
+      <VitalModel>[
+        for (final Map<String, dynamic> json in await getJsonList(
+          _dio,
+          ApiEndpoints.vitals,
+          query: <String, dynamic>{'from': ?from, 'to': ?to},
+        ))
+          VitalModel.fromJson(json),
+      ];
 
   Future<VitalModel> create({
     required String type,

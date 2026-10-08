@@ -1,12 +1,43 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../error/failure.dart';
 import 'interceptors/auth_token_interceptor.dart';
+import 'interceptors/timezone_interceptor.dart';
+import 'interceptors/token_refresh_interceptor.dart';
+import 'token_refresher.dart';
 
+/// The app's HTTP client: bearer token, time zone, and 401 handling.
+///
+/// When [refresh] is given, a 401 on an authenticated request renews the
+/// token once and retries; a refused renewal calls [onSessionExpired].
 Dio buildDio({
   required String baseUrl,
   required Future<String?> Function() readToken,
+  Future<RefreshResult> Function(Dio plain)? refresh,
+  Future<void> Function()? onSessionExpired,
+  @visibleForTesting HttpClientAdapter? adapter,
 }) {
+  final Dio dio = _baseDio(baseUrl, readToken, adapter);
+  if (refresh != null) {
+    final Dio plain = _baseDio(baseUrl, readToken, adapter);
+    dio.interceptors.add(
+      TokenRefreshInterceptor(
+        plain: plain,
+        readToken: readToken,
+        refresh: () => refresh(plain),
+        onSessionExpired: onSessionExpired ?? () async {},
+      ),
+    );
+  }
+  return dio;
+}
+
+Dio _baseDio(
+  String baseUrl,
+  Future<String?> Function() readToken,
+  HttpClientAdapter? adapter,
+) {
   final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
@@ -18,8 +49,11 @@ Dio buildDio({
       validateStatus: (int? status) => status != null && status < 400,
     ),
   );
+  if (adapter != null) dio.httpClientAdapter = adapter;
 
-  dio.interceptors.add(AuthTokenInterceptor(readToken));
+  dio.interceptors
+    ..add(AuthTokenInterceptor(readToken))
+    ..add(TimezoneInterceptor());
 
   return dio;
 }

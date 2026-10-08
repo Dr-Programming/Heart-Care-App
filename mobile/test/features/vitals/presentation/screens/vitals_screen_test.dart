@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/db/app_database.dart';
@@ -25,5 +26,21 @@ void main() {
 
     expect(find.byType(VitalsScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows a button that opens the BP trend graph', (
+    WidgetTester tester,
+  ) async {
+    final AppDatabase db = testDatabase();
+    addTearDown(db.close);
+
+    await pumpApp(
+      tester,
+      const VitalsScreen(),
+      overrides: <Override>[appDatabaseProvider.overrideWithValue(db)],
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('vitalsOpenBpTrend')), findsOneWidget);
   });
 }

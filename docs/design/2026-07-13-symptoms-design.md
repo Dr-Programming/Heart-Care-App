@@ -63,7 +63,7 @@ Each decision records the choice, the rationale, and the rejected alternative, s
 
 **Choice:** The check-in captures `heartRate` and `bloodPressure` (`FR-SYM-004/005`) as plain values **inside its own `data` JSONB**. The symptoms feature does **not** read from or write to `vitals_logs`, and takes **no dependency on the vitals feature**.
 
-**Rationale:** Keeps the symptoms feature fully standalone (honours CLAUDE.md rule #1 — features don't import each other) and keeps the check-in an atomic, self-describing record. The check-in's HR/BP is contextual to that check-in (captured to inform the symptom assessment), conceptually distinct from a deliberate standalone vitals reading.
+**Rationale:** Keeps the symptoms feature fully standalone (honours rule #1 in the project rules file — features don't import each other) and keeps the check-in an atomic, self-describing record. The check-in's HR/BP is contextual to that check-in (captured to inform the symptom assessment), conceptually distinct from a deliberate standalone vitals reading.
 
 **Rejected alternative — the check-in also spawns `vitals_logs` rows:** Would keep vitals history/charts "complete" but introduces a cross-feature write dependency on `VitalsService`, plus flagging and idempotency concerns for the spawned rows, and blurs the ownership boundary. Rejected as unnecessary coupling for this slice. (If a unified HR/BP timeline is wanted later, it belongs in the analytics/dashboard slice, which can read both tables.)
 
@@ -177,7 +177,7 @@ These are **adopted documented defaults**, structured for adjustment. They live 
 
 **Clinical basis:** severe chest pain and hypertensive crisis are the emergency triggers (`FR-SYM-010`'s worked example is "severe chest pain → emergency"); severe dyspnoea, brady/tachycardia, and moderately deranged BP warrant an urgent review; swelling (fluid retention) and low energy are monitor-level soft signals. **These bounds are defaults pending the §0 clinical sign-off**, not settled clinical policy.
 
-**Intentional duplication:** the HR/BP bounds resemble the vitals thresholds, but `SymptomAssessment` keeps its **own** constants and does not import from the vitals feature (CLAUDE.md rule #1). If a single source of clinical constants is later wanted, the refactor is to lift them into `core/` — noted, not done in this slice.
+**Intentional duplication:** the HR/BP bounds resemble the vitals thresholds, but `SymptomAssessment` keeps its **own** constants and does not import from the vitals feature (rule #1 in the project rules file). If a single source of clinical constants is later wanted, the refactor is to lift them into `core/` — noted, not done in this slice.
 
 ---
 

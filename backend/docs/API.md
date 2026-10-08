@@ -25,17 +25,24 @@ Every path below is written in full relative to that base, e.g. `POST /api/v1/vi
 
 ### Authentication
 
-All endpoints require a bearer token **except** `POST /api/v1/auth/register` and
-`POST /api/v1/auth/login`.
+All endpoints require a bearer token **except** these public auth endpoints: `register`, `login`,
+`refresh`, `logout`, `pin-change`, `security-questions`, `recovery/questions` and `reset-pin` (all
+under `/api/v1/auth/`).
 
 ```
 Authorization: Bearer <jwt>
 ```
 
-The token is an HS256 JWT with a **7-day** lifetime carrying the user id as `sub` and a `role`
-claim. There is no refresh token and no server-side revocation — logout is client-side (discard
-the token). `userId` is always taken from the token, never from a request body or path, so no
-endpoint can act on another user's data.
+The access token is an HS256 JWT carrying the user id as `sub` and a `role` claim. Its lifetime is
+`app.jwt.expiration-ms`: **7 days** today, to be lowered to about 1 hour once the mobile app
+refreshes tokens. Register, login, refresh, change-pin and reset-pin also return a **refresh
+token**:
+- It is valid for 60 days and can be used **once**: `POST /auth/refresh` swaps it for a new pair.
+- `POST /auth/logout` cancels it.
+- Access tokens can't be cancelled early; they stay valid until they expire.
+
+`userId` is always taken from the token, never from a request body or path, so no endpoint can act
+on another user's data.
 
 ### Response envelope
 
@@ -76,19 +83,38 @@ An error therefore looks like:
 | Calendar date (`scheduledDate`, `from`, `to`) | `YYYY-MM-DD` | `2026-07-16` |
 | Time of day (`scheduledTime`, `scheduleTimes`) | `HH:mm` 24-hour | `08:00` |
 
-Timestamps are stored as `timestamptz` and returned in UTC. `from`/`to` query filters are
-interpreted as **UTC calendar days, inclusive on both ends** (internally a half-open
-`[from 00:00Z, to+1day 00:00Z)` range).
+Timestamps are stored as `timestamptz` and returned in UTC.
+
+**Time zone.** Send the device's IANA time zone on every request, including `/sync`:
+
+```
+X-Timezone: Africa/Addis_Ababa
+```
+
+The server uses it to decide which calendar day something belongs to:
+- `from`/`to` filters on vitals, symptoms and activities are local calendar days, inclusive on both
+  ends (internally a half-open `[from 00:00, to+1day 00:00)` range in that zone).
+- The one-check-in-per-day rule uses the local day.
+- "Not in the future" checks on dates use the local today.
+
+If the header is missing or invalid, the server uses `app.time.default-zone` (`Africa/Addis_Ababa`).
+Send `X-Timezone: UTC` to get UTC days.
+
+**No future records.** `measuredAt` and `loggedAt` may be at most 5 minutes ahead of the server
+clock, to allow for phone clocks that run fast. A dose's `scheduledDate` can't be later than the
+local today. Breaking either rule gives `400 "<field> must not be in the future"`.
 
 ### Idempotency
 
-Every log-type `POST` accepts an optional `clientRecordId` (a UUID the device generates). Repeating
+Every log-type `POST` accepts a `clientRecordId` (a UUID the device generates). Repeating
 a create with the same `clientRecordId` returns the **existing** record instead of duplicating it,
 enforced by a `UNIQUE (user_id, client_record_id)` database constraint rather than an
 application-level check — so it holds under concurrent retries.
 
-Omitting `clientRecordId` disables deduplication for that call: two identical requests create two
-rows. Offline-first clients should always send one.
+`clientRecordId` is **required on dose logs**: without it, a retried request doubled the dose and
+inflated adherence. For other record types it is optional, but leaving it out turns off
+deduplication for that call, so two identical requests create two rows. Offline-first clients
+should always send one.
 
 ---
 
@@ -103,10 +129,11 @@ rows. Offline-first clients should always send one.
 | `401 Unauthorized` | Not authenticated | Missing, malformed, expired, or badly-signed token |
 | `403 Forbidden` | Wrong role | A patient token on `/api/v1/admin/**`, or an admin token on any patient route |
 | `404 Not Found` | Absent or not owned | Unknown route, or a record that does not exist **or belongs to another user** |
-| `405 Method Not Allowed` | Wrong verb | e.g. `GET /api/v1/medications/{id}` (only `PUT`/`DELETE` exist) |
+| `405 Method Not Allowed` | Wrong verb | e.g. `PATCH /api/v1/medications/{id}` (only `GET`/`PUT`/`DELETE` exist) |
 | `409 Conflict` | Duplicate | Registering a phone that already exists |
 | `413 Payload Too Large` | Body over cap | Request body exceeds 2 MB |
-| `423 Locked` | Account locked | Five consecutive failed logins; the account is unavailable for 15 minutes |
+| `423 Locked` | Account locked | Five failed PIN checks in a row (login, change-pin, security-answers) lock the PIN for 15 minutes. Five wrong forgot-PIN attempts lock recovery for 60 minutes. |
+| `429 Too Many Requests` | Rate limited | Too many requests from one IP to `register`, `refresh`, `reset-pin` or `recovery/questions`. Comes with a `Retry-After` header (seconds). |
 | `500 Internal Server Error` | Transient/unexpected | Database unavailable or an unhandled fault. Details are never leaked — the response is always `"An unexpected error occurred"` |
 
 ### `404` vs `403`
@@ -135,9 +162,10 @@ the same whether it arrived via a direct `POST` or a sync batch.
 ### Retry semantics
 
 `400`, `404`, `405`, `409`, and `413` are **permanent** — the request can never succeed as written,
-so a client must not retry it. `401` is permanent until re-authentication. `423` is temporary but
-must not be retried on a timer — it clears only after the 15-minute lockout window. Only `500` is
-transient and worth retrying. This distinction matters for the offline queue: retrying a
+so a client must not retry it. `401` is permanent until re-authentication: try `POST /auth/refresh`
+once, then send the user to sign in. `423` is temporary but must not be retried on a timer — it
+clears only after the lockout window. `429` can be retried after `Retry-After`. Only `500` is
+transient and worth retrying automatically. This distinction matters for the offline queue: retrying a
 permanently-failed record forever would block the queue behind it.
 
 ---
@@ -149,13 +177,22 @@ permanently-failed record forever would block the queue behind it.
 | Request body size | 2 MB | `app.sync.max-body-bytes` | `413` |
 | Sync batch size | 200 records | `app.sync.max-batch-size` | `400`, whole batch |
 | PIN length | Exactly 4 digits | `RegisterRequest` / `LoginRequest` | `400` |
-| Failed logins per account | 5, then a 15-minute lock | `app.auth.lockout.*` | `423` |
+| Failed PIN checks per account | 5, then a 15-minute lock | `app.auth.lockout.*` | `423` |
+| Wrong forgot-PIN attempts per account | 5, then a 60-minute recovery lock | `app.auth.recovery.*` | `423` |
+| `doseMg` | > 0 and ≤ 10000 | `MedicationRequest` | `400` |
 | `note` field | 500 chars | per-DTO `@Size` | `400` |
 | Medication `name` | 255 chars | `MedicationRequest` | `400` |
-| Token lifetime | 7 days | `app.jwt.expiration-ms` | `401` |
+| Access-token lifetime | 7 days (to be lowered to ~1 h) | `app.jwt.expiration-ms` | `401` |
+| Refresh-token lifetime | 60 days, single use | `app.jwt.refresh-expiration-ms` | `401` |
+| `POST /auth/register` per IP | 10 per hour | `app.rate-limit.register.*` | `429` |
+| `POST /auth/refresh` per IP | 60 per minute | `app.rate-limit.refresh.*` | `429` |
+| `POST /auth/reset-pin` per IP | 10 per hour | `app.rate-limit.reset-pin.*` | `429` |
+| `POST /auth/recovery/questions` per IP | 30 per hour | `app.rate-limit.recovery-questions.*` | `429` |
 
-Apart from the per-account login lockout above, there is **no rate limiting** on any endpoint — no
-per-IP or global throttle.
+How the per-IP limits work:
+- Counts are kept in memory on each server instance and reset when it restarts.
+- The client IP is the connection address. A client-supplied `X-Forwarded-For` is never trusted.
+- Behind a reverse proxy, set `server.forward-headers-strategy=native`.
 
 ---
 
@@ -174,7 +211,12 @@ cannot be set by the client. Registration is identity only — medical details a
   "phone": "+251911234567",
   "pin": "1234",
   "name": "Abebe Bekele",
-  "preferredLanguage": "am"
+  "preferredLanguage": "am",
+  "securityAnswers": [
+    { "questionId": "FIRST_SCHOOL", "answer": "Bole Primary" },
+    { "questionId": "CHILDHOOD_FRIEND", "answer": "Dawit" },
+    { "questionId": "FAVORITE_TEACHER", "answer": "Ato Kebede" }
+  ]
 }
 ```
 
@@ -184,6 +226,7 @@ cannot be set by the client. Registration is identity only — medical details a
 | `pin` | string | ✅ | Exactly 4 digits |
 | `name` | string | ✅ | Not blank, ≤ 255 characters |
 | `preferredLanguage` | string | ✅ | `en` or `am` |
+| `securityAnswers` | array | ❌ | Forgot-PIN answers. If present: exactly 3, three different `questionId`s from `GET /auth/security-questions`, each answer 2–100 characters after normalising. **The current app always sends them, because its sign-up requires them.** The server keeps the field optional so older app builds can still register. |
 
 > The PIN is stored only as a BCrypt hash and is never returned or logged. Four digits is
 > defensible only because login is lockout-limited — see below.
@@ -201,7 +244,10 @@ cannot be set by the client. Registration is identity only — medical details a
       "phone": "+251911234567",
       "preferredLanguage": "am",
       "role": "PATIENT"
-    }
+    },
+    "refreshToken": "q8Zx...43 characters",
+    "accessTokenExpiresAt": "2026-08-13T10:00:00Z",
+    "refreshTokenExpiresAt": "2026-10-05T10:00:00Z"
   },
   "message": "Registered",
   "timestamp": "2026-08-06T10:00:00Z"
@@ -212,7 +258,7 @@ cannot be set by the client. Registration is identity only — medical details a
 
 | Code | Cause |
 |---|---|
-| `400` | Malformed phone, PIN that is not exactly 4 digits, blank name, unsupported language |
+| `400` | Malformed phone, PIN that is not exactly 4 digits, blank name, unsupported language, or an invalid `securityAnswers` set |
 | `409` | `"Phone already registered"` |
 
 > Registration reveals whether a phone is already in use. Login deliberately does not.
@@ -286,6 +332,178 @@ a still-valid token).
 > *different* column (`patient_profiles.preferred_language`), which this endpoint does not read.
 > The two can therefore diverge, and an in-app language toggle has nothing to call. Decide which
 > column owns the setting before building that toggle; it needs a backend change either way.
+
+---
+
+### `POST /api/v1/auth/refresh` — public
+
+Swaps a refresh token for a new access token and refresh token. The refresh token that was sent
+**stops working**, so store the new one straight away.
+
+**Request:** `{ "refreshToken": "q8Zx..." }`
+**Response** `200 OK` — same `data` shape as register; `message` is `"Token refreshed"`.
+
+**Errors:** `400` missing token · `401` `"Invalid or expired refresh token"` · `429` rate limit.
+
+> **Single use, and reuse is treated as theft.** Every refresh token from one sign-in belongs to
+> one "family". If a token that was already used is sent again, the server assumes it was copied
+> and cancels the whole family, so both the patient and whoever copied it must sign in again.
+> Clients must therefore run **only one refresh at a time**: two parallel refreshes with the same
+> token sign the patient out.
+
+---
+
+### `POST /api/v1/auth/logout` — public
+
+Cancels the refresh token's family (this device's session). Always `200`, even for unknown tokens.
+The access token is not cancelled; the client should delete it.
+
+**Request:** `{ "refreshToken": "q8Zx..." }`
+
+---
+
+### `POST /api/v1/auth/pin-change` — public
+
+Changes the PIN by proving the **current PIN**, with no session needed. The app uses it for every PIN
+change, including ones made **offline** and sent at the next sync, possibly after the phone's tokens
+have expired or been cancelled.
+
+**Request**
+
+```json
+{ "phone": "+251911234567", "currentPin": "1234", "newPin": "5678",
+  "changeId": "0b5c7d0e-6f0e-4c63-9d5a-3f3b8f1f2a10" }
+```
+
+| Field | Rules |
+|---|---|
+| `phone` | `+251` followed by 9 digits |
+| `currentPin`, `newPin` | Exactly 4 digits, and different from each other |
+| `changeId` | UUID, **required**. The phone generates it once per change and resends the same ID on every retry. |
+
+**Response** `200 OK`: a new token pair (same shape as register), `message: "PIN changed"`. Every
+other session's refresh token is cancelled.
+
+| Code | Cause |
+|---|---|
+| `400` | Malformed field, missing `changeId`, or new PIN equal to the current one |
+| `401` | `"Invalid phone or PIN"`: wrong current PIN or unknown phone, identical to login. For a queued change this means **the PIN was changed elsewhere first. The server wins, so drop the change.** |
+| `423` | PIN locked. Wrong current PINs count toward the same 5-try lock as login. |
+
+> **Retries are safe.** If the server applied a change but the phone never received the answer, the
+> retry still carries the old PIN, which no longer matches. When `changeId` equals the last applied
+> change **and** `newPin` matches the stored PIN, the server answers `200` again. It does not count
+> a failure and does not cancel tokens again. A locked account still gets `423`, even for a correct
+> retry.
+
+---
+
+### `POST /api/v1/auth/change-pin` — authenticated
+
+**Request:** `{ "currentPin": "1234", "newPin": "5678" }`
+**Response** `200 OK` — a new token pair (same shape as register), `message: "PIN changed"`.
+
+What happens:
+- Wrong `currentPin` attempts count toward the same 5-try / 15-minute lock as login.
+- On success, every refresh token for the account is cancelled, signing out other devices once their
+  access tokens expire.
+- The app uses `POST /auth/pin-change` instead (below), which works without a session and so also
+  covers changes made offline. This endpoint is kept for other clients.
+
+| Code | Cause |
+|---|---|
+| `400` | `"Current PIN is incorrect"`; new PIN same as current; not 4 digits |
+| `401` | Missing/invalid token |
+| `423` | PIN locked |
+
+> A wrong current PIN is a `400`, not a `401`: the session is fine, and a `401` would make the
+> client's refresh interceptor think it had expired.
+
+---
+
+### Forgot PIN (security questions)
+
+A patient who forgets the PIN answers the 3 security questions they chose, then sets a new PIN.
+
+How answers are compared:
+- Before comparing, answers are **normalised**: trim, collapse whitespace runs to one space,
+  lowercase. So `"  BOLE  primary"` matches `"Bole Primary"`. There is no Unicode NFKC step: the
+  app checks answers offline with exactly these rules, and the two checks must agree.
+- They are stored only as BCrypt hashes.
+- The server always does the checking. A reset the app did offline is the same `reset-pin` request,
+  sent once the phone is back online.
+
+#### `GET /api/v1/auth/security-questions` — public
+
+The question catalogue: question IDs only. The app holds the English and Amharic text for each ID.
+
+```json
+{ "success": true, "data": ["FIRST_SCHOOL", "CHILDHOOD_FRIEND", "FAVORITE_TEACHER", "CHILDHOOD_STREET",
+  "FIRST_JOB_PLACE", "FAVORITE_CHILDHOOD_FOOD", "FIRST_PHONE_BRAND", "CHILDHOOD_HERO"], "...": "..." }
+```
+
+#### `GET /api/v1/auth/security-answers` — authenticated
+
+Whether the signed-in patient has set answers, and for which questions. The answers themselves are
+never returned.
+
+```json
+{ "data": { "configured": true, "questions": ["FIRST_SCHOOL", "CHILDHOOD_FRIEND", "FAVORITE_TEACHER"] } }
+```
+
+#### `PUT /api/v1/auth/security-answers` — authenticated
+
+Sets or replaces all 3 answers. Needs the current PIN, and a wrong PIN counts toward the PIN lock.
+
+**Request:** `{ "currentPin": "1234", "answers": [ {questionId, answer} ×3 ] }`
+**Response** `200 OK` — same shape as the `GET`. **Errors:** `400` wrong PIN or invalid answer set ·
+`401` · `423` PIN locked.
+
+#### `POST /api/v1/auth/recovery/questions` — public
+
+**Request:** `{ "phone": "+251911234567" }`
+**Response** `200 OK` — `{ "questions": [ 3 IDs ] }`, the questions to ask on the Forgot PIN
+screen.
+
+> For a phone with no account, or an account with no answers set, the server returns 3 **decoy**
+> questions picked from a keyed hash of the phone number. The same phone always gets the same 3, so
+> the response can't be used to check whether a number is registered.
+
+#### `POST /api/v1/auth/reset-pin` — public
+
+**Request**
+
+```json
+{
+  "phone": "+251911234567",
+  "answers": [
+    { "questionId": "FIRST_SCHOOL", "answer": "bole primary" },
+    { "questionId": "CHILDHOOD_FRIEND", "answer": "Dawit" },
+    { "questionId": "FAVORITE_TEACHER", "answer": "Ato Kebede" }
+  ],
+  "newPin": "5678",
+  "changeId": "0b5c7d0e-6f0e-4c63-9d5a-3f3b8f1f2a10"
+}
+```
+
+`changeId` is optional here. It makes a retry of an already-applied reset return `200` again, the
+same way as on `pin-change`. The app sends one with every reset, because a reset made offline is
+sent later.
+
+**Response** `200 OK` — a new token pair (same shape as register), `message: "PIN reset"`.
+
+On success:
+- the PIN lock and the recovery lock are both cleared
+- every other session's refresh token is cancelled
+
+| Code | Cause |
+|---|---|
+| `400` | `"The answers don't match"`: any answer wrong, the wrong questions, an unknown phone, or an account with no answers set. All look the same on purpose. Also malformed phone or `newPin`. |
+| `423` | Recovery locked after 5 wrong attempts, for 60 minutes. Even correct answers are refused until then. |
+| `429` | Per-IP rate limit |
+
+> Unknown phones spend the same BCrypt work as real ones, so response time doesn't reveal whether
+> an account exists. As with login, a `423` does show that the account exists.
 
 ---
 
@@ -398,9 +616,9 @@ dose history stays intact.
 | Field | Type | Required | Rules |
 |---|---|---|---|
 | `name` | string | ✅ | Not blank, ≤ 255 chars |
-| `doseMg` | number | ✅ | > 0 |
+| `doseMg` | number | ✅ | > 0 and ≤ 10000 |
 | `frequency` | enum | ✅ | `ONCE_DAILY` · `BID` · `TID` · `CUSTOM` |
-| `scheduleTimes` | string[] | ❌ | Each entry `HH:mm` 24-hour; `null` → `[]` |
+| `scheduleTimes` | string[] | ❌ | Each entry `HH:mm` 24-hour; `null` → `[]`. The count must fit the frequency: `ONCE_DAILY` exactly 1, `BID` 2, `TID` 3, `CUSTOM` 0–12 (0 = as needed). No repeated times. |
 | `active` | boolean | ❌ | Defaults to `true` |
 | `clientRecordId` | UUID | ❌ | Idempotency key |
 
@@ -425,7 +643,17 @@ dose history stays intact.
 }
 ```
 
-**Errors:** `400` validation or malformed body · `401`.
+**Errors:** `400` validation or malformed body, e.g. `"scheduleTimes: BID needs exactly 2 schedule
+times, got 3"` · `401`.
+
+An inactive medication's response also carries `deactivatedAt`, the time it was switched off. The
+field is left out while the medication is active.
+
+---
+
+### `GET /api/v1/medications/{id}` — authenticated
+
+One medication. **Errors:** `400` non-UUID `id` · `401` · `404` unknown or owned by another user.
 
 ---
 
@@ -459,7 +687,8 @@ never changed. Omitting `active` leaves it unchanged (unlike the other fields).
 
 ### `DELETE /api/v1/medications/{id}` — authenticated
 
-Soft-deactivates (`active: false`). Idempotent — deactivating twice is fine.
+Soft-deactivates (`active: false`) and records `deactivatedAt`. Idempotent — deactivating twice is
+fine and keeps the first date. Reactivating via `PUT` with `"active": true` clears it.
 
 **Response** `200 OK` — the deactivated medication, `message: "Medication deactivated"`.
 
@@ -472,7 +701,7 @@ Soft-deactivates (`active: false`). Idempotent — deactivating twice is fine.
 
 ## 4. Dose Logs
 
-Append-only: there is no update or delete. Idempotent on `clientRecordId`.
+Append-only: there is no update or delete. Idempotent on `clientRecordId`, which is **required**.
 
 ### `POST /api/v1/medications/{medicationId}/doses` — authenticated
 
@@ -498,9 +727,16 @@ Logs a dose against an owned medication.
 | `status` | enum | ✅ | `TAKEN` · `MISSED` · `SKIPPED` |
 | `scheduledDate` | date | ✅ | `YYYY-MM-DD` |
 | `scheduledTime` | time | ❌ | `HH:mm` |
-| `loggedAt` | timestamp | ❌ | Defaults to now (UTC) |
+| `loggedAt` | timestamp | ❌ | Defaults to now (UTC); not in the future |
 | `note` | string | ❌ | ≤ 500 chars |
-| `clientRecordId` | UUID | ❌ | Idempotency key |
+| `clientRecordId` | UUID | ✅ | Idempotency key |
+
+`scheduledDate` can't be later than the local today (see `X-Timezone`).
+
+**Deactivated medications.** A dose is refused only if it is scheduled **after** the day the
+medication was deactivated (in the client's zone), with `400 "Medication is inactive: it was
+deactivated before <date>"`. Doses on or before that day are still accepted, because the app works
+offline and they may sync late.
 
 **Response** `200 OK`, `message: "Dose logged"`
 
@@ -523,8 +759,9 @@ Logs a dose against an owned medication.
 }
 ```
 
-**Errors:** `400` validation, unknown `status`, malformed body, non-UUID `medicationId` · `401` ·
-`404` medication unknown or not owned.
+**Errors:** `400` validation, unknown `status`, missing `clientRecordId`, future date, medication
+deactivated before `scheduledDate`, malformed body, non-UUID `medicationId` · `401` · `404`
+medication unknown or not owned.
 
 ---
 
@@ -568,7 +805,7 @@ Two fields are **server-owned** and silently ignored if a client sends them:
 | `BLOOD_PRESSURE` | `systolic`, `diastolic` | mmHg | 40–300 each; `systolic > diastolic` |
 | `GLUCOSE` | `glucose` | mmol/L | 0–50 |
 | `HEART_RATE` | `heartRate` | bpm | 20–300 |
-| `WEIGHT` | `weight` | kg | 0–500 |
+| `WEIGHT` | `weight` | kg | 1–500 |
 | `CHOLESTEROL` | `ldl`, `hdl`, `total` | mmol/L | 0–30 each |
 
 `values` must contain **exactly** the required keys — a missing key and an extra key are both
@@ -610,7 +847,7 @@ thresholds below.
 |---|---|---|---|
 | `type` | enum | ✅ | See table above |
 | `values` | object | ✅ | Exactly the required keys for `type`, all numeric |
-| `measuredAt` | timestamp | ❌ | Defaults to now (UTC) |
+| `measuredAt` | timestamp | ❌ | Defaults to now (UTC); not in the future |
 | `note` | string | ❌ | ≤ 500 chars |
 | `clientRecordId` | UUID | ❌ | Idempotency key |
 
@@ -644,7 +881,7 @@ A `WEIGHT` reading with `heightCm` on the profile comes back with BMI merged in:
 
 | Code | Cause |
 |---|---|
-| `400` | Unknown `type`; `values` missing, or not exactly the required key set; non-numeric value; value outside its sanity range; `systolic <= diastolic`; `note` over 500 chars |
+| `400` | Unknown `type`; `values` missing, or not exactly the required key set; non-numeric value; value outside its sanity range; `systolic <= diastolic`; `measuredAt` in the future; `note` over 500 chars |
 | `401` | Missing/invalid token |
 
 ---
@@ -658,8 +895,8 @@ Readings newest first (`measuredAt` desc).
 | Param | Type | Notes |
 |---|---|---|
 | `type` | enum | Filter to one vital type |
-| `from` | date | UTC day, inclusive |
-| `to` | date | UTC day, inclusive |
+| `from` | date | Local day (`X-Timezone`), inclusive |
+| `to` | date | Local day (`X-Timezone`), inclusive |
 
 **Example:** `GET /api/v1/vitals?type=BLOOD_PRESSURE&from=2026-07-01&to=2026-07-31`
 
@@ -673,6 +910,11 @@ Readings newest first (`measuredAt` desc).
 
 One row per check-in. Patient-entered fields live in `data`; the server computes an `assessment`
 from them (FR-SYM-010). Append-only; idempotent on `clientRecordId`.
+
+**One check-in per patient per local calendar day.** The day comes from `measuredAt` in the
+`X-Timezone` zone, and a database constraint enforces the rule. A second check-in on the same day
+gets `400 "A symptom check-in already exists for <date>"`, or `REJECTED` on sync. Re-sending the same
+`clientRecordId` still returns the existing check-in.
 
 ### `data` keys
 
@@ -767,7 +1009,7 @@ Per-symptom severity, then `overall` = the maximum across all six
 
 | Code | Cause |
 |---|---|
-| `400` | Missing or unknown `data` key; wrong field type; out-of-range value; unrecognized `shortnessOfBreath`; unknown key in `worseThanYesterday`; missing `chestPain.severity` when `present` is `true`; `systolic <= diastolic`; `note` over 500 chars |
+| `400` | Missing or unknown `data` key; wrong field type; out-of-range value; unrecognized `shortnessOfBreath`; unknown key in `worseThanYesterday`; missing `chestPain.severity` when `present` is `true`; `systolic <= diastolic`; `note` over 500 chars; `measuredAt` in the future; a check-in already exists for that day |
 | `401` | Missing/invalid token |
 
 ### Severity → recommended action
@@ -787,7 +1029,7 @@ Rendered client-side in EN/AM; the API returns only the severity code.
 
 Check-ins newest first (`measuredAt` desc).
 
-**Query parameters:** `from`, `to` (optional dates, UTC day, inclusive).
+**Query parameters:** `from`, `to` (optional dates, local day per `X-Timezone`, inclusive).
 
 **Response** `200 OK` — array of check-ins. **Errors:** `400` unparseable date · `401`.
 
@@ -855,7 +1097,8 @@ the client renders localized EN/AM labels.
 ```
 
 **Errors:** `400` missing/unknown `data` key, unrecognized `type`/`intensity`, wrong type,
-out-of-range `durationMinutes`/`steps`/`distanceMeters`, `note` over 500 chars · `401`.
+out-of-range `durationMinutes`/`steps`/`distanceMeters`, `measuredAt` in the future, `note` over 500
+chars · `401`.
 
 ---
 
@@ -863,7 +1106,7 @@ out-of-range `durationMinutes`/`steps`/`distanceMeters`, `note` over 500 chars �
 
 History newest first (`measuredAt` desc).
 
-**Query parameters:** `from`, `to` (optional dates, UTC day, inclusive).
+**Query parameters:** `from`, `to` (optional dates, local day per `X-Timezone`, inclusive).
 
 **Response** `200 OK` — array of activity logs. **Errors:** `400` unparseable date · `401`.
 

@@ -2,6 +2,7 @@ package com.heartcare.vitals;
 
 import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.persistence.IdempotentSaver;
+import com.heartcare.common.time.ClientZone;
 import com.heartcare.patient.PatientProfileRepository;
 import com.heartcare.patient.model.PatientProfile;
 import com.heartcare.vitals.dto.VitalLogRequest;
@@ -50,7 +51,8 @@ class VitalsServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new VitalsService(vitalsRepository, profileRepository, new VitalThresholds(), saver);
+        service = new VitalsService(vitalsRepository, profileRepository, new VitalThresholds(), saver,
+                new ClientZone("Africa/Addis_Ababa", 300));
         // Unit-test stand-in for IdempotentSaver: no real DB, so just hand back the entity being
         // saved, mirroring a successful (non-racing) insert.
         lenient().when(saver.saveOrGetExisting(any(), any(), any())).thenAnswer(inv -> inv.getArgument(2));
@@ -188,9 +190,10 @@ class VitalsServiceTest {
     void historyDelegatesToRepositoryWithFilters() {
         LocalDate from = LocalDate.of(2026, 7, 1);
         LocalDate to = LocalDate.of(2026, 7, 31);
-        // Service buckets by UTC day into a half-open range: [from 00:00Z, day-after-to 00:00Z).
-        OffsetDateTime fromTs = OffsetDateTime.of(2026, 7, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime toTs = OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+        // Outside a request ClientZone falls back to Africa/Addis_Ababa (UTC+3), so the service
+        // buckets into the half-open local range [from 00:00+03, day-after-to 00:00+03).
+        OffsetDateTime fromTs = OffsetDateTime.of(2026, 7, 1, 0, 0, 0, 0, ZoneOffset.ofHours(3));
+        OffsetDateTime toTs = OffsetDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneOffset.ofHours(3));
         when(vitalsRepository.findHistory(userId, fromTs, toTs, VitalType.GLUCOSE)).thenReturn(List.of());
 
         service.history(userId, VitalType.GLUCOSE, from, to);

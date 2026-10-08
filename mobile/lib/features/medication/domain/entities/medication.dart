@@ -1,4 +1,3 @@
-
 class Medication {
   const Medication({
     required this.clientRecordId,
@@ -10,6 +9,7 @@ class Medication {
     required this.active,
     required this.createdAt,
     required this.updatedAt,
+    this.deactivatedAt,
   });
 
   final String clientRecordId;
@@ -22,6 +22,26 @@ class Medication {
   final bool active;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// When the patient turned the medication off; null while active. Kept
+  /// apart from [updatedAt] so editing an inactive medication doesn't move
+  /// the day its doses stop being due.
+  final DateTime? deactivatedAt;
+
+  /// [copyWith] can't set a field back to null, so this is how the
+  /// deactivation day is set or cleared.
+  Medication withDeactivatedAt(DateTime? value) => Medication(
+    clientRecordId: clientRecordId,
+    serverId: serverId,
+    name: name,
+    doseMg: doseMg,
+    frequency: frequency,
+    scheduleTimes: scheduleTimes,
+    active: active,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    deactivatedAt: value,
+  );
 
   Medication copyWith({
     String? serverId,
@@ -42,6 +62,7 @@ class Medication {
       active: active ?? this.active,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deactivatedAt: deactivatedAt,
     );
   }
 }

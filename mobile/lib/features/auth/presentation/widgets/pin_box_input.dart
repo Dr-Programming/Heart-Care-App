@@ -61,7 +61,13 @@ class _PinBoxInputState extends State<PinBoxInput> {
   void _onDigitChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
       _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
     }
+    _notify();
+  }
+
+  void _notify() {
     final String pin = _controllers.map((c) => c.text).join();
 
     if (pin.length == 4) {
@@ -69,6 +75,22 @@ class _PinBoxInputState extends State<PinBoxInput> {
     } else {
       widget.onIncomplete?.call();
     }
+  }
+
+  /// Backspace in an empty box changes no text, so onChanged never fires and
+  /// the patient would have to tap the previous box by hand. Treat it as
+  /// "delete the digit before".
+  KeyEventResult _onKey(int index, KeyEvent event) {
+    final bool isBackspace =
+        event.logicalKey == LogicalKeyboardKey.backspace &&
+        (event is KeyDownEvent || event is KeyRepeatEvent);
+    if (!isBackspace || index == 0 || _controllers[index].text.isNotEmpty) {
+      return KeyEventResult.ignored;
+    }
+    _controllers[index - 1].clear();
+    _focusNodes[index - 1].requestFocus();
+    _notify();
+    return KeyEventResult.handled;
   }
 
   @override
@@ -85,38 +107,44 @@ class _PinBoxInputState extends State<PinBoxInput> {
                 SizedBox(
                   width: 52,
                   height: 56,
-                  child: TextField(
-                    controller: _controllers[i],
-                    focusNode: _focusNodes[i],
-                    enabled: widget.enabled,
-                    textAlign: TextAlign.center,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    maxLength: 1,
-                    inputFormatters: <TextInputFormatter>[
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    decoration: InputDecoration(
-                      counterText: '',
-                      filled: true,
-                      fillColor: AppColors.surfaceAlt,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.fieldRadius,
+                  child: Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onKeyEvent: (FocusNode _, KeyEvent event) =>
+                        _onKey(i, event),
+                    child: TextField(
+                      controller: _controllers[i],
+                      focusNode: _focusNodes[i],
+                      enabled: widget.enabled,
+                      textAlign: TextAlign.center,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      maxLength: 1,
+                      inputFormatters: <TextInputFormatter>[
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: InputDecoration(
+                        counterText: '',
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.fieldRadius,
+                          ),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.fieldRadius,
+                          ),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
+                        ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.fieldRadius,
-                        ),
-                        borderSide: const BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                      ),
+                      onChanged: (value) => _onDigitChanged(i, value),
                     ),
-                    onChanged: (value) => _onDigitChanged(i, value),
                   ),
                 ),
               ],

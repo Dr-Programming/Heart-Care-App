@@ -51,8 +51,22 @@ void main() {
   });
 
   test('HealthGoals value equality', () {
-    const a = HealthGoals(bpSystolic: 130, bpDiastolic: 80, totalCholesterol: 4.5, stepsPerDay: 6000, targetWeightKg: 78, dietNote: 'Less salt');
-    const b = HealthGoals(bpSystolic: 130, bpDiastolic: 80, totalCholesterol: 4.5, stepsPerDay: 6000, targetWeightKg: 78, dietNote: 'Less salt');
+    const a = HealthGoals(
+      bpSystolic: 130,
+      bpDiastolic: 80,
+      totalCholesterol: 4.5,
+      stepsPerDay: 6000,
+      targetWeightKg: 78,
+      dietNote: 'Less salt',
+    );
+    const b = HealthGoals(
+      bpSystolic: 130,
+      bpDiastolic: 80,
+      totalCholesterol: 4.5,
+      stepsPerDay: 6000,
+      targetWeightKg: 78,
+      dietNote: 'Less salt',
+    );
     expect(a, equals(b));
   });
 }

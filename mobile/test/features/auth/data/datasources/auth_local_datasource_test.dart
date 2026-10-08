@@ -1,28 +1,12 @@
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/db/app_database.dart';
-import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 
 import '../../../../helpers/test_database.dart';
-
-class _FakeTokenStore extends TokenStore {
-  _FakeTokenStore() : super(const FlutterSecureStorage());
-
-  String? _value;
-
-  @override
-  Future<void> clear() async => _value = null;
-
-  @override
-  Future<String?> read() async => _value;
-
-  @override
-  Future<void> write(String token) async => _value = token;
-}
+import '../../../../helpers/auth_fakes.dart';
 
 const _user = AuthUser(
   id: 'u1',
@@ -45,11 +29,11 @@ String _jwt({required DateTime exp}) {
 void main() {
   late AppDatabase db;
   late AuthLocalDataSource ds;
-  late _FakeTokenStore tokens;
+  late FakeTokenStore tokens;
 
   setUp(() {
     db = testDatabase();
-    tokens = _FakeTokenStore();
+    tokens = FakeTokenStore();
     ds = AuthLocalDataSource(
       tokenStore: tokens,
       cachedUserDao: db.cachedUserDao,
@@ -68,6 +52,48 @@ void main() {
     expect(await tokens.read(), isNotNull);
     expect(await ds.cachedUser(), _user);
   });
+
+  test(
+    'saveSession keeps the refresh token next to the access token',
+    () async {
+      await ds.saveSession(
+        token: _jwt(exp: DateTime.now().add(const Duration(hours: 1))),
+        refreshToken: 'refresh-1',
+        refreshTokenExpiresAt: DateTime.now().add(const Duration(days: 30)),
+        user: _user,
+      );
+
+      expect(await tokens.readRefresh(), 'refresh-1');
+    },
+  );
+
+  test(
+    'an expired access token with a live refresh token is still signed in',
+    () async {
+      await ds.saveSession(
+        token: _jwt(exp: DateTime.now().subtract(const Duration(minutes: 1))),
+        refreshToken: 'refresh-1',
+        refreshTokenExpiresAt: DateTime.now().add(const Duration(days: 30)),
+        user: _user,
+      );
+
+      expect(await ds.isSignedIn(), isTrue);
+    },
+  );
+
+  test(
+    'an expired refresh token does not keep the patient signed in',
+    () async {
+      await ds.saveSession(
+        token: _jwt(exp: DateTime.now().subtract(const Duration(minutes: 1))),
+        refreshToken: 'refresh-1',
+        refreshTokenExpiresAt: DateTime.now().subtract(const Duration(days: 1)),
+        user: _user,
+      );
+
+      expect(await ds.isSignedIn(), isFalse);
+    },
+  );
 
   test('cachedUser is null before any session is saved', () async {
     expect(await ds.cachedUser(), isNull);
@@ -93,19 +119,22 @@ void main() {
     expect(await ds.isSignedIn(), isFalse);
   });
 
-  test('clearSession removes the token, the cached user, and the onboarding flag', () async {
-    await ds.saveSession(
-      token: _jwt(exp: DateTime.now().add(const Duration(days: 7))),
-      user: _user,
-    );
-    await ds.setNeedsOnboarding(true);
+  test(
+    'clearSession removes the token, the cached user, and the onboarding flag',
+    () async {
+      await ds.saveSession(
+        token: _jwt(exp: DateTime.now().add(const Duration(days: 7))),
+        user: _user,
+      );
+      await ds.setNeedsOnboarding(true);
 
-    await ds.clearSession();
+      await ds.clearSession();
 
-    expect(await tokens.read(), isNull);
-    expect(await ds.cachedUser(), isNull);
-    expect(await ds.needsOnboarding(), isFalse);
-  });
+      expect(await tokens.read(), isNull);
+      expect(await ds.cachedUser(), isNull);
+      expect(await ds.needsOnboarding(), isFalse);
+    },
+  );
 
   test('needsOnboarding defaults to false and persists what is set', () async {
     expect(await ds.needsOnboarding(), isFalse);

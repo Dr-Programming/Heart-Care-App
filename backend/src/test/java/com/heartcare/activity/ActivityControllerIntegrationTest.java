@@ -117,7 +117,8 @@ class ActivityControllerIntegrationTest extends AbstractIntegrationTest {
         postActivity(token, withMeasuredAt("2026-07-11T00:30:00Z"));
 
         mockMvc.perform(get("/api/v1/activities?from=2026-07-11&to=2026-07-11")
-                        .header("Authorization", "Bearer " + token))
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "UTC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].measuredAt").value(org.hamcrest.Matchers.startsWith("2026-07-11")));
@@ -191,5 +192,29 @@ class ActivityControllerIntegrationTest extends AbstractIntegrationTest {
                                     "intensity": "MODERATE"
                                 } }"""))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void historyBucketsByClientTimezone() throws Exception {
+        // 21:30Z on Sep 28 is 00:30 on Sep 29 in Addis Ababa.
+        String token = registerAndGetToken();
+        postActivity(token, withMeasuredAt("2026-09-28T21:30:00Z"));
+
+        mockMvc.perform(get("/api/v1/activities?from=2026-09-29&to=2026-09-29")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Timezone", "Africa/Addis_Ababa"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void futureMeasuredAtReturns400() throws Exception {
+        // T-ACT-03
+        String token = registerAndGetToken();
+        mockMvc.perform(post("/api/v1/activities")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON).content(withMeasuredAt("2099-01-01T09:00:00Z")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("measuredAt must not be in the future"));
     }
 }

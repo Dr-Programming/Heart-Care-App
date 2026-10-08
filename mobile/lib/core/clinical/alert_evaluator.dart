@@ -1,5 +1,3 @@
-
-
 library;
 
 enum Severity {
@@ -92,14 +90,19 @@ Severity severityForVital({
   }
 }
 
+/// Blood pressure bands from the clinician's parameters form: normal up to
+/// 120/80, elevated (watch) to 140/90, high (urgent) above that, critical
+/// (emergency) at 180 systolic or 120 diastolic. Low pressure: under 90
+/// systolic is urgent, under 60 critical. When the two numbers fall in
+/// different bands the higher one applies.
+///
+/// This is the phone's own assessment; the server keeps its separate flag.
 Severity bloodPressureSeverity(num systolic, num diastolic) {
-  if (systolic >= 180) return Severity.emergency;
-  if (systolic >= 160 ||
-      systolic <= 90 ||
-      diastolic >= 100 ||
-      diastolic <= 60) {
-    return Severity.urgent;
+  if (systolic >= 180 || diastolic >= 120 || systolic < 60) {
+    return Severity.emergency;
   }
+  if (systolic > 140 || diastolic > 90 || systolic < 90) return Severity.urgent;
+  if (systolic > 120 || diastolic > 80) return Severity.monitor;
   return Severity.none;
 }
 

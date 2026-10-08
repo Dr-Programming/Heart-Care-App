@@ -56,12 +56,16 @@ void main() {
     scheduleTimes: <String>['08:00', '20:00'],
   );
 
-  testWidgets('shows the entered name, dose, frequency and times', (tester) async {
+  testWidgets('shows the entered name, dose, frequency and times', (
+    tester,
+  ) async {
     await pumpApp(
       tester,
       const ReviewMedicationScreen(notifyCaregiverEnabled: false),
       overrides: <Override>[
-        medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+        medicationFormControllerProvider.overrideWith(
+          () => _FakeSavingController(state),
+        ),
       ],
     );
 
@@ -86,58 +90,67 @@ void main() {
     expect(fake.saveCalled, isTrue);
   });
 
-  testWidgets('a failed save shows the failure\'s own message in a SnackBar (I7)', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
-      overrides: <Override>[
-        medicationFormControllerProvider.overrideWith(() => _PrefilledFormController(state)),
-        medicationRepositoryProvider.overrideWithValue(
-          FakeMedicationRepository(
-            writeError: const NetworkFailure('No connection right now'),
+  testWidgets(
+    'a failed save shows the failure\'s own message in a SnackBar (I7)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _PrefilledFormController(state),
           ),
-        ),
-      ],
-    );
-
-    await tester.tap(find.text('meds.review.save'.tr()));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.text('No connection right now'), findsOneWidget);
-    expect(
-      tester.takeException(),
-      isNull,
-      reason: 'the save failure must be handled, not left unhandled',
-    );
-  });
-
-  testWidgets('a non-Failure save error falls back to the generic message (I7)', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      const ReviewMedicationScreen(notifyCaregiverEnabled: false),
-      overrides: <Override>[
-        medicationFormControllerProvider.overrideWith(() => _PrefilledFormController(state)),
-        medicationRepositoryProvider.overrideWithValue(
-          FakeMedicationRepository(
-            writeError: StateError('simulated local write failure'),
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              writeError: const NetworkFailure('No connection right now'),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
 
-    await tester.tap(find.text('meds.review.save'.tr()));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('meds.review.save'.tr()));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.text('errors.generic'.tr()), findsOneWidget);
-    expect(find.textContaining('simulated local write failure'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('No connection right now'), findsOneWidget);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the save failure must be handled, not left unhandled',
+      );
+    },
+  );
+
+  testWidgets(
+    'a non-Failure save error falls back to the generic message (I7)',
+    (tester) async {
+      await pumpApp(
+        tester,
+        const ReviewMedicationScreen(notifyCaregiverEnabled: false),
+        overrides: <Override>[
+          medicationFormControllerProvider.overrideWith(
+            () => _PrefilledFormController(state),
+          ),
+          medicationRepositoryProvider.overrideWithValue(
+            FakeMedicationRepository(
+              writeError: StateError('simulated local write failure'),
+            ),
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('meds.review.save'.tr()));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('errors.generic'.tr()), findsOneWidget);
+      expect(
+        find.textContaining('simulated local write failure'),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'shows the caregiver notify row as On when notifyCaregiverEnabled is true',
@@ -146,7 +159,9 @@ void main() {
         tester,
         const ReviewMedicationScreen(notifyCaregiverEnabled: true),
         overrides: <Override>[
-          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeSavingController(state),
+          ),
         ],
       );
 
@@ -164,7 +179,9 @@ void main() {
         tester,
         const ReviewMedicationScreen(notifyCaregiverEnabled: false),
         overrides: <Override>[
-          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeSavingController(state),
+          ),
         ],
       );
 
@@ -183,7 +200,9 @@ void main() {
         tester,
         const ReviewMedicationScreen(notifyCaregiverEnabled: false),
         overrides: <Override>[
-          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeSavingController(state),
+          ),
         ],
       );
 
@@ -199,7 +218,6 @@ void main() {
     'does not overflow with several Custom-frequency schedule times at a '
     'narrow width',
     (tester) async {
-
       tester.view.physicalSize = const Size(320, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -216,7 +234,9 @@ void main() {
         tester,
         const ReviewMedicationScreen(notifyCaregiverEnabled: true),
         overrides: <Override>[
-          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(customState)),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeSavingController(customState),
+          ),
         ],
       );
 
@@ -235,12 +255,17 @@ void main() {
             instructions: MedicationInstructions.withFood,
           ),
           overrides: <Override>[
-            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(state),
+            ),
           ],
         );
 
         expect(find.text('meds.form.instructions.title'.tr()), findsOneWidget);
-        expect(find.text('meds.form.instructions.withFood'.tr()), findsOneWidget);
+        expect(
+          find.text('meds.form.instructions.withFood'.tr()),
+          findsOneWidget,
+        );
         expect(find.text('meds.review.instructionsNotSet'.tr()), findsNothing);
       },
     );
@@ -253,11 +278,16 @@ void main() {
           tester,
           const ReviewMedicationScreen(notifyCaregiverEnabled: false),
           overrides: <Override>[
-            medicationFormControllerProvider.overrideWith(() => _FakeSavingController(state)),
+            medicationFormControllerProvider.overrideWith(
+              () => _FakeSavingController(state),
+            ),
           ],
         );
 
-        expect(find.text('meds.review.instructionsNotSet'.tr()), findsOneWidget);
+        expect(
+          find.text('meds.review.instructionsNotSet'.tr()),
+          findsOneWidget,
+        );
       },
     );
   });
@@ -340,7 +370,9 @@ void main() {
         tester,
         const ReviewMedicationScreen(notifyCaregiverEnabled: true),
         overrides: <Override>[
-          medicationFormControllerProvider.overrideWith(() => _FakeSavingController(customState)),
+          medicationFormControllerProvider.overrideWith(
+            () => _FakeSavingController(customState),
+          ),
         ],
         language: AppLanguage.am,
       );

@@ -52,7 +52,9 @@ class VitalsHistoryScreen extends ConsumerWidget {
             child: state.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (Object error, StackTrace _) => ErrorView(
-                failure: error is Failure ? error : UnknownFailure(error.toString()),
+                failure: error is Failure
+                    ? error
+                    : UnknownFailure(error.toString()),
                 onRetry: () => controller.setTypeFilter(controller.typeFilter),
               ),
               data: (List<VitalReading> readings) => readings.isEmpty
@@ -63,10 +65,11 @@ class VitalsHistoryScreen extends ConsumerWidget {
                     )
                   : ListView.builder(
                       itemCount: readings.length,
-                      itemBuilder: (BuildContext context, int index) => ReadingRow(
-                        reading: readings[index],
-                        localeCode: context.locale.languageCode,
-                      ),
+                      itemBuilder: (BuildContext context, int index) =>
+                          ReadingRow(
+                            reading: readings[index],
+                            localeCode: context.locale.languageCode,
+                          ),
                     ),
             ),
           ),

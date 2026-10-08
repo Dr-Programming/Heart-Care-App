@@ -1,6 +1,6 @@
 # Slice 4 — Health Vitals Tracking Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a `vitals` feature to the Spring Boot backend so a patient can log five vital-sign types (blood pressure, glucose, heart rate, weight, cholesterol), receive a server-computed clinical-threshold flag and BMI, and read back their full history with type/date filters.
 
@@ -17,7 +17,7 @@
 - **Idempotency:** `client_record_id` is nullable; `UNIQUE (user_id, client_record_id)`. A repeat `POST` with an existing `client_record_id` for the user returns the existing row (no new insert).
 - **JSONB column name:** `values` is a PostgreSQL reserved word — the column is **`vital_values`**; the JSON API key stays `values` (mapped in DTOs/entity).
 - **Type enum values:** `BLOOD_PRESSURE`, `GLUCOSE`, `HEART_RATE`, `WEIGHT`, `CHOLESTEROL`.
-- **Commit style:** `feat(backend): …`, `test(backend): …`, `docs(backend): …`. **Do not add any AI co-author trailer.**
+- **Commit style:** `feat(backend): …`, `test(backend): …`, `docs(backend): …`.
 - **Test DB:** integration/repository tests extend `com.heartcare.AbstractIntegrationTest` (Testcontainers Postgres); Docker must be running. Run single test class with `mvn -f backend/pom.xml test -Dtest=ClassName`; full suite `mvn -f backend/pom.xml test`.
 
 ---

@@ -4,7 +4,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
@@ -12,7 +11,6 @@ import 'package:libu_care/core/db/app_database.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
-import 'package:libu_care/core/security/token_store.dart';
 import 'package:libu_care/core/shell/app_shell.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
 import 'package:libu_care/features/education/presentation/screens/quiz_screen.dart';
@@ -21,6 +19,7 @@ import 'package:libu_care/features/education/presentation/screens/topic_screen.d
 import 'helpers/fake_dio.dart';
 import 'helpers/pump_app.dart';
 import 'helpers/test_database.dart';
+import 'helpers/auth_fakes.dart';
 
 /// Boots the real app - the real router, the real shell, the real wiring in
 /// `app_wiring.dart` - and checks it lands somewhere usable.
@@ -30,21 +29,6 @@ import 'helpers/test_database.dart';
 /// landing at different times: it proves the shell still runs with some, or
 /// none, of them present.
 ///
-class _FakeTokenStore extends TokenStore {
-  _FakeTokenStore() : super(const FlutterSecureStorage());
-
-  String? _value;
-
-  @override
-  Future<void> clear() async => _value = null;
-
-  @override
-  Future<String?> read() async => _value;
-
-  @override
-  Future<void> write(String token) async => _value = token;
-}
-
 String _jwt({required DateTime exp}) {
   String segment(Map<String, dynamic> json) =>
       base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
@@ -60,12 +44,12 @@ void main() {
 
   late AppDatabase db;
   late FakeDio http;
-  late _FakeTokenStore tokens;
+  late FakeTokenStore tokens;
 
   setUp(() async {
     db = testDatabase();
     http = FakeDio();
-    tokens = _FakeTokenStore();
+    tokens = FakeTokenStore();
 
     await tokens.write(_jwt(exp: DateTime.now().add(const Duration(days: 7))));
     await db.cachedUserDao.save(
@@ -196,45 +180,49 @@ void main() {
     );
   });
 
-  test('learn topic and quiz routes resolve without a doubled /learn prefix', () {
-    final ProviderContainer container = ProviderContainer(
-      overrides: bootOverrides(),
-    );
-    addTearDown(container.dispose);
+  test(
+    'learn topic and quiz routes resolve without a doubled /learn prefix',
+    () {
+      final ProviderContainer container = ProviderContainer(
+        overrides: bootOverrides(),
+      );
+      addTearDown(container.dispose);
 
-    final GoRouter router = container.read(routerProvider);
+      final GoRouter router = container.read(routerProvider);
 
-    expect(
-      router.namedLocation(
-        AppRoutes.learnTopic,
-        pathParameters: <String, String>{'topic': 'chd-basics'},
-      ),
-      '/learn/chd-basics',
-    );
-    expect(
-      router.namedLocation(
-        AppRoutes.quiz,
-        queryParameters: <String, String>{'topic': 'chd-basics'},
-      ),
-      '/learn/quiz?topic=chd-basics',
-    );
-  });
+      expect(
+        router.namedLocation(
+          AppRoutes.learnTopic,
+          pathParameters: <String, String>{'topic': 'chd-basics'},
+        ),
+        '/learn/chd-basics',
+      );
+      expect(
+        router.namedLocation(
+          AppRoutes.quiz,
+          queryParameters: <String, String>{'topic': 'chd-basics'},
+        ),
+        '/learn/quiz?topic=chd-basics',
+      );
+    },
+  );
 
-  testWidgets('the /learn/quiz route actually matches to QuizScreen, not TopicScreen', (
-    WidgetTester tester,
-  ) async {
-    final GoRouter router = await bootApp(tester);
+  testWidgets(
+    'the /learn/quiz route actually matches to QuizScreen, not TopicScreen',
+    (WidgetTester tester) async {
+      final GoRouter router = await bootApp(tester);
 
-    router.go('/learn/quiz?topic=chd-basics');
-    await tester.pumpAndSettle(
-      const Duration(milliseconds: 100),
-      EnginePhase.sendSemanticsUpdate,
-      const Duration(seconds: 10),
-    );
+      router.go('/learn/quiz?topic=chd-basics');
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 10),
+      );
 
-    expect(find.byType(QuizScreen), findsOneWidget);
-    expect(find.byType(TopicScreen), findsNothing);
-  });
+      expect(find.byType(QuizScreen), findsOneWidget);
+      expect(find.byType(TopicScreen), findsNothing);
+    },
+  );
 
   testWidgets('boots in Amharic without falling back to Latin script', (
     WidgetTester tester,

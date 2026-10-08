@@ -21,8 +21,14 @@ class AuthLocalDataSource {
   Future<void> saveSession({
     required String token,
     required AuthUser user,
+    String? refreshToken,
+    DateTime? refreshTokenExpiresAt,
   }) async {
-    await tokenStore.write(token);
+    await tokenStore.writeSession(
+      access: token,
+      refresh: refreshToken,
+      refreshExpiresAt: refreshTokenExpiresAt,
+    );
     await saveUser(user);
   }
 
@@ -52,17 +58,29 @@ class AuthLocalDataSource {
     );
   }
 
+  /// A live access token, or a refresh token that can still renew it.
   Future<bool> isSignedIn() async {
     final String? token = await tokenStore.read();
     if (token == null) return false;
-    return !isJwtExpired(token);
+    if (!isJwtExpired(token)) return true;
+    if (await tokenStore.readRefresh() == null) return false;
+    final DateTime? expiry = await tokenStore.readRefreshExpiry();
+    return expiry == null || expiry.isAfter(DateTime.now());
   }
+
+  Future<String?> refreshToken() => tokenStore.readRefresh();
 
   Future<void> clearSession() async {
     await tokenStore.clear();
     await cachedUserDao.clear();
     await preferencesDao.remove(_needsOnboardingKey);
   }
+
+  Future<String?> dataOwner() =>
+      preferencesDao.get(PreferenceKeys.dataOwnerUserId);
+
+  Future<void> setDataOwner(String userId) =>
+      preferencesDao.set(PreferenceKeys.dataOwnerUserId, userId);
 
   Future<void> setNeedsOnboarding(bool value) =>
       preferencesDao.set(_needsOnboardingKey, value.toString());

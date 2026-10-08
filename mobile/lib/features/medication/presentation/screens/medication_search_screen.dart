@@ -41,32 +41,9 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
       showBack: false,
 
       scrollable: true,
-      bandChild: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'meds.search.title'.tr(),
-              style: text.headlineLarge?.copyWith(fontSize: 28),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-
-          Text(
-            'meds.search.subtitle'.tr(),
-            style: text.bodyMedium?.copyWith(color: AppColors.ink),
-          ),
-        ],
+      bandChild: BandHeader(
+        title: 'meds.search.title'.tr(),
+        subtitle: 'meds.search.subtitle'.tr(),
       ),
 
       body: Column(
@@ -119,6 +96,7 @@ class _MedicationSearchScreenState extends State<MedicationSearchScreen> {
             'meds.search.libraryHint'.tr(),
             style: text.bodySmall?.copyWith(color: AppColors.textTertiary),
           ),
+          const SizedBox(height: AppSpacing.lg),
           Text(
             'meds.search.cantFind'.tr(),
             style: text.bodySmall?.copyWith(color: AppColors.textSecondary),

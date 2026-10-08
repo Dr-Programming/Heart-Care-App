@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -43,6 +44,10 @@ public class SymptomLog {
 
     @Column(name = "measured_at", nullable = false)
     private OffsetDateTime measuredAt;
+
+    /** The patient's local calendar day of {@code measuredAt}; at most one check-in per day. */
+    @Column(name = "check_in_date", nullable = false)
+    private LocalDate checkInDate;
 
     @Column(name = "note")
     private String note;
@@ -106,6 +111,14 @@ public class SymptomLog {
 
     public void setMeasuredAt(OffsetDateTime measuredAt) {
         this.measuredAt = measuredAt;
+    }
+
+    public LocalDate getCheckInDate() {
+        return checkInDate;
+    }
+
+    public void setCheckInDate(LocalDate checkInDate) {
+        this.checkInDate = checkInDate;
     }
 
     public String getNote() {

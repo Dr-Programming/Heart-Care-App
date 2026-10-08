@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,8 @@ import java.util.UUID;
 public interface SymptomsRepository extends JpaRepository<SymptomLog, UUID> {
 
     Optional<SymptomLog> findByUserIdAndClientRecordId(UUID userId, UUID clientRecordId);
+
+    boolean existsByUserIdAndCheckInDate(UUID userId, LocalDate checkInDate);
 
     @Query("""
             SELECT s FROM SymptomLog s

@@ -92,14 +92,14 @@ void main() {
   test('BP produces two series from one set of readings', () async {
     final _FakeRepository repo = _FakeRepository(<VitalReading>[
       _reading(now, <String, double>{'systolic': 120, 'diastolic': 80}),
-      _reading(
-        now.subtract(const Duration(days: 1)),
-        <String, double>{'systolic': 122, 'diastolic': 81},
-      ),
-      _reading(
-        now.subtract(const Duration(days: 2)),
-        <String, double>{'systolic': 118, 'diastolic': 79},
-      ),
+      _reading(now.subtract(const Duration(days: 1)), <String, double>{
+        'systolic': 122,
+        'diastolic': 81,
+      }),
+      _reading(now.subtract(const Duration(days: 2)), <String, double>{
+        'systolic': 118,
+        'diastolic': 79,
+      }),
     ]);
     final BuildSeries useCase = BuildSeries(repo);
 

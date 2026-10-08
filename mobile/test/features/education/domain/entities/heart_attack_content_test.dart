@@ -19,18 +19,21 @@ void main() {
     }
   });
 
-  test('heart-attack quiz has exactly one correct option per question, en and am', () {
-    for (final String lang in <String>['en', 'am']) {
-      final List<dynamic> json = jsonDecode(
-        File('assets/content/quiz_$lang.json').readAsStringSync(),
-      ) as List<dynamic>;
-      final Quiz quiz = Quiz.fromJson(
-        (json[2] as Map<Object?, Object?>).cast(),
-      );
-      expect(quiz.topicId, 'heart-attack');
-      for (final QuizQuestion q in quiz.questions) {
-        expect(q.options.where((QuizOption o) => o.correct).length, 1);
+  test(
+    'heart-attack quiz has exactly one correct option per question, en and am',
+    () {
+      for (final String lang in <String>['en', 'am']) {
+        final List<dynamic> json = jsonDecode(
+          File('assets/content/quiz_$lang.json').readAsStringSync(),
+        ) as List<dynamic>;
+        final Quiz quiz = Quiz.fromJson(
+          (json[2] as Map<Object?, Object?>).cast(),
+        );
+        expect(quiz.topicId, 'heart-attack');
+        for (final QuizQuestion q in quiz.questions) {
+          expect(q.options.where((QuizOption o) => o.correct).length, 1);
+        }
       }
-    }
-  });
+    },
+  );
 }

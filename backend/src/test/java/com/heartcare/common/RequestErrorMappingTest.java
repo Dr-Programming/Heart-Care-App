@@ -18,6 +18,7 @@ import java.util.UUID;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -82,8 +83,8 @@ class RequestErrorMappingTest extends AbstractIntegrationTest {
 
     @Test
     void wrongMethodOnAKnownRouteIsMethodNotAllowed() throws Exception {
-        // /medications/{id} exists for PUT and DELETE, but there is no GET.
-        mockMvc.perform(get("/api/v1/medications/" + UUID.randomUUID())
+        // /medications/{id} exists for GET, PUT and DELETE, but there is no PATCH.
+        mockMvc.perform(patch("/api/v1/medications/" + UUID.randomUUID())
                         .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.success").value(false));

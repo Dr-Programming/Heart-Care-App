@@ -13,9 +13,13 @@ import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../domain/security_question.dart';
 import '../../domain/validators.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/own_question_field.dart';
+import '../widgets/patient_switch.dart';
 import '../widgets/pin_box_input.dart';
+import '../widgets/security_questions_fields.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -34,6 +38,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _phoneErrorKey;
   String? _nameErrorKey;
   String? _pinErrorKey;
+
+  /// 1: phone, PIN, name, language. 2: security questions (required), so
+  /// every new account can reset a forgotten PIN, even offline.
+  int _step = 1;
+  final SecurityQuestionsFieldsController _questions =
+      SecurityQuestionsFieldsController();
+  final OwnQuestionController _ownQuestion = OwnQuestionController();
 
   @override
   void initState() {
@@ -55,6 +66,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void dispose() {
     _phoneController.dispose();
     _nameController.dispose();
+    _questions.dispose();
+    _ownQuestion.dispose();
     super.dispose();
   }
 
@@ -77,7 +90,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  Future<void> _submit() async {
+  /// Step 1 → step 2, once the details are valid.
+  void _next() {
     final ServerReachability reachability = ref.read(
       serverReachabilityProvider,
     );
@@ -85,7 +99,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _reportBlocked(reachability);
       return;
     }
+    if (_validateDetails()) {
+      // The phone field stays alive offstage; without this its number pad
+      // stays open over the answer fields.
+      FocusScope.of(context).unfocus();
+      setState(() => _step = 2);
+    }
+  }
 
+  bool _validateDetails() {
     final String? phoneKey = validatePhone(_phoneController.text.trim());
     final String? nameKey = validateName(_nameController.text);
     final String? pinKey = _pin == null
@@ -96,16 +118,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       _nameErrorKey = nameKey;
       _pinErrorKey = pinKey;
     });
-    if (phoneKey != null || nameKey != null || pinKey != null) return;
+    return phoneKey == null && nameKey == null && pinKey == null;
+  }
 
-    await ref
+  Future<void> _submit() async {
+    final ServerReachability reachability = ref.read(
+      serverReachabilityProvider,
+    );
+    if (!reachability.isOnline) {
+      _reportBlocked(reachability);
+      return;
+    }
+    final List<SecurityAnswer>? answers = _questions.validate();
+    final bool ownQuestionOk = _ownQuestion.validate();
+    setState(() {});
+    if (answers == null || !ownQuestionOk) return;
+
+    Future<void> register() => ref
         .read(authControllerProvider.notifier)
         .register(
           phone: _phoneController.text.trim(),
           pin: _pin!,
           name: _nameController.text.trim(),
           preferredLanguage: _selectedLanguage.code,
+          securityAnswers: answers,
+          ownQuestion: _ownQuestion.value,
         );
+    await register();
+
+    // The previous patient on this phone has records the server hasn't
+    // received: offer to delete them, then try again.
+    if (!mounted) return;
+    final Object? switchError = ref.read(authControllerProvider).error;
+    if (switchError is PatientSwitchFailure &&
+        await offerToDiscardUnsent(context, ref, switchError) &&
+        mounted) {
+      await register();
+    }
 
     if (!mounted) return;
     final AsyncValue<AuthState> asyncState = ref.read(authControllerProvider);
@@ -129,6 +178,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (error is PhoneAlreadyRegisteredFailure) {
       return 'auth.errors.phoneTaken'.tr();
     }
+    if (error is PatientSwitchFailure) return patientSwitchMessage(error);
     if (error is NetworkFailure) {
       return 'errors.offline'.tr();
     }
@@ -153,155 +203,195 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return AppScaffold.banded(
       showBack: false,
-      bandChild: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
-            // Popping the only page on the stack leaves a black screen, so
-            // fall back to login when this screen was reached with `go`.
-            onPressed: () => context.canPop()
-                ? context.pop()
-                : context.goNamed(AppRoutes.login),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text('auth.register.title'.tr(), style: text.headlineLarge),
-          const SizedBox(height: AppSpacing.xs),
-          Text('auth.register.subtitle'.tr(), style: text.bodyMedium),
-        ],
+      bandChild: BandHeader(
+        title: 'auth.register.title'.tr(),
+        subtitle: 'auth.register.subtitle'.tr(),
+        // Popping the only page on the stack leaves a black screen, so
+        // fall back to login when this screen was reached with `go`.
+        onBack: () =>
+            context.canPop() ? context.pop() : context.goNamed(AppRoutes.login),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const SizedBox(height: AppSpacing.lg),
-          if (blocked) ...<Widget>[
-            _ConnectionNotice(
-              reachability: reachability,
-              onRetry: () =>
-                  ref.read(serverReachabilityProvider.notifier).refresh(),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          _BlockedFormGate(
-            blocked: blocked,
-            onBlockedTap: () => _reportBlocked(reachability),
+          // Kept alive while step 2 shows, so the PIN boxes still hold their
+          // digits if the patient goes back.
+          Offstage(
+            offstage: _step != 1,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                AppTextField(
-                  label: 'auth.login.phone'.tr(),
-                  controller: _phoneController,
-                  hint: 'auth.login.phoneHint'.tr(),
-                  errorText: _phoneErrorKey?.tr(),
-                  enabled: !blocked,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: Icons.call_outlined,
-                  textInputAction: TextInputAction.next,
-                  onChanged: (_) {
-                    if (_phoneErrorKey != null) {
-                      setState(() => _phoneErrorKey = null);
-                    }
-                  },
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text('auth.login.pin'.tr(), style: text.titleMedium),
-                const SizedBox(height: AppSpacing.sm),
-                PinBoxInput(
-                  errorText: _pinErrorKey?.tr(),
-                  enabled: !blocked,
-                  onCompleted: (String pin) {
-                    setState(() {
-                      _pin = pin;
-                      _pinErrorKey = null;
-                    });
-                  },
-                  onIncomplete: () => setState(() => _pin = null),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: 'auth.register.name'.tr(),
-                  controller: _nameController,
-                  hint: 'auth.register.nameHint'.tr(),
-                  errorText: _nameErrorKey?.tr(),
-                  enabled: !blocked,
-                  textInputAction: TextInputAction.done,
-                  onChanged: (_) {
-                    if (_nameErrorKey != null) {
-                      setState(() => _nameErrorKey = null);
-                    }
-                  },
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'auth.register.preferredLanguage'.tr(),
-                  style: text.titleMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: <Widget>[
-                    for (final AppLanguage language
-                        in AppLanguage.values) ...<Widget>[
-                      if (language != AppLanguage.values.first)
-                        const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _LanguageOption(
-                          label: language.nativeLabel,
-                          selected: _selectedLanguage == language,
-                          onTap: () =>
-                              setState(() => _selectedLanguage = language),
-                        ),
+                if (blocked) ...<Widget>[
+                  _ConnectionNotice(
+                    reachability: reachability,
+                    onRetry: () =>
+                        ref.read(serverReachabilityProvider.notifier).refresh(),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                _BlockedFormGate(
+                  blocked: blocked,
+                  onBlockedTap: () => _reportBlocked(reachability),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      AppTextField(
+                        label: 'auth.login.phone'.tr(),
+                        controller: _phoneController,
+                        hint: 'auth.login.phoneHint'.tr(),
+                        errorText: _phoneErrorKey?.tr(),
+                        enabled: !blocked,
+                        keyboardType: TextInputType.phone,
+                        prefixIcon: Icons.call_outlined,
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          if (_phoneErrorKey != null) {
+                            setState(() => _phoneErrorKey = null);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text('auth.login.pin'.tr(), style: text.titleMedium),
+                      const SizedBox(height: AppSpacing.sm),
+                      PinBoxInput(
+                        errorText: _pinErrorKey?.tr(),
+                        enabled: !blocked,
+                        onCompleted: (String pin) {
+                          setState(() {
+                            _pin = pin;
+                            _pinErrorKey = null;
+                          });
+                        },
+                        onIncomplete: () => setState(() => _pin = null),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AppTextField(
+                        label: 'auth.register.name'.tr(),
+                        controller: _nameController,
+                        hint: 'auth.register.nameHint'.tr(),
+                        errorText: _nameErrorKey?.tr(),
+                        enabled: !blocked,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) {
+                          if (_nameErrorKey != null) {
+                            setState(() => _nameErrorKey = null);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'auth.register.preferredLanguage'.tr(),
+                        style: text.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: <Widget>[
+                          for (final AppLanguage language
+                              in AppLanguage.values) ...<Widget>[
+                            if (language != AppLanguage.values.first)
+                              const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: _LanguageOption(
+                                label: language.nativeLabel,
+                                selected: _selectedLanguage == language,
+                                onTap: () => setState(
+                                  () => _selectedLanguage = language,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-          if (formError != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              formError,
-              style: text.bodyMedium?.copyWith(color: AppColors.critical),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              key: const Key('registerSubmitButton'),
-              // Stays pressable while blocked — a dead button explains nothing,
-              // whereas `_submit` turns the press into the toast that does.
-              onPressed: isLoading ? null : _submit,
-              style: blocked
-                  ? FilledButton.styleFrom(
-                      backgroundColor: AppColors.borderStrong,
-                      foregroundColor: AppColors.surface,
-                    )
-                  : null,
-              child: isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Row(
+                const SizedBox(height: AppSpacing.xl),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    key: const Key('registerNextButton'),
+                    // Stays pressable while blocked — a dead button explains nothing,
+                    // whereas `_next` turns the press into the toast that does.
+                    onPressed: _next,
+                    style: blocked
+                        ? FilledButton.styleFrom(
+                            backgroundColor: AppColors.borderStrong,
+                            foregroundColor: AppColors.surface,
+                          )
+                        : null,
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        Text('auth.register.submit'.tr()),
+                        Text('auth.register.next'.tr()),
                         const SizedBox(width: AppSpacing.sm),
                         const Icon(Icons.arrow_forward, size: 18),
                       ],
                     ),
+                  ),
+                ),
+              ],
             ),
           ),
+          if (_step == 2) ...<Widget>[
+            Text('auth.register.securityTitle'.tr(), style: text.titleLarge),
+            const SizedBox(height: AppSpacing.xs),
+            Text('auth.register.securitySubtitle'.tr(), style: text.bodyMedium),
+            const SizedBox(height: AppSpacing.lg),
+            SecurityQuestionsFields(
+              controller: _questions,
+              enabled: !isLoading,
+            ),
+            OwnQuestionField(controller: _ownQuestion, enabled: !isLoading),
+            const SizedBox(height: AppSpacing.lg),
+            if (formError != null) ...<Widget>[
+              Text(
+                formError,
+                style: text.bodyMedium?.copyWith(color: AppColors.critical),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                key: const Key('registerSubmitButton'),
+                onPressed: isLoading ? null : _submit,
+                style: blocked
+                    ? FilledButton.styleFrom(
+                        backgroundColor: AppColors.borderStrong,
+                        foregroundColor: AppColors.surface,
+                      )
+                    : null,
+                child: isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text('auth.register.submit'.tr()),
+                          const SizedBox(width: AppSpacing.sm),
+                          const Icon(Icons.arrow_forward, size: 18),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(
+              key: const Key('registerBackButton'),
+              label: 'auth.register.back'.tr(),
+              variant: AppButtonVariant.secondary,
+              onPressed: isLoading ? null : () => setState(() => _step = 1),
+            ),
+          ],
           const SizedBox(height: AppSpacing.xl),
           Align(
             alignment: Alignment.center,
             child: Wrap(
               alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 Text('auth.register.haveAccount'.tr(), style: text.bodyMedium),
                 AppButton(

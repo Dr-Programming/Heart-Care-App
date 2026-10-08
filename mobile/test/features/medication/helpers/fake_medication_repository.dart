@@ -31,8 +31,9 @@ class FakeMedicationRepository implements MedicationRepository {
       medications.where((Medication m) => m.active).toList();
 
   @override
-  Future<List<Medication>> allMedications({bool includeInactive = false}) async =>
-      includeInactive
+  Future<List<Medication>> allMedications({
+    bool includeInactive = false,
+  }) async => includeInactive
       ? <Medication>[...medications]
       : medications.where((Medication m) => m.active).toList();
 
@@ -116,8 +117,7 @@ class FakeMedicationRepository implements MedicationRepository {
     if (medicationClientRecordId == null) return <DoseLog>[...history];
     return history
         .where(
-          (DoseLog l) =>
-              l.medicationClientRecordId == medicationClientRecordId,
+          (DoseLog l) => l.medicationClientRecordId == medicationClientRecordId,
         )
         .toList();
   }

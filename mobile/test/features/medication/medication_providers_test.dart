@@ -8,6 +8,9 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(container.read(caregiverNotifyStoreProvider), isA<CaregiverNotifyStore>());
+    expect(
+      container.read(caregiverNotifyStoreProvider),
+      isA<CaregiverNotifyStore>(),
+    );
   });
 }

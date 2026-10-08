@@ -22,6 +22,7 @@ abstract class MedicationModel with _$MedicationModel {
     String? clientRecordId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? deactivatedAt,
   }) = _MedicationModel;
 
   factory MedicationModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +39,9 @@ abstract class MedicationModel with _$MedicationModel {
           : null,
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'] as String)
+          : null,
+      deactivatedAt: json['deactivatedAt'] != null
+          ? DateTime.parse(json['deactivatedAt'] as String)
           : null,
     );
   }
@@ -64,6 +68,7 @@ abstract class MedicationModel with _$MedicationModel {
     clientRecordId: medication.clientRecordId,
     createdAt: medication.createdAt,
     updatedAt: medication.updatedAt,
+    deactivatedAt: medication.deactivatedAt,
   );
 
   Medication toEntity() {
@@ -78,6 +83,7 @@ abstract class MedicationModel with _$MedicationModel {
       active: active,
       createdAt: createdAt ?? now,
       updatedAt: updatedAt ?? now,
+      deactivatedAt: deactivatedAt,
     );
   }
 
@@ -93,6 +99,7 @@ abstract class MedicationModel with _$MedicationModel {
       active: Value<bool>(active),
       createdAt: createdAt ?? now,
       updatedAt: updatedAt ?? now,
+      deactivatedAt: Value<DateTime?>(deactivatedAt),
     );
   }
 }

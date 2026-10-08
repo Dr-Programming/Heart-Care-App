@@ -75,34 +75,9 @@ class ReviewMedicationScreen extends ConsumerWidget {
       showBack: false,
 
       scrollable: true,
-      bandChild: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: const Icon(Icons.arrow_back, color: AppColors.ink),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'meds.review.title'.tr(),
-              style: Theme.of(context).textTheme.headlineLarge
-                  ?.copyWith(fontSize: 28),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-
-          Text(
-            'meds.review.subtitle'.tr(),
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(color: AppColors.ink),
-          ),
-        ],
+      bandChild: BandHeader(
+        title: 'meds.review.title'.tr(),
+        subtitle: 'meds.review.subtitle'.tr(),
       ),
 
       body: Column(
@@ -198,10 +173,12 @@ class ReviewMedicationScreen extends ConsumerWidget {
             onPressed: () => _save(context, controller),
           ),
           const SizedBox(height: AppSpacing.sm),
-          AppButton(
-            label: 'meds.review.edit'.tr(),
-            variant: AppButtonVariant.text,
-            onPressed: () => Navigator.of(context).pop(),
+          Center(
+            child: AppButton(
+              label: 'meds.review.edit'.tr(),
+              variant: AppButtonVariant.text,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
         ],
       ),

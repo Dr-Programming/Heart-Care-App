@@ -18,6 +18,8 @@ abstract final class ConfirmSheet {
       context: context,
       backgroundColor: AppColors.surface,
       showDragHandle: true,
+      // A long message (often in Amharic) scrolls instead of overflowing.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSpacing.xl),
@@ -33,30 +35,32 @@ abstract final class ConfirmSheet {
             AppSpacing.gutter,
             AppSpacing.xl,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(title, style: text.headlineMedium),
-              if (message != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.md),
-                Text(message, style: text.bodyLarge),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(title, style: text.headlineMedium),
+                if (message != null) ...<Widget>[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(message, style: text.bodyLarge),
+                ],
+                const SizedBox(height: AppSpacing.xl),
+                AppButton(
+                  label: confirmLabel,
+                  variant: isDestructive
+                      ? AppButtonVariant.secondary
+                      : AppButtonVariant.primary,
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                AppButton(
+                  label: cancelLabel ?? 'common.cancel'.tr(),
+                  variant: AppButtonVariant.text,
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                ),
               ],
-              const SizedBox(height: AppSpacing.xl),
-              AppButton(
-                label: confirmLabel,
-                variant: isDestructive
-                    ? AppButtonVariant.secondary
-                    : AppButtonVariant.primary,
-                onPressed: () => Navigator.of(sheetContext).pop(true),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              AppButton(
-                label: cancelLabel ?? 'common.cancel'.tr(),
-                variant: AppButtonVariant.text,
-                onPressed: () => Navigator.of(sheetContext).pop(false),
-              ),
-            ],
+            ),
           ),
         );
       },

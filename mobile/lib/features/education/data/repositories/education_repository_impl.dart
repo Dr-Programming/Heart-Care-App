@@ -13,9 +13,7 @@ class EducationRepositoryImpl implements EducationRepository {
 
   @override
   Future<List<Topic>> topics(String languageCode) async {
-    return _topicsCache[languageCode] ??= await _local.loadTopics(
-      languageCode,
-    );
+    return _topicsCache[languageCode] ??= await _local.loadTopics(languageCode);
   }
 
   @override
@@ -29,8 +27,8 @@ class EducationRepositoryImpl implements EducationRepository {
 
   @override
   Future<Quiz?> quizForTopic(String topicId, String languageCode) async {
-    final List<Quiz> all =
-        _quizzesCache[languageCode] ??= await _local.loadQuizzes(languageCode);
+    final List<Quiz> all = _quizzesCache[languageCode] ??= await _local
+        .loadQuizzes(languageCode);
     for (final Quiz q in all) {
       if (q.topicId == topicId) return q;
     }

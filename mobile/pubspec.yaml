@@ -62,6 +62,8 @@ dependencies:
   timezone: ^0.10.1               # scheduling reminders at a local wall clock
   url_launcher: ^6.3.2            # M5 learn - open external videos/citations
   crypto: ^3.0.7                  # offline sign-in - PIN verifier (already locked transitively)
+  pdf: ^3.12.0                    # visit summary - build the PDF
+  printing: ^5.14.3               # visit summary - save / share the PDF
 
 dev_dependencies:
   flutter_test:

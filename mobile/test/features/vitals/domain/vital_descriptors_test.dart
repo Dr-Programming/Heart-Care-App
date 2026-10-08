@@ -8,10 +8,7 @@ void main() {
       vitalDescriptors[VitalType.bloodPressure]!.requiredKeys,
       containsAll(<String>['systolic', 'diastolic']),
     );
-    expect(
-      vitalDescriptors[VitalType.bloodPressure]!.requiredKeys.length,
-      2,
-    );
+    expect(vitalDescriptors[VitalType.bloodPressure]!.requiredKeys.length, 2);
     expect(vitalDescriptors[VitalType.glucose]!.requiredKeys, <String>[
       'glucose',
     ]);
@@ -25,10 +22,7 @@ void main() {
       vitalDescriptors[VitalType.cholesterol]!.requiredKeys,
       containsAll(<String>['ldl', 'hdl', 'total']),
     );
-    expect(
-      vitalDescriptors[VitalType.cholesterol]!.requiredKeys.length,
-      3,
-    );
+    expect(vitalDescriptors[VitalType.cholesterol]!.requiredKeys.length, 3);
   });
 
   test('wire round-trips for every type', () {

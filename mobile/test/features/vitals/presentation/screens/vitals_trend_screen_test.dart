@@ -24,6 +24,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Not enough readings yet to show a trend'), findsOneWidget);
+    expect(
+      find.text('Not enough readings yet to show a trend'),
+      findsOneWidget,
+    );
   });
 }

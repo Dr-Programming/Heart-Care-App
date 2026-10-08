@@ -5,46 +5,48 @@ import 'package:libu_care/features/auth/data/datasources/auth_remote_datasource.
 import '../../../../helpers/fake_dio.dart';
 
 void main() {
-  test('register sends the documented body and unwraps a 200 envelope', () async {
-    final fake = FakeDio();
-    fake.stub(
-      '/api/v1/auth/register',
-      FakeResponse.ok(<String, dynamic>{
-        'token': 'header.payload.signature',
-        'user': <String, dynamic>{
-          'id': 'u1',
-          'name': 'Abebe Girma',
-          'phone': '+251911234567',
-          'preferredLanguage': 'en',
-          'role': 'PATIENT',
-        },
-      }),
-    );
-    final ds = AuthRemoteDataSource(fake.dio);
+  test(
+    'register sends the documented body and unwraps a 200 envelope',
+    () async {
+      final fake = FakeDio();
+      fake.stub(
+        '/api/v1/auth/register',
+        FakeResponse.ok(<String, dynamic>{
+          'token': 'header.payload.signature',
+          'user': <String, dynamic>{
+            'id': 'u1',
+            'name': 'Abebe Girma',
+            'phone': '+251911234567',
+            'preferredLanguage': 'en',
+            'role': 'PATIENT',
+          },
+        }),
+      );
+      final ds = AuthRemoteDataSource(fake.dio);
 
-    final result = await ds.register(
-      phone: '+251911234567',
-      pin: '1234',
-      name: 'Abebe Girma',
-      preferredLanguage: 'en',
-    );
+      final result = await ds.register(
+        phone: '+251911234567',
+        pin: '1234',
+        name: 'Abebe Girma',
+        preferredLanguage: 'en',
+      );
 
-    expect(result.token, 'header.payload.signature');
-    expect(result.user.name, 'Abebe Girma');
-    expect(fake.requests.single.method, 'POST');
-    expect(fake.requests.single.json, <String, dynamic>{
-      'phone': '+251911234567',
-      'pin': '1234',
-      'name': 'Abebe Girma',
-      'preferredLanguage': 'en',
-    });
-  });
+      expect(result.token, 'header.payload.signature');
+      expect(result.user.name, 'Abebe Girma');
+      expect(fake.requests.single.method, 'POST');
+      expect(fake.requests.single.json, <String, dynamic>{
+        'phone': '+251911234567',
+        'pin': '1234',
+        'name': 'Abebe Girma',
+        'preferredLanguage': 'en',
+      });
+    },
+  );
 
-  test('register does not treat a 201 as anything special (there is none)', () async {
-    
-    
-    
-  });
+  test(
+    'register does not treat a 201 as anything special (there is none)',
+    () async {},
+  );
 
   test('login sends phone and pin, unwraps a 200 envelope', () async {
     final fake = FakeDio();
@@ -74,7 +76,10 @@ void main() {
 
   test('login propagates a DioException on a non-2xx response', () async {
     final fake = FakeDio();
-    fake.stub('/api/v1/auth/login', FakeResponse.error(401, 'Invalid phone or PIN'));
+    fake.stub(
+      '/api/v1/auth/login',
+      FakeResponse.error(401, 'Invalid phone or PIN'),
+    );
     final ds = AuthRemoteDataSource(fake.dio);
 
     await expectLater(

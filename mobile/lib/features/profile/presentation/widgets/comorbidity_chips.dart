@@ -31,7 +31,11 @@ class ComorbidityChips extends StatelessWidget {
             FilterChip(
               label: Text(label),
               selected: selected.contains(key),
-              selectedColor: AppColors.ink,
+              labelStyle: TextStyle(
+                color: selected.contains(key)
+                    ? AppColors.surface
+                    : AppColors.ink,
+              ),
               onSelected: (bool value) {
                 final next = Set<String>.from(selected);
                 value ? next.add(key) : next.remove(key);

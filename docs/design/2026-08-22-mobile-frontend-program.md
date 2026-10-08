@@ -153,17 +153,16 @@ first task, and it is where your engineering judgement shows — the spec
 deliberately leaves screen composition, state modelling and task breakdown to
 you.
 
-With the assistant tooling the maintainer shares with you:
+The steps for every slice:
 
-1. **`/superpowers:brainstorming`** — work through the spec, settle what it
-   left open, record decisions and rejected alternatives.
-2. **`/superpowers:writing-plans`** — write
+1. **Review the spec**: settle what it left open, record decisions and
+   rejected alternatives.
+2. **Write the plan**:
    `docs/plans/2026-XX-XX-mobile-m<N>-<slice>.md`: bite-sized TDD tasks, each
    ending green and committed, with a Global Constraints block.
-3. **`/superpowers:subagent-driven-development`** — execute task by task.
-4. **`/superpowers:requesting-code-review`** — review your own branch first.
-5. **`/superpowers:finishing-a-development-branch`** — push, open the PR into
-   `mobile`.
+3. **Carry out the plan** task by task.
+4. **Review your own branch** first.
+5. **Finish the branch**: push, open the PR into `mobile`.
 
 Build bottom-up: domain → data → presentation. In an offline-first app the
 hard part is the data flow, not the pixels.

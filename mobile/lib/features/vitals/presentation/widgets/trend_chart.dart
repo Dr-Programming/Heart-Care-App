@@ -73,7 +73,8 @@ class TrendChart extends StatelessWidget {
                     color: _lineColors[i % _lineColors.length],
                     dotData: const FlDotData(show: true),
                     spots: <FlSpot>[
-                      for (final MapEntry<DateTime, double> point in series[i].points)
+                      for (final MapEntry<DateTime, double> point
+                          in series[i].points)
                         FlSpot(x(point.key), point.value),
                     ],
                   ),

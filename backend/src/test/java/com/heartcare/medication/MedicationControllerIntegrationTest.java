@@ -91,7 +91,7 @@ class MedicationControllerIntegrationTest extends AbstractIntegrationTest {
         String clientRecordId = UUID.randomUUID().toString();
         String body = """
                 { "name": "Aspirin", "doseMg": 100, "frequency": "BID",
-                  "scheduleTimes": ["08:00"], "clientRecordId": "%s" }
+                  "scheduleTimes": ["08:00", "20:00"], "clientRecordId": "%s" }
                 """.formatted(clientRecordId);
 
         mockMvc.perform(post("/api/v1/medications").header("Authorization", "Bearer " + token)
@@ -190,5 +190,122 @@ class MedicationControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(APPLICATION_JSON)
                         .content("{ \"name\": \"Aspirin\", \"doseMg\": 100, \"frequency\": \"BID\", \"scheduleTimes\": [\"25:00\"] }"))
                 .andExpect(status().isBadRequest());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postMedication(String token, String json)
+            throws Exception {
+        return mockMvc.perform(post("/api/v1/medications")
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON).content(json));
+    }
+
+    @Test
+    void doseAboveMaximumReturns400() throws Exception {
+        // T-MED-04
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Aspirin\", \"doseMg\": 99999, \"frequency\": \"ONCE_DAILY\", \"scheduleTimes\": [\"08:00\"] }")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("doseMg: doseMg must be at most 10000"));
+    }
+
+    @Test
+    void doseAtMaximumIsAccepted() throws Exception {
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Aspirin\", \"doseMg\": 10000, \"frequency\": \"ONCE_DAILY\", \"scheduleTimes\": [\"08:00\"] }")
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void bidWithThreeTimesReturns400() throws Exception {
+        // T-MED-05
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Metoprolol\", \"doseMg\": 50, \"frequency\": \"BID\", \"scheduleTimes\": [\"08:00\", \"12:00\", \"20:00\"] }")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("BID needs exactly 2")));
+    }
+
+    @Test
+    void onceDailyWithoutTimesReturns400() throws Exception {
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Aspirin\", \"doseMg\": 100, \"frequency\": \"ONCE_DAILY\" }")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void tidWithThreeTimesIsAccepted() throws Exception {
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Furosemide\", \"doseMg\": 40, \"frequency\": \"TID\", \"scheduleTimes\": [\"08:00\", \"14:00\", \"20:00\"] }")
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void customWithNoTimesIsAcceptedAsNeeded() throws Exception {
+        // The mobile form treats CUSTOM with no times as "as needed".
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Nitroglycerin\", \"doseMg\": 0.4, \"frequency\": \"CUSTOM\", \"scheduleTimes\": [] }")
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void duplicateScheduleTimesReturn400() throws Exception {
+        String token = registerAndGetToken();
+        postMedication(token, "{ \"name\": \"Aspirin\", \"doseMg\": 100, \"frequency\": \"BID\", \"scheduleTimes\": [\"08:00\", \"08:00\"] }")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateIsAlsoCheckedAgainstFrequency() throws Exception {
+        String token = registerAndGetToken();
+        MvcResult created = postMedication(token, ASPIRIN).andExpect(status().isOk()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        mockMvc.perform(put("/api/v1/medications/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{ \"name\": \"Aspirin\", \"doseMg\": 100, \"frequency\": \"BID\", \"scheduleTimes\": [\"08:00\"] }"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getByIdReturnsOwnedMedication() throws Exception {
+        // T-MED-08
+        String token = registerAndGetToken();
+        MvcResult created = postMedication(token, ASPIRIN).andExpect(status().isOk()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        mockMvc.perform(get("/api/v1/medications/" + id)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(id))
+                .andExpect(jsonPath("$.data.name").value("Aspirin"));
+    }
+
+    @Test
+    void getByIdOfOthersMedicationReturns404() throws Exception {
+        String tokenA = registerAndGetToken();
+        MvcResult created = postMedication(tokenA, ASPIRIN).andExpect(status().isOk()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        mockMvc.perform(get("/api/v1/medications/" + id)
+                        .header("Authorization", "Bearer " + registerAndGetToken()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deactivateStampsDeactivatedAtAndReactivateClearsIt() throws Exception {
+        String token = registerAndGetToken();
+        MvcResult created = postMedication(token, ASPIRIN).andExpect(status().isOk()).andReturn();
+        String id = JsonPath.read(created.getResponse().getContentAsString(), "$.data.id");
+
+        mockMvc.perform(delete("/api/v1/medications/" + id).header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.data.active").value(false))
+                .andExpect(jsonPath("$.data.deactivatedAt").exists());
+
+        mockMvc.perform(put("/api/v1/medications/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(APPLICATION_JSON)
+                        .content("{ \"name\": \"Aspirin\", \"doseMg\": 100, \"frequency\": \"BID\", \"scheduleTimes\": [\"08:00\", \"20:00\"], \"active\": true }"))
+                .andExpect(jsonPath("$.data.active").value(true))
+                .andExpect(jsonPath("$.data.deactivatedAt").doesNotExist());
     }
 }

@@ -64,10 +64,14 @@ class RecordedRequest {
     this.method,
     this.path,
     this.data,
-    this.queryParameters,
-  );
+    this.queryParameters, [
+    this.headers = const <String, dynamic>{},
+  ]);
 
   final String method;
+
+  /// The headers as sent, after every interceptor ran.
+  final Map<String, dynamic> headers;
   final String path;
   final Object? data;
   final Map<String, dynamic> queryParameters;
@@ -115,6 +119,22 @@ class FakeDio {
   /// every verb and every query string for that path.
   void stub(String path, FakeResponse response) => _stubs[path] = response;
 
+  /// Answers [path] with each of [responses] in turn, then keeps repeating the
+  /// last one. For "fails once, then works" flows such as a token refresh.
+  void stubSequence(String path, List<FakeResponse> responses) =>
+      _sequences[path] = List<FakeResponse>.of(responses);
+
+  final Map<String, List<FakeResponse>> _sequences =
+      <String, List<FakeResponse>>{};
+
+  FakeResponse _next(String path) {
+    final List<FakeResponse>? queue = _sequences[path];
+    if (queue != null && queue.isNotEmpty) {
+      return queue.length == 1 ? queue.first : queue.removeAt(0);
+    }
+    return _stubs[path] ?? _fallback;
+  }
+
   /// Answers anything not explicitly stubbed.
   void stubAll(FakeResponse response) => _fallback = response;
 }
@@ -136,10 +156,11 @@ class _Adapter implements HttpClientAdapter {
         options.path,
         options.data,
         options.queryParameters,
+        Map<String, dynamic>.of(options.headers),
       ),
     );
 
-    final FakeResponse stub = _fake._stubs[options.path] ?? _fake._fallback;
+    final FakeResponse stub = _fake._next(options.path);
     if (stub.throwing != null) throw stub.throwing!;
 
     return ResponseBody.fromString(

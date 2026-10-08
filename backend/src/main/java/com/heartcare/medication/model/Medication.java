@@ -47,6 +47,10 @@ public class Medication {
     @Column(nullable = false)
     private boolean active = true;
 
+    /** When the medication was last switched off; null while active. See V12 migration. */
+    @Column(name = "deactivated_at")
+    private OffsetDateTime deactivatedAt;
+
     @Column(name = "client_record_id")
     private UUID clientRecordId;
 
@@ -122,8 +126,22 @@ public class Medication {
         return active;
     }
 
+    /**
+     * Also maintains {@link #deactivatedAt}: stamped on an active-to-inactive transition, cleared
+     * on reactivation, and left alone when the state does not change (re-saving an inactive
+     * medication must not move its deactivation date forward).
+     */
     public void setActive(boolean active) {
+        if (this.active && !active) {
+            deactivatedAt = OffsetDateTime.now();
+        } else if (active) {
+            deactivatedAt = null;
+        }
         this.active = active;
+    }
+
+    public OffsetDateTime getDeactivatedAt() {
+        return deactivatedAt;
     }
 
     public UUID getClientRecordId() {

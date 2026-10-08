@@ -1,6 +1,6 @@
 # Slice 2 — Patient Profile Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **How to use this plan:** work through it task by task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a per-patient profile the authenticated user can read and update via `GET/PUT /api/v1/patients/me`, persisted in a new `patient_profiles` table (with JSONB `comorbidities` and `goals`).
 
@@ -15,7 +15,7 @@
 - Features never import from each other directly — the `patient` package must NOT import anything from `com.heartcare.auth`. Shared infra (`common/`) and the JWT `UserPrincipal` are allowed.
 - DTOs are Java `record`s and stay inside the `patient` package.
 - No new Maven dependencies — JSONB uses Hibernate's built-in `@JdbcTypeCode(SqlTypes.JSON)` (Jackson-backed).
-- Commit messages: no AI co-author trailer.
+- Commit messages: conventional-commit subjects.
 - Build/test from the `backend/` directory: `mvn test` (Docker must be running for Testcontainers).
 
 ---

@@ -1,7 +1,4 @@
-
-
 abstract final class AppRoutes {
-
   static const String splash = 'splash';
   static const String splashPath = '/';
 
@@ -26,8 +23,26 @@ abstract final class AppRoutes {
   static const String profileEdit = 'profileEdit';
   static const String profileEditPath = '/profile/edit';
 
+  static const String visitSummary = 'visitSummary';
+  static const String visitSummaryPath = '/visit-summary';
+
+  static const String appointments = 'appointments';
+  static const String appointmentsPath = '/appointments';
+
+  static const String appointmentNew = 'appointmentNew';
+  static const String appointmentNewPath = '/appointments/new';
+
+  static const String appointmentEdit = 'appointmentEdit';
+  static const String appointmentEditPath = '/appointments/edit/:id';
+
   static const String settings = 'settings';
   static const String settingsPath = '/settings';
+
+  static const String changePin = 'changePin';
+  static const String changePinPath = '/settings/change-pin';
+
+  static const String securityQuestions = 'securityQuestions';
+  static const String securityQuestionsPath = '/settings/security-questions';
 
   static const String home = 'home';
   static const String homePath = '/home';
@@ -71,17 +86,20 @@ abstract final class AppRoutes {
   static const String symptomHistory = 'symptomHistory';
   static const String symptomHistoryPath = '/check-in/symptoms/history';
 
-  static const String activityLog = 'activityLog';
-  static const String activityLogPath = '/check-in/activity';
+  static const String activity = 'activity';
+  static const String activityPath = '/check-in/activity';
 
-  static const String activityHistory = 'activityHistory';
-  static const String activityHistoryPath = '/check-in/activity/history';
+  static const String activityLog = 'activityLog';
+  static const String activityLogPath = '/check-in/activity/log';
 
   static const String learn = 'learn';
   static const String learnPath = '/learn';
 
   static const String learnTopic = 'learnTopic';
   static const String learnTopicPath = '/learn/:topic';
+
+  static const String eatWell = 'eatWell';
+  static const String eatWellPath = '/learn/eat-well';
 
   static const String quiz = 'quiz';
   static const String quizPath = '/learn/quiz';

@@ -43,6 +43,13 @@ public class MedicationController {
         return ApiResponse.ok(medicationService.list(principal.userId(), includeInactive));
     }
 
+    @GetMapping("/{id}")
+    public ApiResponse<MedicationResponse> get(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id) {
+        return ApiResponse.ok(medicationService.get(principal.userId(), id));
+    }
+
     @PutMapping("/{id}")
     public ApiResponse<MedicationResponse> update(
             @AuthenticationPrincipal UserPrincipal principal,

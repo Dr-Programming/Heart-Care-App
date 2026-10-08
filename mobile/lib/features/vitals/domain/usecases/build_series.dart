@@ -57,7 +57,10 @@ class BuildSeries {
             label: 'vitals.field.diastolic',
             points: <MapEntry<DateTime, double>>[
               for (final VitalReading r in readings)
-                MapEntry<DateTime, double>(r.measuredAt, r.values['diastolic']!),
+                MapEntry<DateTime, double>(
+                  r.measuredAt,
+                  r.values['diastolic']!,
+                ),
             ],
             targetValue: goals?.bpDiastolic,
           ),
@@ -100,7 +103,10 @@ class BuildSeries {
             label: 'vitals.field.heartRate',
             points: <MapEntry<DateTime, double>>[
               for (final VitalReading r in readings)
-                MapEntry<DateTime, double>(r.measuredAt, r.values['heartRate']!),
+                MapEntry<DateTime, double>(
+                  r.measuredAt,
+                  r.values['heartRate']!,
+                ),
             ],
           ),
         ];

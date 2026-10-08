@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/language.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../auth_providers.dart';
 
@@ -14,16 +15,19 @@ class LanguageScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AppScaffold(
+    return AppScaffold.banded(
+      showBack: false,
+      scrollable: false,
+      bandChild: BandHeader(
+        title: 'auth.language.title'.tr(),
+        subtitle: 'auth.language.subtitle'.tr(),
+        showBack: false,
+      ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text('auth.language.title'.tr(), style: Theme.of(context).textTheme.headlineLarge),
-            const SizedBox(height: 8),
-            Text('auth.language.subtitle'.tr(), style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 32),
             for (final language in AppLanguage.values) ...<Widget>[
               AppButton(
                 label: language.nativeLabel,

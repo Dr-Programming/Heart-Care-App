@@ -1,4 +1,3 @@
-
 final RegExp _phonePattern = RegExp(r'^\+251\d{9}$');
 final RegExp _pinPattern = RegExp(r'^\d{4}$');
 
@@ -16,6 +15,8 @@ String? validatePin(String value) {
 
 String? validateName(String value) {
   final String trimmed = value.trim();
-  if (trimmed.isEmpty || trimmed.length > 255) return 'auth.errors.nameRequired';
+  if (trimmed.isEmpty || trimmed.length > 255) {
+    return 'auth.errors.nameRequired';
+  }
   return null;
 }

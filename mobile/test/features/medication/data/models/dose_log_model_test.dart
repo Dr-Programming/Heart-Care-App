@@ -23,18 +23,25 @@ void main() {
     expect(model.note, 'taken with breakfast');
   });
 
-  test('toEntity requires the caller to supply the client-side medication link', () {
-    final DoseLogModel model = DoseLogModel.fromJson(wireJson);
-    final DoseLog entity = model.toEntity(medicationClientRecordId: 'med-client-1');
-    expect(entity.medicationClientRecordId, 'med-client-1');
-    expect(entity.medicationServerId, 'med-server-1');
-    expect(entity.status, DoseStatus.taken);
-    expect(entity.scheduledDate, '2026-07-16');
-  });
+  test(
+    'toEntity requires the caller to supply the client-side medication link',
+    () {
+      final DoseLogModel model = DoseLogModel.fromJson(wireJson);
+      final DoseLog entity = model.toEntity(
+        medicationClientRecordId: 'med-client-1',
+      );
+      expect(entity.medicationClientRecordId, 'med-client-1');
+      expect(entity.medicationServerId, 'med-server-1');
+      expect(entity.status, DoseStatus.taken);
+      expect(entity.scheduledDate, '2026-07-16');
+    },
+  );
 
   test('toCompanion carries the client id as primary key', () {
     final DoseLogModel model = DoseLogModel.fromJson(wireJson);
-    final companion = model.toCompanion(medicationClientRecordId: 'med-client-1');
+    final companion = model.toCompanion(
+      medicationClientRecordId: 'med-client-1',
+    );
     expect(companion.clientRecordId.value, 'dose-client-1');
     expect(companion.medicationClientRecordId.value, 'med-client-1');
     expect(companion.status.value, 'TAKEN');

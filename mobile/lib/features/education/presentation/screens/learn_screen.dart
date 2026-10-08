@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/topic.dart';
@@ -46,6 +47,48 @@ class LearnScreen extends ConsumerWidget {
             : ListView(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: SectionCard(
+                      onTap: () => context.pushNamed(AppRoutes.eatWell),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: AppColors.successBg,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.restaurant_outlined,
+                              size: 22,
+                              color: AppColors.success,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  'education.eatWell.cardTitle'.tr(),
+                                  style: text.titleMedium,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'education.eatWell.cardBody'.tr(),
+                                  style: text.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded),
+                        ],
+                      ),
+                    ),
+                  ),
                   for (final Topic topic in topics)
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.md),

@@ -226,3 +226,24 @@ class MetricTile extends StatelessWidget {
     );
   }
 }
+
+/// The round tinted icon at the start of a card, the same on every screen.
+class IconCircle extends StatelessWidget {
+  const IconCircle({required this.icon, required this.color, super.key});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: 18, color: color),
+    );
+  }
+}

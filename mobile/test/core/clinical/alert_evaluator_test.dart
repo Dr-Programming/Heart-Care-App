@@ -6,26 +6,40 @@ import 'package:libu_care/core/clinical/alert_evaluator.dart';
 /// failing, the client and the server disagree about how severe a reading is —
 /// which shows up to the user as a status that changes after a sync.
 void main() {
-  group('blood pressure severity mirrors the backend', () {
-    test('systolic at or above 180 is an emergency', () {
-      expect(bloodPressureSeverity(180, 80), Severity.emergency);
-      expect(bloodPressureSeverity(200, 95), Severity.emergency);
-    });
-
-    test('the urgent band is 160+, 90-, 100+ diastolic or 60- diastolic', () {
-      expect(bloodPressureSeverity(160, 80), Severity.urgent);
-      expect(bloodPressureSeverity(90, 70), Severity.urgent);
-      expect(bloodPressureSeverity(130, 100), Severity.urgent);
-      expect(bloodPressureSeverity(130, 60), Severity.urgent);
-    });
-
-    test('a normal reading scores none', () {
+  group('blood pressure severity follows the clinician’s ranges', () {
+    test('up to 120/80 is normal', () {
       expect(bloodPressureSeverity(120, 80), Severity.none);
+      expect(bloodPressureSeverity(95, 65), Severity.none);
     });
 
-    test('the boundaries are inclusive on both sides', () {
-      expect(bloodPressureSeverity(159, 99), Severity.none);
-      expect(bloodPressureSeverity(91, 61), Severity.none);
+    test('above 120/80 up to 140/90 is elevated: watch', () {
+      expect(bloodPressureSeverity(124, 80), Severity.monitor);
+      expect(bloodPressureSeverity(118, 85), Severity.monitor);
+      expect(bloodPressureSeverity(140, 90), Severity.monitor);
+    });
+
+    test('above 140/90 is high: urgent', () {
+      expect(bloodPressureSeverity(141, 80), Severity.urgent);
+      expect(bloodPressureSeverity(130, 91), Severity.urgent);
+      expect(bloodPressureSeverity(179, 119), Severity.urgent);
+    });
+
+    test('180 systolic or 120 diastolic is an emergency', () {
+      expect(bloodPressureSeverity(180, 80), Severity.emergency);
+      expect(bloodPressureSeverity(150, 120), Severity.emergency);
+    });
+
+    test(
+      'low pressure: under 90 systolic is urgent, under 60 an emergency',
+      () {
+        expect(bloodPressureSeverity(89, 60), Severity.urgent);
+        expect(bloodPressureSeverity(59, 40), Severity.emergency);
+      },
+    );
+
+    test('when the two numbers disagree, the higher level wins', () {
+      expect(bloodPressureSeverity(185, 70), Severity.emergency);
+      expect(bloodPressureSeverity(118, 95), Severity.urgent);
     });
   });
 

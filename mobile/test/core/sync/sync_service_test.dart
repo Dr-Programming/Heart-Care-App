@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +57,43 @@ void main() {
       await enqueueVital('a1');
       await enqueueVital('a1');
       expect((await queue.pending()).length, 1);
+    });
+
+    test(
+      'an edit queued before the record is sent replaces its payload',
+      () async {
+        await enqueueVital('a1');
+        await queue.enqueue(
+          clientRecordId: 'a1',
+          entityType: SyncEntityType.vital,
+          payload: <String, dynamic>{'note': 'edited'},
+          recordedAt: DateTime(2026, 8, 22, 10),
+        );
+
+        final SyncQueueEntry entry = (await queue.pending()).single;
+        expect(
+          (jsonDecode(entry.payloadJson) as Map<String, dynamic>)['note'],
+          'edited',
+        );
+      },
+    );
+
+    test('a record already sent is not re-queued', () async {
+      await enqueueVital('a1');
+      stubResults(<Map<String, dynamic>>[
+        <String, dynamic>{'clientRecordId': 'a1', 'status': 'SAVED'},
+      ]);
+      await serviceWith().syncNow();
+
+      await queue.enqueue(
+        clientRecordId: 'a1',
+        entityType: SyncEntityType.vital,
+        payload: <String, dynamic>{'note': 'edited'},
+        recordedAt: DateTime(2026, 8, 22, 10),
+      );
+
+      expect(await queue.statusFor('a1'), LocalSyncStatus.synced);
+      expect(await queue.pending(), isEmpty);
     });
 
     test('the payload is stored ready to post', () async {
@@ -242,6 +280,70 @@ void main() {
           http.requests.single.json['records'] as List<dynamic>;
       expect((sent.first as Map<String, dynamic>)['clientRecordId'], 'older');
     });
+  });
+
+  group('rejected records', () {
+    Future<void> rejectA1() async {
+      await enqueueVital('a1');
+      stubResults(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'clientRecordId': 'a1',
+          'status': 'REJECTED',
+          'reason': 'measuredAt must not be in the future',
+        },
+      ]);
+      await serviceWith().syncNow();
+    }
+
+    test('are reported with the server reason until dismissed', () async {
+      await rejectA1();
+
+      final List<SyncQueueEntry> shown = await queue.watchRejected().first;
+      expect(shown.single.lastError, 'measuredAt must not be in the future');
+
+      await queue.dismissRejected();
+
+      expect(await queue.watchRejected().first, isEmpty);
+    });
+  });
+
+  group('reconnect', () {
+    test('an app started offline syncs on the first online event', () async {
+      await enqueueVital('a1');
+      stubResults(<Map<String, dynamic>>[
+        <String, dynamic>{'clientRecordId': 'a1', 'status': 'SAVED'},
+      ]);
+      final StreamController<bool> changes = StreamController<bool>();
+      final SyncService service = serviceWith()..start(changes.stream);
+
+      changes.add(true);
+      await pumpEventQueue();
+
+      expect(http.requests, hasLength(1));
+      expect(await queue.statusFor('a1'), LocalSyncStatus.synced);
+      await service.dispose();
+      await changes.close();
+    });
+  });
+
+  group('new records', () {
+    test(
+      'are sent shortly after they are saved, without waiting for the timer',
+      () async {
+        stubResults(<Map<String, dynamic>>[
+          <String, dynamic>{'clientRecordId': 'a1', 'status': 'SAVED'},
+        ]);
+        final SyncService service = serviceWith()
+          ..watchQueue(queue.watchPendingCount(), debounce: Duration.zero);
+        addTearDown(service.dispose);
+
+        await enqueueVital('a1');
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(http.requests, hasLength(1));
+        expect(await queue.statusFor('a1'), LocalSyncStatus.synced);
+      },
+    );
   });
 
   group('session', () {

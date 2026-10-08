@@ -1,11 +1,14 @@
 package com.heartcare.auth;
 
 import com.heartcare.auth.dto.AuthResponse;
+import com.heartcare.auth.dto.ChangePinRequest;
 import com.heartcare.auth.dto.LoginRequest;
+import com.heartcare.auth.dto.PinChangeRequest;
 import com.heartcare.auth.dto.RegisterRequest;
 import com.heartcare.auth.dto.UserResponse;
 import com.heartcare.auth.model.User;
 import com.heartcare.common.exception.AccountLockedException;
+import com.heartcare.common.exception.BadRequestException;
 import com.heartcare.common.exception.ConflictException;
 import com.heartcare.common.exception.ResourceNotFoundException;
 import com.heartcare.common.exception.UnauthorizedException;
@@ -18,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class AuthService {
@@ -40,6 +45,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final SecurityAnswerService securityAnswerService;
     private final int maxAttempts;
     private final int lockoutMinutes;
 
@@ -53,6 +60,8 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtTokenProvider tokenProvider,
+                       RefreshTokenService refreshTokenService,
+                       SecurityAnswerService securityAnswerService,
                        @Value("${app.auth.lockout.max-attempts}") int maxAttempts,
                        @Value("${app.auth.lockout.duration-minutes}") int lockoutMinutes) {
         // Fail at startup, not at 3am. max-attempts below 1 makes `priorAttempts + 1 >= maxAttempts`
@@ -69,6 +78,8 @@ public class AuthService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.refreshTokenService = refreshTokenService;
+        this.securityAnswerService = securityAnswerService;
         this.maxAttempts = maxAttempts;
         this.lockoutMinutes = lockoutMinutes;
         this.unknownPhoneHash = passwordEncoder.encode(UNKNOWN_PHONE_PLACEHOLDER);
@@ -79,6 +90,9 @@ public class AuthService {
         if (userRepository.existsByPhone(request.phone())) {
             throw new ConflictException("Phone already registered");
         }
+        // Validated before the account exists, so a bad answer set never leaves a half-made user.
+        List<SecurityAnswerService.PreparedAnswer> answers = request.securityAnswers() == null
+                ? null : securityAnswerService.prepare(request.securityAnswers());
         User user = new User(
                 request.phone(),
                 passwordEncoder.encode(request.pin()),
@@ -89,6 +103,9 @@ public class AuthService {
         } catch (DataIntegrityViolationException ex) {
             // Two registrations for the same phone racing past the existsByPhone check.
             throw new ConflictException("Phone already registered");
+        }
+        if (answers != null) {
+            securityAnswerService.store(user.getId(), answers);
         }
         return authResponseFor(user);
     }
@@ -112,6 +129,120 @@ public class AuthService {
             throw new UnauthorizedException(INVALID_CREDENTIALS);
         }
 
+        verifyPinCountingFailures(user, request.pin(), () -> new UnauthorizedException(INVALID_CREDENTIALS));
+        return authResponseFor(user);
+    }
+
+    /**
+     * Change PIN (TEST_REPORT Issue 5). Requires the current PIN even though the caller holds a
+     * valid access token: a token lifted from an unlocked phone must not be enough to take the
+     * account over. Wrong guesses feed the same lockout as login, so the endpoint cannot be used
+     * to grind through the 10,000 PINs either.
+     *
+     * <p>A wrong current PIN is a 400, not a 401. The token is fine; a 401 would tell the app's
+     * refresh interceptor the session expired and send it round a refresh-and-retry loop.
+     *
+     * <p>On success every refresh token is revoked and a fresh pair returned, so other devices
+     * are signed out once their (short-lived, after the mobile update) access tokens expire.
+     */
+    @Transactional(noRollbackFor = {BadRequestException.class, AccountLockedException.class})
+    public AuthResponse changePin(UUID userId, ChangePinRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        verifyCurrentPin(user, request.currentPin());
+        if (request.newPin().equals(request.currentPin())) {
+            throw new BadRequestException("newPin must be different from currentPin");
+        }
+
+        user.changePinHash(passwordEncoder.encode(request.newPin()));
+        userRepository.save(user);
+        refreshTokenService.revokeAllForUser(userId);
+        return authResponseFor(user);
+    }
+
+    /**
+     * PIN change that proves itself with phone + current PIN rather than a session, so the change
+     * a phone made offline can be applied whenever it reconnects, even after its tokens expired or
+     * were cancelled. It is effectively a login, so it follows login's rules exactly: same lockout,
+     * same 401 for a wrong PIN or an unknown phone, same BCrypt work either way.
+     *
+     * <p>The server wins conflicts: if the PIN was changed elsewhere first, this request's old PIN
+     * no longer matches and it is refused with 401.
+     *
+     * <p>A retry of a change that was already applied (same changeId, same new PIN) is answered
+     * with a fresh session instead of a 401, without counting a failure.
+     */
+    @Transactional(noRollbackFor = {UnauthorizedException.class, AccountLockedException.class})
+    public AuthResponse changePinWithCredentials(PinChangeRequest request) {
+        User user = userRepository.findByPhone(request.phone()).orElse(null);
+        if (user == null) {
+            passwordEncoder.matches(request.currentPin(), unknownPhoneHash);
+            throw new UnauthorizedException(INVALID_CREDENTIALS);
+        }
+        // Lock first: a replay is effectively a correct sign-in, and a locked
+        // account refuses those too until the window passes.
+        OffsetDateTime now = OffsetDateTime.now();
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(now)) {
+            throw new AccountLockedException(lockedMessage(user.getLockedUntil(), now));
+        }
+        if (isReplay(user, request.changeId(), request.newPin())) {
+            return authResponseFor(user);
+        }
+        verifyPinCountingFailures(user, request.currentPin(), () -> new UnauthorizedException(INVALID_CREDENTIALS));
+        if (request.newPin().equals(request.currentPin())) {
+            throw new BadRequestException("newPin must be different from currentPin");
+        }
+
+        user.changePinHash(passwordEncoder.encode(request.newPin()), request.changeId());
+        userRepository.save(user);
+        refreshTokenService.revokeAllForUser(user.getId());
+        return authResponseFor(user);
+    }
+
+    /**
+     * True when {@code changeId} is the last change applied to this account and {@code newPin} is
+     * the PIN it set: a retry whose first answer was lost. Checking the new PIN too means a
+     * changeId alone, without the PIN, is worth nothing.
+     */
+    boolean isReplay(User user, java.util.UUID changeId, String newPin) {
+        return changeId != null
+                && changeId.equals(user.getLastPinChangeId())
+                && passwordEncoder.matches(newPin, user.getPinHash());
+    }
+
+    /**
+     * Exchanges a refresh token for a new access + refresh pair (TEST_REPORT Issue 6). The
+     * presented refresh token is rotated: it stops working and the response carries its successor.
+     */
+    @Transactional(noRollbackFor = UnauthorizedException.class)
+    public AuthResponse refresh(String refreshToken) {
+        RefreshTokenService.Rotated rotated = refreshTokenService.rotate(refreshToken);
+        User user = userRepository.findById(rotated.userId())
+                .orElseThrow(() -> new UnauthorizedException(RefreshTokenService.INVALID));
+        return authResponseFor(user, rotated.next());
+    }
+
+    /** Revokes the presented refresh token's family. Always succeeds, known token or not. */
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeFamilyOf(refreshToken);
+    }
+
+    /** Checks the signed-in patient's current PIN, for sensitive changes (PIN, security answers). */
+    void verifyCurrentPin(User user, String pin) {
+        verifyPinCountingFailures(user, pin, () -> new BadRequestException("Current PIN is incorrect"));
+    }
+
+    /** A fresh session (new refresh-token family), e.g. after a PIN reset. */
+    AuthResponse sessionFor(User user) {
+        return authResponseFor(user);
+    }
+
+    /**
+     * The lockout-aware PIN check shared by login and change-pin. Throws AccountLockedException
+     * while locked or on the failure that trips the lock, {@code wrongPin} on any other failure,
+     * and returns normally (with the failure streak cleared) on a match.
+     */
+    private void verifyPinCountingFailures(User user, String pin, Supplier<RuntimeException> wrongPin) {
         OffsetDateTime now = OffsetDateTime.now();
         // Snapshot taken before the atomic UPDATE runs, so it can be stale under concurrency: if
         // several wrong-PIN requests race in, each reads the same pre-increment count and each
@@ -135,22 +266,21 @@ public class AuthService {
             counterAlreadyCleared = true;
         }
 
-        if (!passwordEncoder.matches(request.pin(), user.getPinHash())) {
+        if (!passwordEncoder.matches(pin, user.getPinHash())) {
             OffsetDateTime lockUntil = now.plusMinutes(lockoutMinutes);
             userRepository.recordFailedAttempt(user.getId(), maxAttempts, lockUntil);
             if (priorAttempts + 1 >= maxAttempts) {
                 throw new AccountLockedException(lockedMessage(lockUntil, now));
             }
-            throw new UnauthorizedException(INVALID_CREDENTIALS);
+            throw wrongPin.get();
         }
 
         if (priorAttempts > 0 && !counterAlreadyCleared) {
             userRepository.resetFailedAttempts(user.getId());
         }
-        return authResponseFor(user);
     }
 
-    private String lockedMessage(OffsetDateTime lockedUntil, OffsetDateTime now) {
+    static String lockedMessage(OffsetDateTime lockedUntil, OffsetDateTime now) {
         long minutes = Math.max(1,
                 (long) Math.ceil(Duration.between(now, lockedUntil).toSeconds() / 60.0));
         return "Too many failed attempts. Try again in " + minutes
@@ -164,9 +294,17 @@ public class AuthService {
         return toUserResponse(user);
     }
 
+    /** Starts a new refresh-token family: used at sign-in and after a PIN change. */
     private AuthResponse authResponseFor(User user) {
+        return authResponseFor(user, refreshTokenService.issue(user.getId()));
+    }
+
+    private AuthResponse authResponseFor(User user, RefreshTokenService.Issued refresh) {
+        OffsetDateTime accessExpiresAt =
+                OffsetDateTime.now().plusNanos(tokenProvider.getExpirationMs() * 1_000_000L);
         String token = tokenProvider.generateToken(user.getId(), user.getRole());
-        return new AuthResponse(token, toUserResponse(user));
+        return new AuthResponse(token, toUserResponse(user),
+                refresh.token(), accessExpiresAt, refresh.expiresAt());
     }
 
     private UserResponse toUserResponse(User user) {

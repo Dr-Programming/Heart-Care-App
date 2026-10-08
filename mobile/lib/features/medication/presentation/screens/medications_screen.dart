@@ -88,11 +88,14 @@ class MedicationsScreen extends ConsumerWidget {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startAddMedicationFlow(context),
-        icon: const Icon(Iconsax.add),
-        label: Text('meds.add'.tr()),
-      ),
+      // With no medications the empty state has its own add button.
+      floatingActionButton: (state.value?.medications.isEmpty ?? true)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _startAddMedicationFlow(context),
+              icon: const Icon(Iconsax.add),
+              label: Text('meds.add'.tr()),
+            ),
 
       body: Padding(
         padding: const EdgeInsets.only(top: AppSpacing.xl),

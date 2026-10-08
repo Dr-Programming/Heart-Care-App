@@ -82,4 +82,15 @@ class SyncPayloadMapperTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("payload is required");
     }
+
+    @Test
+    void rejectsScheduleThatDoesNotMatchFrequency() throws Exception {
+        // Sync must enforce the same frequency/schedule rule as POST /medications.
+        JsonNode payload = json("""
+                {"name":"Metoprolol","doseMg":50,"frequency":"BID","scheduleTimes":["08:00","12:00","20:00"]}""");
+
+        assertThatThrownBy(() -> mapper.toRequest(payload, MedicationRequest.class))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("BID needs exactly 2");
+    }
 }

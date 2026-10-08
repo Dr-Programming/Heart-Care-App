@@ -26,39 +26,92 @@ class ProfileScreen extends ConsumerWidget {
     return AppScaffold.banded(
       showBack: false,
       scrollable: true,
-      bandChild: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Text(
-                'profile.title'.tr(),
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              Row(
-                children: <Widget>[
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'common.edit'.tr(),
-                    onPressed: () => context.pushNamed(AppRoutes.profileEdit),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined),
-                    tooltip: 'profile.actions.settings'.tr(),
-                    onPressed: () => context.pushNamed(AppRoutes.settings),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      bandChild: BandHeader(
+        title: 'profile.title'.tr(),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'common.edit'.tr(),
+              onPressed: () => context.pushNamed(AppRoutes.profileEdit),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'profile.actions.settings'.tr(),
+              onPressed: () => context.pushNamed(AppRoutes.settings),
+            ),
+          ],
+        ),
       ),
       body: switch (profileState) {
-        AsyncData<PatientProfile>(value: final profile) => _ProfileBody(
-          profile: profile,
-          name: cachedUser.value?.name,
+        AsyncData<PatientProfile>(value: final profile) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            const SizedBox(height: AppSpacing.lg),
+            SectionCard(
+              onTap: () => context.pushNamed(AppRoutes.visitSummary),
+              child: Row(
+                children: <Widget>[
+                  const IconCircle(
+                    icon: Icons.assignment_outlined,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'visitSummary.title'.tr(),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'visitSummary.entryBody'.tr(),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              key: const Key('profileAppointments'),
+              onTap: () => context.pushNamed(AppRoutes.appointments),
+              child: Row(
+                children: <Widget>[
+                  const IconCircle(
+                    icon: Icons.event_outlined,
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'appointments.title'.tr(),
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          'appointments.entryBody'.tr(),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _ProfileBody(profile: profile, name: cachedUser.value?.name),
+          ],
         ),
         AsyncError() => Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),

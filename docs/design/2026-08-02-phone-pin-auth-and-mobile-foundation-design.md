@@ -176,7 +176,7 @@ Icons via `iconsax`; Libu Care logo exported from Figma as an asset.
 ## 4. Isolation & boundaries (why this decomposes cleanly)
 
 - **Backend auth** is a self-contained package change behind a stable HTTP contract (§2.1). Its only outward interface is the three JSON endpoints.
-- **`core/`** exposes theme, router, network, db, and providers — features depend on these, never on each other (matches CLAUDE.md architectural rule #1).
+- **`core/`** exposes theme, router, network, db, and providers — features depend on these, never on each other (matches architectural rule #1 in the project rules file).
 - **`features/auth/`** talks to the backend only through `auth_remote_datasource`, and to the rest of the app only through the `AuthRepository` interface + `authController` provider. Local vs remote datasources are separate classes (rule #3).
 - Each unit is independently testable: backend service (JUnit), repository/controller (Dart unit tests with mocked Dio), screens (widget tests).
 

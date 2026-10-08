@@ -32,7 +32,7 @@ shows, and it is what makes the contribution real rather than transcription.
 every feature is built against a real, tested API. Integration risk stays near
 zero even with five people working at once.
 
-**Method = TDD, feature-first clean architecture.** Logic first (pure Dart, test-driven), then wire the UI. In an offline-first app the hard part is the data flow, not the pixels — building logic first means screens plug into proven controllers instead of a moving target. Each feature is self-contained with `data / domain / presentation` layers (see `CLAUDE.md` architectural rules).
+**Method = TDD, feature-first clean architecture.** Logic first (pure Dart, test-driven), then wire the UI. In an offline-first app the hard part is the data flow, not the pixels — building logic first means screens plug into proven controllers instead of a moving target. Each feature is self-contained with `data / domain / presentation` layers (see the architectural rules in the project rules file).
 
 ---
 
@@ -40,12 +40,12 @@ zero even with five people working at once.
 
 | Decision | Choice | Why |
 |---|---|---|
-| **State management** | **Riverpod** (+ code-gen) | Compile-safe, excellent testability (`ProviderContainer` overrides), strong async/loading/error model (`AsyncNotifier`) — ideal for offline flows. CLAUDE.md deliberately left this open; now decided. |
+| **State management** | **Riverpod** (+ code-gen) | Compile-safe, excellent testability (`ProviderContainer` overrides), strong async/loading/error model (`AsyncNotifier`) — ideal for offline flows. The project rules file deliberately left this open; now decided. |
 | **Dependency injection** | **Riverpod** (no `get_it`) | Riverpod's providers are the DI graph — one tool instead of two. |
 | **Routing** | **go_router** | Declarative + a redirect hook that implements the auth gate cleanly. |
 | **Fonts** | **Poppins** via `google_fonts` | Exact design font; it's a Google Font, so no manual bundling. |
 | **Icons** | **iconsax** | The Figma design uses the Iconsax "linear" set — the Flutter package is an exact match. Custom marks (Libu Care logo) exported as assets. |
-| **Local DB** | `drift` (SQLite) | Offline source of truth (per CLAUDE.md). |
+| **Local DB** | `drift` (SQLite) | Offline source of truth (per the project rules file). |
 | **HTTP** | `dio` | Interceptors for JWT injection + error mapping. |
 | **Secure storage** | `flutter_secure_storage` | Encrypted JWT at rest. |
 | **Connectivity** | `connectivity_plus` | Detect offline to gate first-time auth. |
@@ -156,7 +156,7 @@ only (M2), and `preferred_language` ownership (D5).
 - Backend API contract: `backend/docs/API.md`
 - Security findings: `backend/docs/SecurityReview.md`
 - Figma file key: `B2D41kike6v4YRjHQMlszS`
-- Architectural rules & stack: `CLAUDE.md`
+- Architectural rules & stack: the project rules file
 
 ---
 

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/core_providers.dart';
 import 'data/datasources/vitals_local_datasource.dart';
+import 'data/datasources/vitals_remote_datasource.dart';
 import 'data/repositories/vitals_repository_impl.dart';
 import 'domain/repositories/vitals_repository.dart';
 import 'domain/usecases/build_series.dart';
@@ -16,9 +17,16 @@ final Provider<VitalsLocalDataSource> vitalsLocalDataSourceProvider =
 
 final Provider<VitalsRepository> vitalsRepositoryProvider =
     Provider<VitalsRepository>(
+      (Ref ref) => ref.watch(vitalsRepositoryImplProvider),
+    );
+
+final Provider<VitalsRepositoryImpl> vitalsRepositoryImplProvider =
+    Provider<VitalsRepositoryImpl>(
       (Ref ref) => VitalsRepositoryImpl(
         local: ref.watch(vitalsLocalDataSourceProvider),
         syncEnqueuer: ref.watch(syncEnqueuerProvider),
+        remote: VitalsRemoteDataSource(ref.watch(dioProvider)),
+        isOnline: ref.watch(isOnlineProvider),
       ),
     );
 

@@ -13,7 +13,10 @@ import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';
 import 'package:libu_care/features/auth/presentation/screens/register_screen.dart';
 
+import '../../../../helpers/fake_pin_repository.dart';
 import '../../../../helpers/pump_app.dart';
+
+import 'package:libu_care/features/auth/domain/security_question.dart';
 
 const AuthUser _user = AuthUser(
   id: 'u1',
@@ -29,12 +32,14 @@ class _RegisterArgs {
     required this.pin,
     required this.name,
     required this.preferredLanguage,
+    this.securityAnswers,
   });
 
   final String phone;
   final String pin;
   final String name;
   final String preferredLanguage;
+  final List<SecurityAnswer>? securityAnswers;
 }
 
 class _FakeAuthRepository implements AuthRepository {
@@ -53,6 +58,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String pin,
     required String name,
     required String preferredLanguage,
+    List<SecurityAnswer>? securityAnswers,
   }) async {
     registerCalls++;
     registerArgs = _RegisterArgs(
@@ -60,6 +66,7 @@ class _FakeAuthRepository implements AuthRepository {
       pin: pin,
       name: name,
       preferredLanguage: preferredLanguage,
+      securityAnswers: securityAnswers,
     );
     if (registerFuture != null) return registerFuture!;
     if (registerError != null) throw registerError!;
@@ -122,6 +129,35 @@ Future<void> _settle(WidgetTester tester) => tester.pumpAndSettle(
   const Duration(seconds: 10),
 );
 
+/// Step 1 → Next. The step-2 questions start as the first three in the list.
+Future<void> _next(WidgetTester tester) async {
+  final Finder next = find.byKey(const Key('registerNextButton'));
+  await tester.ensureVisible(next);
+  await _settle(tester);
+  await tester.tap(next);
+  await _settle(tester);
+}
+
+/// Step 2: answer the three questions, then Create account.
+Future<void> _answerAndSubmit(
+  WidgetTester tester, {
+  List<String> answers = const <String>['Bole Primary', 'Dawit', 'Ato Kebede'],
+  bool settle = true,
+}) async {
+  for (int i = 0; i < answers.length; i++) {
+    await tester.enterText(find.byType(TextField).at(i), answers[i]);
+  }
+  final Finder submit = find.byKey(const Key('registerSubmitButton'));
+  await tester.ensureVisible(submit);
+  await _settle(tester);
+  await tester.tap(submit);
+  if (settle) {
+    await _settle(tester);
+  } else {
+    await tester.pump();
+  }
+}
+
 Future<void> _enterPin(WidgetTester tester, String pin) async {
   for (var i = 0; i < pin.length; i++) {
     await tester.enterText(find.byType(TextField).at(i + 1), pin[i]);
@@ -142,10 +178,8 @@ void main() {
     await tester.enterText(find.byType(TextField).at(0), '+251911234567');
     await _enterPin(tester, '1234');
     await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
-    final submitButton = find.byKey(const Key('registerSubmitButton'));
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await _settle(tester);
+    await _next(tester);
+    await _answerAndSubmit(tester);
 
     expect(find.text('auth.errors.phoneTaken'.tr()), findsOneWidget);
     expect(repo.registerCalls, 1);
@@ -175,13 +209,20 @@ void main() {
       await tester.enterText(find.byType(TextField).at(0), '+251911234567');
       await _enterPin(tester, '1234');
       await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
-      final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-      await _settle(tester);
-      await tester.tap(submitButton);
-      await _settle(tester);
+      await _next(tester);
+      await _answerAndSubmit(tester);
 
       expect(repo.registerCalls, 1);
+      expect(
+        repo.registerArgs?.securityAnswers?.map((SecurityAnswer a) => a.answer),
+        <String>['Bole Primary', 'Dawit', 'Ato Kebede'],
+      );
+      expect(
+        repo.registerArgs?.securityAnswers
+            ?.map((SecurityAnswer a) => a.question)
+            .toSet(),
+        hasLength(3),
+      );
       expect(repo.registerArgs?.phone, '+251911234567');
       expect(repo.registerArgs?.pin, '1234');
       expect(repo.registerArgs?.name, 'Abebe Girma');
@@ -200,13 +241,10 @@ void main() {
       await tester.enterText(find.byType(TextField).at(0), '+251911234567');
       await _enterPin(tester, '1234');
       await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+      await _next(tester);
+      await _answerAndSubmit(tester, settle: false);
 
       final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-
-      await tester.tap(submitButton);
-      await tester.pump();
-
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       await tester.tap(submitButton, warnIfMissed: false);
@@ -225,10 +263,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), '+251911234567');
       await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
-      final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
-      await _settle(tester);
+      await _next(tester);
 
       expect(find.text('auth.errors.pinRequired'.tr()), findsOneWidget);
       expect(repo.registerCalls, 0);
@@ -246,10 +281,7 @@ void main() {
 
       await _enterPin(tester, '123');
       await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
-      final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
-      await _settle(tester);
+      await _next(tester);
 
       expect(find.text('auth.errors.pinRequired'.tr()), findsOneWidget);
       expect(repo.registerCalls, 0);
@@ -271,10 +303,7 @@ void main() {
       await tester.pump();
       await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
 
-      final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
-      await _settle(tester);
+      await _next(tester);
 
       expect(find.text('auth.errors.pinRequired'.tr()), findsOneWidget);
       expect(repo.registerCalls, 0);
@@ -365,9 +394,9 @@ void main() {
         ],
       );
 
-      final submitButton = find.byKey(const Key('registerSubmitButton'));
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
+      final nextButton = find.byKey(const Key('registerNextButton'));
+      await tester.ensureVisible(nextButton);
+      await tester.tap(nextButton);
       await tester.pump();
 
       expect(find.text('errors.noInternet'.tr()), findsNWidgets(2));
@@ -438,5 +467,132 @@ void main() {
       tester.widget<TextField>(find.byType(TextField).first).enabled,
       isTrue,
     );
+  });
+
+  testWidgets('Next shows the security questions step', (tester) async {
+    final repo = _FakeAuthRepository();
+    await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+
+    expect(find.text('auth.register.securityTitle'.tr()), findsOneWidget);
+    expect(
+      find.text(SecurityQuestion.firstSchool.labelKey.tr()),
+      findsOneWidget,
+    );
+    expect(find.byType(TextField), findsNWidgets(3));
+    expect(repo.registerCalls, 0);
+  });
+
+  testWidgets('security answers are required to create the account', (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+    await _answerAndSubmit(tester, answers: const <String>['B', '', '']);
+
+    expect(
+      find.text('auth.securityQuestions.answerLength'.tr()),
+      findsOneWidget,
+    );
+    expect(repo.registerCalls, 0);
+  });
+
+  testWidgets('Back returns to the first step with the details kept', (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+    final Finder back = find.byKey(const Key('registerBackButton'));
+    await tester.ensureVisible(back);
+    await _settle(tester);
+    await tester.tap(back);
+    await _settle(tester);
+
+    expect(find.text('+251911234567'), findsWidgets);
+    expect(find.text('Abebe Girma'), findsWidgets);
+    expect(find.byKey(const Key('registerNextButton')), findsOneWidget);
+    await _next(tester);
+    expect(find.text('auth.register.securityTitle'.tr()), findsOneWidget);
+  });
+
+  testWidgets("an own question added at sign-up is saved on the phone", (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    final FakePinRepository pins = FakePinRepository();
+    await pumpApp(
+      tester,
+      const RegisterScreen(),
+      overrides: <Override>[
+        ..._online(repo),
+        pinRepositoryProvider.overrideWithValue(pins),
+      ],
+    );
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+
+    final Finder toggle = find.byKey(const Key('ownQuestionSwitch'));
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await _settle(tester);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('ownQuestionText')),
+        matching: find.byType(TextField),
+      ),
+      'What did I name my first goat?',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('ownQuestionAnswer')),
+        matching: find.byType(TextField),
+      ),
+      'Chaltu',
+    );
+    await _answerAndSubmit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(pins.customQuestionSets.single, (
+      currentPin: '1234',
+      question: 'What did I name my first goat?',
+      answer: 'Chaltu',
+    ));
+  });
+
+  testWidgets('a switched-on own question with no text blocks sign-up', (
+    tester,
+  ) async {
+    final repo = _FakeAuthRepository();
+    await pumpApp(tester, const RegisterScreen(), overrides: _online(repo));
+
+    await tester.enterText(find.byType(TextField).at(0), '+251911234567');
+    await _enterPin(tester, '1234');
+    await tester.enterText(find.byType(TextField).at(5), 'Abebe Girma');
+    await _next(tester);
+    final Finder toggle = find.byKey(const Key('ownQuestionSwitch'));
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await _settle(tester);
+    await _answerAndSubmit(tester);
+
+    expect(repo.registerCalls, 0);
+    expect(find.text('auth.ownQuestion.questionLength'.tr()), findsOneWidget);
   });
 }

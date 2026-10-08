@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import 'band_header.dart';
 import 'offline_banner.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -49,7 +50,22 @@ class AppScaffold extends StatelessWidget {
   final double bandHeight;
   final Widget? bandChild;
 
-  bool get _hasBand => bandHeight > 0;
+  /// Every screen with a title shows it in the cream header band, the same
+  /// way as the tab screens, instead of a separate white app bar.
+  bool get _titleBand => bandHeight == 0 && title != null;
+
+  bool get _hasBand => bandHeight > 0 || _titleBand;
+
+  Widget? _bandChild(BuildContext context) {
+    if (!_titleBand) return bandChild;
+    return BandHeader(
+      title: title!,
+      showBack: showBack,
+      trailing: actions == null || actions!.isEmpty
+          ? null
+          : Row(mainAxisSize: MainAxisSize.min, children: actions!),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,18 +116,18 @@ class AppScaffold extends StatelessWidget {
       body: Column(
         children: <Widget>[
           if (_hasAppBar)
-            _bandColumn
+            _bandColumn(context)
           else
-            SafeArea(top: true, bottom: false, child: _bandColumn),
+            SafeArea(top: true, bottom: false, child: _bandColumn(context)),
           Expanded(child: SafeArea(top: false, child: content)),
         ],
       ),
     );
   }
 
-  bool get _hasAppBar => title != null || showBack;
+  bool get _hasAppBar => !_titleBand && (title != null || showBack);
 
-  Widget get _bandColumn => Column(
+  Widget _bandColumn(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     children: <Widget>[
       const OfflineBanner(),
@@ -120,7 +136,11 @@ class AppScaffold extends StatelessWidget {
           children: <Widget>[
             Container(
               width: double.infinity,
-              constraints: BoxConstraints(minHeight: bandHeight),
+              constraints: BoxConstraints(
+                minHeight: _titleBand
+                    ? AppSpacing.headerBandHeight
+                    : bandHeight,
+              ),
               color: AppColors.headerBand,
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.gutter,
@@ -138,11 +158,14 @@ class AppScaffold extends StatelessWidget {
                       height: 52,
                     ),
                   ),
-                  ?bandChild,
+                  ?_bandChild(context),
                 ],
               ),
             ),
-            if (!_hasAppBar && actions != null && actions!.isNotEmpty)
+            if (!_hasAppBar &&
+                !_titleBand &&
+                actions != null &&
+                actions!.isNotEmpty)
               Positioned(
                 top: AppSpacing.xs,
                 right: AppSpacing.sm,

@@ -67,7 +67,7 @@ Each decision records the choice, the rationale, and the alternative that was re
 
 **Choice:** Add a nullable `client_record_id UUID`, unique per `user_id`, to **both** `medications` and `dose_logs` in this slice. On `POST`, if a `client_record_id` already exists for that user, return the existing row instead of inserting a duplicate (idempotent create).
 
-**Rationale:** These are the first records a device generates in bulk while offline. The `sync_queue` design (CLAUDE.md) already uses `client_record_id` as its idempotency key. Adding the column and the idempotent-create behavior now means a replayed offline `POST` (common on flaky connectivity) is a no-op rather than a duplicate. Retrofitting a uniqueness key onto a table that already has data is far more painful.
+**Rationale:** These are the first records a device generates in bulk while offline. The `sync_queue` design (the project rules file) already uses `client_record_id` as its idempotency key. Adding the column and the idempotent-create behavior now means a replayed offline `POST` (common on flaky connectivity) is a no-op rather than a duplicate. Retrofitting a uniqueness key onto a table that already has data is far more painful.
 
 **Rejected alternative — add it in Slice 7:** Defers a cheap column to a point where the tables already hold un-keyed rows, forcing a backfill/dedup migration.
 

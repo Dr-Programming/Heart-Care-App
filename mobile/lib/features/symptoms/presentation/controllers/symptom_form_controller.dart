@@ -45,6 +45,19 @@ class SymptomFormState {
   final Map<String, String> fieldErrors;
   final SymptomCheckIn? result;
 
+  /// Something was entered and not yet submitted.
+  bool get isDirty =>
+      result == null &&
+      (chestPain != 'NONE' ||
+          shortnessOfBreath != 'NONE' ||
+          heartRate != null ||
+          bpSystolic != null ||
+          bpDiastolic != null ||
+          swelling ||
+          energyLevel != 5 ||
+          worseThanYesterday ||
+          (note?.isNotEmpty ?? false));
+
   SymptomFormState copyWith({
     String? chestPain,
     String? shortnessOfBreath,

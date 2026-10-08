@@ -18,9 +18,8 @@ class CategoryRangeChart extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             chart.citation,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontStyle: FontStyle.italic),
+            style: Theme.of(context).textTheme.labelSmall
+                ?.copyWith(fontStyle: FontStyle.italic),
           ),
         ],
       );
@@ -63,9 +62,8 @@ class CategoryRangeChart extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           chart.citation,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(fontStyle: FontStyle.italic),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(fontStyle: FontStyle.italic),
         ),
       ],
     );
