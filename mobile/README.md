@@ -14,9 +14,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
 `10.0.2.2` is the Android emulator's alias for the host machine's localhost,
-which is where Docker publishes the API on port 8080. On a physical device use
-your machine's LAN address. The default if you omit the define is the same
-emulator address.
+which is where Docker publishes the API on port 8080.
 
 Start the backend first, from the repo root:
 
@@ -24,6 +22,24 @@ Start the backend first, from the repo root:
 cp .env.example .env                 # first time only - set JWT_SECRET
 docker compose up -d --build         # PostgreSQL + API
 ```
+
+### Server URL
+
+The API address is set in `lib/core/config/env.dart` (`Env.apiBaseUrl`) and
+is compiled into the app at build time. `--dart-define=API_BASE_URL=...`
+overrides it; without the define the app uses the default in that file,
+currently the ngrok tunnel `https://kinetic-tasting-venue.ngrok-free.dev`.
+
+| Where the app runs | `API_BASE_URL` |
+|---|---|
+| Android emulator, local backend | `http://10.0.2.2:8080` |
+| Physical phone, same Wi-Fi | `http://<your-LAN-IP>:8080` |
+| Physical phone, anywhere | the ngrok URL (the default) |
+
+The ngrok URL only works while the tunnel is running on the host machine and
+forwarding to port 8080. If the tunnel's URL changes, rebuild the app with the
+new one; an installed app keeps the URL it was built with. `10.0.2.2` does not
+work on a physical device.
 
 ## Test
 
@@ -72,6 +88,6 @@ files.
   not committed. A fresh clone does not compile until `build_runner` runs.
 - **The device is the source of truth.** Reads come from Drift, writes go to
   Drift and then onto the sync queue. Nothing user-facing awaits the network.
-- **The backend is frozen** at `v1.0.0`. `backend/docs/API.md` is the contract.
+- **`backend/docs/API.md` is the contract** for every endpoint the app calls.
 - Poppins has no Ethiopic glyphs, so Amharic renders in Noto Sans Ethiopic.
   The theme handles it; check Amharic layouts for overflow.
