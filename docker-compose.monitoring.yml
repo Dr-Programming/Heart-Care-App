@@ -1,0 +1,135 @@
+# System Control Centre: monitoring overlay for docker-compose.yml.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
+#
+# Both files form one compose project, so every service shares the default network and no
+# external network is needed. Only the dashboard (scc-web, port 3002) is published to the LAN.
+# Prometheus is bound to 127.0.0.1 for debugging; everything else is internal.
+# See monitoring/README.md.
+
+services:
+  # Same database, with pg_stat_statements preloaded for query statistics.
+  postgres:
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+
+  # One-shot: creates the pg_stat_statements extension and the read-only monitoring_user.
+  # Kept out of the app's Flyway migrations so monitoring can be removed without a schema change.
+  postgres-monitoring-init:
+    image: postgres:16-alpine
+    container_name: heartcare-postgres-monitoring-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-heartcare}
+      PGUSER: ${POSTGRES_USER:-heartcare}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-heartcare}
+      MONITORING_DB_PASSWORD: ${MONITORING_DB_PASSWORD:-}
+    volumes:
+      - ./monitoring/postgres/init-monitoring.sql:/init-monitoring.sql:ro
+    entrypoint:
+      - sh
+      - -c
+      - '[ -n "$$MONITORING_DB_PASSWORD" ] || { echo "MONITORING_DB_PASSWORD is not set (see .env.example)"; exit 1; };
+        psql -v ON_ERROR_STOP=1 -v pw="$$MONITORING_DB_PASSWORD" -f /init-monitoring.sql'
+    restart: "no"
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.17.1
+    container_name: heartcare-postgres-exporter
+    depends_on:
+      postgres-monitoring-init:
+        condition: service_completed_successfully
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-heartcare}?sslmode=disable
+      DATA_SOURCE_USER: monitoring_user
+      DATA_SOURCE_PASS: ${MONITORING_DB_PASSWORD:-}
+    command:
+      # Per-statement time and call counts from pg_stat_statements (top 100 by total time).
+      - --collector.stat_statements
+      # Statement text for the top 10 (see the file). Deprecated upstream but supported in this version.
+      - --extend.query-path=/etc/postgres-exporter/queries.yaml
+    volumes:
+      - ./monitoring/postgres-exporter/queries.yaml:/etc/postgres-exporter/queries.yaml:ro
+    restart: unless-stopped
+
+  # Per-container CPU and memory. Opt-in (add `--profile cadvisor`): on Docker Desktop with the
+  # containerd image store enabled (the default in recent versions) cAdvisor cannot resolve
+  # containers and exports nothing useful. It works on a Linux Docker Engine, or on Docker Desktop
+  # with "Use containerd for pulling and storing images" turned off. Without it, the Monitoring
+  # API shows container status from health checks. See monitoring/README.md.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.1
+    container_name: heartcare-cadvisor
+    profiles: ["cadvisor"]
+    privileged: true
+    # Docker Desktop (WSL2, cgroup v2) gives containers a private cgroup namespace by default, in
+    # which cAdvisor sees only its own root cgroup and no other containers.
+    cgroup: host
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=10s
+      - --store_container_labels=false
+      - --whitelisted_container_labels=com.docker.compose.service
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: heartcare-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Keep disk use bounded: whichever limit is hit first wins.
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - heartcare-prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  monitoring-api:
+    build: ./monitoring-api
+    container_name: heartcare-monitoring-api
+    depends_on:
+      - prometheus
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      BACKEND_MANAGEMENT_URL: http://backend:9081
+      NGROK_API_URL: ${NGROK_API_URL:-http://host.docker.internal:4040/api/tunnels}
+      # Separate SCC login (not the app's admin account). Required; see .env.example.
+      SCC_ADMIN_USERNAME: ${SCC_ADMIN_USERNAME:-}
+      SCC_ADMIN_PASSWORD: ${SCC_ADMIN_PASSWORD:-}
+      SCC_JWT_SECRET: ${SCC_JWT_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  scc-web:
+    build: ./system-control-centre
+    container_name: heartcare-scc-web
+    depends_on:
+      - monitoring-api
+    ports:
+      - "3002:80"
+    restart: unless-stopped
+
+volumes:
+  heartcare-prometheus-data:

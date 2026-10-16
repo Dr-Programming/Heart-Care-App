@@ -1,0 +1,6 @@
+# Test accounts (phone + PIN) created by create-test-patients.ps1
+patients.csv
+# JMeter output
+*.jtl
+report/
+jmeter.log

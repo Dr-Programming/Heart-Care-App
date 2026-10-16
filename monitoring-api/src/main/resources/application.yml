@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: heart-care-monitoring-api
+
+server:
+  port: 8090
+
+# The Monitoring API's own metrics and health. The port is never published; scc-web's nginx only
+# proxies /api/, so /actuator is reachable from the compose network alone.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: heartcare-monitoring-api
+
+scc:
+  prometheus-url: ${PROMETHEUS_URL:http://localhost:9090}
+  backend-management-url: ${BACKEND_MANAGEMENT_URL:http://localhost:9081}
+  ngrok-api-url: ${NGROK_API_URL:http://localhost:4040/api/tunnels}
+  database-name: ${POSTGRES_DB:heartcare}
+  # pg_stat_statements entries whose mean execution time exceeds this count as slow.
+  slow-query-threshold-ms: ${SCC_SLOW_QUERY_MS:500}
+  cache-ttl-ms: 3000
+  admin:
+    # SCC's own login, separate from the admin panel. REQUIRED; no defaults, by design.
+    username: ${SCC_ADMIN_USERNAME:}
+    password: ${SCC_ADMIN_PASSWORD:}
+  jwt:
+    secret: ${SCC_JWT_SECRET:}
+    expiration-ms: 28800000  # 8 hours: one demonstration day
+  # Containers without a Prometheus target of their own are checked with a plain HTTP probe.
+  probes:
+    heartcare-admin-web: http://admin-web/healthz
+    heartcare-research-web: http://research-web/healthz
+    heartcare-scc-web: http://scc-web/healthz

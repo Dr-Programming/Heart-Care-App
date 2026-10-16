@@ -16,6 +16,26 @@ server:
   # Tomcat's max-swallow-size/maxPostSize does not apply to application/json.
   max-http-request-header-size: 16KB
 
+# Metrics for the System Control Centre (see monitoring/README.md). Actuator lives on its own port,
+# which docker-compose never publishes: ngrok forwards all of 8080, so nothing here may be on 8080.
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9081}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics,scc-activity
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: heartcare-backend
+    distribution:
+      # Buckets let Prometheus compute P95 latency across instances and time windows.
+      percentiles-histogram:
+        http.server.requests: true
+
 spring.servlet.multipart:
   max-request-size: 2MB
 

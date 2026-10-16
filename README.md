@@ -30,8 +30,12 @@ mobile/         Flutter app for patients              -> mobile/README.md
 backend/        Spring Boot REST API + Flyway schema  -> backend/README.md
 admin-web/      React admin panel                     -> admin-web/README.md
 research-web/   React research app                    -> research-web/README.md
+system-control-centre/  React monitoring dashboard    -> system-control-centre/README.md
+monitoring-api/ Spring Boot API behind the dashboard  -> monitoring/README.md
+monitoring/     Prometheus, exporters, JMeter plan    -> monitoring/README.md
 docs/           design specs and implementation plans
-docker-compose.yml  PostgreSQL + API + both web apps
+docker-compose.yml             PostgreSQL + API + both web apps
+docker-compose.monitoring.yml  System Control Centre overlay (optional)
 ```
 
 Other top-level documents: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`FUNCTIONAL_REQUIREMENTS.md`](FUNCTIONAL_REQUIREMENTS.md),
@@ -75,6 +79,18 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 The mobile app's server URL is compiled in at build time. Without `--dart-define` it uses the default in
 `mobile/lib/core/config/env.dart` (currently an ngrok tunnel). See
 [`mobile/README.md`](mobile/README.md#server-url) for emulator, physical-phone and ngrok setups.
+
+### System Control Centre (optional)
+
+A separate monitoring console showing live performance while people use the platform, with a
+Demonstration Mode that produces a measured performance report. Set the `MONITORING_DB_PASSWORD` and
+`SCC_*` values in `.env`, then:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
+```
+
+Open http://localhost:3002. Setup, security notes and load testing: [`monitoring/README.md`](monitoring/README.md).
 
 **"Container name already in use":** the containers have fixed names (`heartcare-postgres`, …). If they
 were first created under a different compose project name, `docker compose up` refuses to reuse them.

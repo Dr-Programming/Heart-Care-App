@@ -1,0 +1,32 @@
+# Custom query for postgres_exporter (--extend.query-path). The built-in stat_statements collector
+# exports timings by queryid only; this adds the normalised statement text for the SCC's
+# "Top 10 statements" table. pg_stat_statements text uses $1 placeholders, never literal values.
+# Limited to 10 rows so the `query` label cannot grow Prometheus's series count.
+pg_top_statements:
+  query: |
+    SELECT s.queryid::text AS queryid,
+           left(regexp_replace(s.query, '\s+', ' ', 'g'), 200) AS query,
+           s.calls AS calls,
+           s.total_exec_time AS total_time_ms
+    FROM pg_stat_statements s
+    JOIN pg_database d ON d.oid = s.dbid
+    WHERE d.datname = current_database()
+      -- The application's statements only: not the exporter's own polling, and not the one-off
+      -- setup statements run by postgres-monitoring-init.
+      AND pg_get_userbyid(s.userid) <> 'monitoring_user'
+      AND s.query !~* '^\s*(create|alter|grant|do|set|show|begin|commit|rollback)\M'
+    ORDER BY s.total_exec_time DESC
+    LIMIT 10
+  metrics:
+    - queryid:
+        usage: "LABEL"
+        description: "pg_stat_statements query id"
+    - query:
+        usage: "LABEL"
+        description: "Normalised statement text"
+    - calls:
+        usage: "COUNTER"
+        description: "Times executed"
+    - total_time_ms:
+        usage: "COUNTER"
+        description: "Total execution time in milliseconds"

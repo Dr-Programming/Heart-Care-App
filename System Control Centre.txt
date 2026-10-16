@@ -1,0 +1,879 @@
+System Control Centre: Detailed Implementation Roadmap
+
+We'll build a standalone application called System Control Centre (SCC).
+
+It will be a separate React application with its own interface, backend monitoring layer and Docker containers. It will monitor your existing application without interfering with its normal operations.
+
+The objective is to give judges a live view of how your system performs while Admin, Researcher and Mobile users interact with it.
+
+I'll structure this as an implementation plan that you can follow phase by phase.
+
+1. Final architecture
+
+First, let's establish the architecture before writing code.
+
+You currently have:
+
+Admin frontend (React + Nginx).
+Researcher frontend (React + Nginx).
+Backend (Spring Boot).
+Database (PostgreSQL).
+Mobile application (Android).
+Ngrok for external mobile access.
+
+We'll introduce:
+
+System Control Centre frontend (React).
+Monitoring API (Spring Boot).
+Prometheus.
+Windows Exporter.
+PostgreSQL Exporter.
+cAdvisor, where supported by your Docker environment.
+Proposed architecture
+                  USERS
+                    |
+       ┌────────────┼──────────────┐
+       |            |              |
+     ADMIN      RESEARCHER       MOBILE
+       |            |              |
+       |            |            NGROK
+       |            |              |
+       └────────────┼──────────────┘
+                    |
+                 NGINX
+                    |
+             MAIN BACKEND
+             Spring Boot
+                    |
+              POSTGRESQL
+                    |
+       ┌────────────┴────────────┐
+       |                         |
+  APPLICATION METRICS       DATABASE METRICS
+       |                         |
+  Spring Actuator          PostgreSQL Exporter
+       |                         |
+       └────────────┬────────────┘
+                    |
+                PROMETHEUS
+                    |
+          ┌─────────┴─────────┐
+          |                   |
+    WINDOWS EXPORTER       cAdvisor
+          |                   |
+          └─────────┬─────────┘
+                    |
+              MONITORING API
+              (Spring Boot)
+                    |
+             REACT FRONTEND
+                    |
+          SYSTEM CONTROL CENTRE
+
+Important architectural decision: Prometheus collects and stores metrics. Your Monitoring API retrieves those metrics and supplies them to React.
+
+The React application should never directly access Prometheus or PostgreSQL.
+
+This separation also allows us to secure the monitoring infrastructure independently.
+
+2. Technology stack
+
+Here is the stack I'd settle on.
+
+Component	Technology	Responsibility
+Frontend	React + TypeScript	Dashboard interface
+Styling	Tailwind CSS	UI design
+Charts	Recharts	Performance graphs
+Monitoring API	Spring Boot	Dashboard data aggregation
+Metrics instrumentation	Micrometer	Application metrics
+Metrics collection	Prometheus	Collecting and storing metrics
+Server monitoring	Windows Exporter	Windows CPU, RAM, disk
+Database monitoring	PostgreSQL Exporter	PostgreSQL statistics
+Container monitoring	cAdvisor / Docker metrics	Container performance
+Load testing	Apache JMeter	Simulating concurrent users
+Deployment	Docker Compose	Running monitoring services
+
+Documentation:
+
+Prometheus Documentation
+Micrometer Documentation
+Windows Exporter
+PostgreSQL Exporter
+Recharts
+
+One Windows-specific consideration: Docker Desktop runs Linux containers inside a Linux environment. cAdvisor may not expose every metric you expect from the Windows host. We'll use Windows Exporter for host metrics and Docker's own metrics as a fallback for container-level monitoring.
+
+3. Dashboard UI design
+
+Before implementing the backend, let's establish what judges will actually see.
+
+I'd use a dark interface with a professional monitoring-console aesthetic.
+
+Main dashboard
+12
+Header
+SYSTEM CONTROL CENTRE
+
+System: Operational 🟢
+Environment: Demonstration
+Last Updated: 18:45:32
+
+[Overview] [API Performance] [Database]
+[Infrastructure] [Network] [Activity]
+Section A: System overview
+
+The first screen should communicate system health immediately.
+
+Create six metric cards:
+
+Card	Information
+System Health	Operational / Degraded / Offline
+Active Users	Currently active users
+API Requests	Total requests
+Average Latency	Average response time
+CPU Usage	Server CPU percentage
+Memory Usage	Server RAM percentage
+
+Example:
+
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ SYSTEM       │ │ ACTIVE USERS │ │ API REQUESTS │
+│ OPERATIONAL  │ │     18       │ │   24,850     │
+│      🟢      │ │              │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘
+
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ AVG LATENCY  │ │ CPU USAGE    │ │ MEMORY       │
+│   145 ms     │ │     34%      │ │     62%      │
+└──────────────┘ └──────────────┘ └──────────────┘
+
+All values above are illustrative.
+
+Section B: API performance
+
+This should be one of the most detailed sections.
+
+Metrics:
+
+Total requests.
+Requests per second.
+Average response time.
+P95 response time.
+Failed requests.
+Success rate.
+
+Graphs:
+
+Requests over time.
+Response time over time.
+API request distribution by endpoint.
+HTTP status code distribution.
+
+Also include an endpoint performance table.
+
+Endpoint	Requests	Avg. latency	Error rate
+Authentication	420	110 ms	0.2%
+Research	850	145 ms	0.5%
+User activity	3,200	42 ms	0.1%
+
+These numbers are examples, not measured results.
+
+Section C: PostgreSQL monitoring
+9
+
+Display:
+
+Metric	Description
+Active Connections	Currently executing database sessions
+Idle Connections	Established but currently idle sessions
+Transactions/sec	Database transaction throughput
+Cache Hit Ratio	Buffer cache effectiveness
+Database Size	Current database storage
+Slow Queries	Queries exceeding your chosen threshold
+Deadlocks	Database deadlock count
+
+I'd also add:
+
+Top 10 queries by total execution time.
+Connection pool utilisation.
+Database activity over time.
+
+For query monitoring, use pg_stat_statements.
+
+Remember that a high number of idle connections isn't automatically a problem. We need to compare active connections, pool limits and connection wait time.
+
+Section D: Infrastructure
+
+Display individual container health.
+
+CONTAINER MONITORING
+
+┌──────────────────────────────────────────┐
+│ Backend                                  │
+│ Status: Running                          │
+│ CPU: 15%       Memory: 850 MB             │
+├──────────────────────────────────────────┤
+│ PostgreSQL                               │
+│ Status: Running                          │
+│ CPU: 8%        Memory: 420 MB             │
+├──────────────────────────────────────────┤
+│ Admin Frontend                           │
+│ Status: Running                          │
+│ CPU: 1%        Memory: 35 MB              │
+├──────────────────────────────────────────┤
+│ Researcher Frontend                      │
+│ Status: Running                          │
+│ CPU: 2%        Memory: 42 MB              │
+└──────────────────────────────────────────┘
+
+Include server-level CPU, RAM, disk and network graphs.
+
+Section E: Network monitoring
+
+This is particularly relevant to your hybrid architecture.
+
+Display:
+
+Local network traffic.
+Incoming requests.
+Outgoing traffic.
+Ngrok tunnel status.
+Mobile API requests.
+Failed external requests.
+
+Make a distinction between local web traffic and mobile traffic.
+
+You can identify mobile requests using a dedicated client identifier or an authenticated client type, rather than trusting arbitrary headers.
+
+Section F: Activity monitoring
+
+Show a timeline of system activity.
+
+For example:
+
+18:45:32  Researcher submitted a record
+18:45:28  Admin accessed user management
+18:45:21  Mobile user synchronised data
+18:45:15  Researcher searched records
+18:45:09  Database transaction completed
+
+This section should use your existing application audit/activity data, provided you have permission to display it.
+
+Avoid displaying personal information or sensitive record contents to judges.
+
+4. Implementation roadmap
+
+Now the actual development work.
+
+I'd divide this into eight phases.
+
+Phase 1: Instrument the existing Spring Boot backend
+
+Objective: Make your existing backend expose performance metrics.
+
+You don't need to modify your business logic extensively.
+
+Step 1. Add dependencies
+
+In your existing backend's pom.xml:
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+Step 2. Configure Actuator
+
+In application.properties:
+
+management.endpoints.web.exposure.include=health,prometheus,metrics
+
+management.endpoint.health.show-details=never
+
+management.prometheus.metrics.export.enabled=true
+Step 3. Test the endpoints
+
+Start your backend.
+
+Check:
+
+http://localhost:8080/actuator/health
+
+And:
+
+http://localhost:8080/actuator/prometheus
+
+The second endpoint should expose metrics in Prometheus format.
+
+Keep these endpoints accessible only to your monitoring infrastructure, not publicly through ngrok.
+
+Step 4. Add custom metrics
+
+Micrometer allows you to measure application-specific behaviour.
+
+For example:
+
+@Component
+public class ApplicationMetrics {
+
+    private final Counter activityCounter;
+
+    public ApplicationMetrics(MeterRegistry registry) {
+
+        this.activityCounter = Counter.builder("app.user.activities")
+                .description("Total user activities")
+                .register(registry);
+    }
+
+    public void recordActivity() {
+        activityCounter.increment();
+    }
+}
+
+Whenever a user activity is successfully processed, increment the counter.
+
+Important: Don't create a metric label for every user ID, record ID or URL containing dynamic parameters. That creates high-cardinality metrics and can overwhelm Prometheus.
+
+Also, your existing activity tracking and monitoring metrics should remain separate. One stores business events; the other measures system behaviour.
+
+Phase 1 completion criteria:
+
+Actuator operational.
+Prometheus metrics endpoint working.
+Custom application metrics available.
+Phase 2: Configure Prometheus
+
+Objective: Collect and store metrics automatically.
+
+Create a new directory:
+
+monitoring/
+│
+├── prometheus/
+│   └── prometheus.yml
+│
+├── postgres-exporter/
+│
+├── windows-exporter/
+│
+└── docker-compose.monitoring.yml
+
+Create prometheus.yml:
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+
+  - job_name: 'spring-boot'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'backend:8080'
+
+  - job_name: 'postgresql'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+
+We'll add Windows Exporter and container monitoring targets once those services are configured.
+
+Important
+
+Your Prometheus container must share a Docker network with the backend and PostgreSQL exporter.
+
+If you're using separate Docker Compose files, explicitly create and attach them to a shared external network.
+
+For example:
+
+docker network create app-network
+
+Then attach the relevant services to app-network.
+
+Don't expose Prometheus publicly.
+
+Test Prometheus
+
+Open:
+
+http://localhost:9090
+
+Navigate to:
+
+Status → Targets
+
+You should see your Spring Boot target reporting UP.
+
+Phase 2 completion criteria:
+
+Prometheus running.
+Backend metrics collected.
+Targets reporting healthy status.
+Phase 3: PostgreSQL monitoring
+
+Objective: Monitor database performance independently.
+
+First, enable pg_stat_statements.
+
+In PostgreSQL configuration:
+
+shared_preload_libraries = 'pg_stat_statements'
+
+Restart PostgreSQL and execute:
+
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+Create a dedicated monitoring account rather than using your application's database credentials.
+
+For example:
+
+CREATE USER monitoring_user
+WITH PASSWORD 'your-secure-password';
+
+Grant only the permissions required by the exporter and PostgreSQL version.
+
+The PostgreSQL Exporter should collect:
+
+Database connections.
+Transaction statistics.
+Database size.
+Cache statistics.
+Query statistics.
+Lock information.
+
+Official repository:
+
+PostgreSQL Exporter GitHub
+
+One important consideration
+
+PostgreSQL query statistics and database-wide statistics aren't necessarily updated in real time at every instant.
+
+Use Prometheus sampling to show trends rather than claiming every value represents an instantaneous measurement.
+
+Phase 3 completion criteria:
+
+PostgreSQL exporter operational.
+Prometheus collecting database metrics.
+Connection and transaction statistics visible.
+Phase 4: Server and Docker monitoring
+
+Objective: Monitor the machine actually running your application.
+
+Because your server runs Windows, use Windows Exporter.
+
+Install it on the Windows host.
+
+It can expose metrics for:
+
+CPU.
+Memory.
+Disk.
+Network.
+Operating system.
+
+Configure Prometheus to scrape its metrics endpoint.
+
+For Docker containers, start with:
+
+docker stats
+
+For automated monitoring, investigate cAdvisor or Docker Engine metrics.
+
+Don't assume cAdvisor will provide complete container metrics under Docker Desktop on Windows. Validate its output in your actual environment.
+
+Phase 4 completion criteria:
+
+Host CPU metrics available.
+Host memory metrics available.
+Disk and network metrics available.
+Docker container resource usage available.
+Phase 5: Build the Monitoring API
+
+This is a separate Spring Boot application.
+
+I recommend Java 21 and Maven, keeping the same backend technology you're already using.
+
+Project structure:
+
+monitoring-api/
+│
+├── src/main/java/
+│   └── com/project/monitoring/
+│
+│       ├── controller/
+│       │   ├── OverviewController.java
+│       │   ├── ApiMetricsController.java
+│       │   ├── DatabaseController.java
+│       │   ├── InfrastructureController.java
+│       │   └── NetworkController.java
+│       │
+│       ├── service/
+│       │   ├── PrometheusService.java
+│       │   ├── DatabaseMetricsService.java
+│       │   ├── InfrastructureService.java
+│       │   └── HealthService.java
+│       │
+│       ├── dto/
+│       └── config/
+│
+└── pom.xml
+API endpoints
+
+Design your Monitoring API around these endpoints:
+
+Endpoint	Responsibility
+/api/monitoring/overview	Main dashboard metrics
+/api/monitoring/api-performance	API performance
+/api/monitoring/database	PostgreSQL statistics
+/api/monitoring/infrastructure	CPU, RAM and containers
+/api/monitoring/network	Network statistics
+/api/monitoring/health	Service health
+/api/monitoring/history	Historical metrics
+
+Your Monitoring API will query Prometheus using its HTTP API.
+
+For example:
+
+http://prometheus:9090/api/v1/query
+
+And for historical graphs:
+
+http://prometheus:9090/api/v1/query_range
+
+The Monitoring API should translate Prometheus responses into clean DTOs that your React frontend can consume.
+
+Do not make the React frontend understand PromQL. Keep that responsibility in the Monitoring API.
+
+Example response
+{
+  "systemStatus": "OPERATIONAL",
+  "cpuUsage": 34.5,
+  "memoryUsage": 62.1,
+  "activeUsers": 18,
+  "totalRequests": 24850,
+  "averageResponseTime": 145.2,
+  "errorRate": 0.4
+}
+
+Again, these are sample values.
+
+Phase 5 completion criteria:
+
+Monitoring API operational.
+Prometheus queries working.
+Structured JSON responses available.
+Phase 6: Build the React dashboard
+
+Now we build the part judges will actually interact with.
+
+Create a separate React application.
+
+I'd use:
+
+React.
+TypeScript.
+Vite.
+Tailwind CSS.
+Recharts.
+TanStack Query.
+Suggested project structure
+system-control-centre/
+│
+├── src/
+│   ├── components/
+│   │   ├── MetricCard.tsx
+│   │   ├── StatusIndicator.tsx
+│   │   ├── PerformanceChart.tsx
+│   │   ├── DataTable.tsx
+│   │   └── Sidebar.tsx
+│   │
+│   ├── pages/
+│   │   ├── Overview.tsx
+│   │   ├── ApiPerformance.tsx
+│   │   ├── Database.tsx
+│   │   ├── Infrastructure.tsx
+│   │   ├── Network.tsx
+│   │   └── Activity.tsx
+│   │
+│   ├── services/
+│   │   └── monitoringApi.ts
+│   │
+│   ├── hooks/
+│   │   └── useMonitoring.ts
+│   │
+│   ├── layouts/
+│   └── App.tsx
+│
+└── package.json
+Dashboard update frequency
+
+I recommend:
+
+Data	Refresh interval
+System overview	5 seconds
+API performance	5 seconds
+Database metrics	10 seconds
+Infrastructure	5 seconds
+Historical graphs	10 seconds
+Activity timeline	5 seconds
+
+These are initial settings, not mandatory sampling intervals.
+
+Don't make every component independently fire multiple requests every second. That would create monitoring overhead, which rather defeats the point.
+
+Use a central polling mechanism and cache responses.
+
+Visual design
+
+I'd use:
+
+Dark navy background.
+Subtle borders.
+Green for healthy.
+Amber for warnings.
+Red for critical.
+Large metric cards.
+Smooth line charts.
+Clear section navigation.
+
+Keep the design consistent across every page.
+
+Phase 6 completion criteria:
+
+All six dashboard sections working.
+Live metrics updating.
+Historical charts displaying data.
+Responsive layout.
+5. Phase 7: Load testing and performance validation
+
+This is probably the most valuable phase for your judging demonstration.
+
+A dashboard showing CPU at 20% is not particularly impressive by itself.
+
+A dashboard showing how the system behaves when 30 users interact simultaneously is much more meaningful.
+
+Use Apache JMeter.
+
+Official documentation: Apache JMeter
+
+Suggested test scenarios
+Test	Concurrent users	Duration
+Baseline	1	2 minutes
+Small load	5	5 minutes
+Medium load	15	5 minutes
+High load	30	10 minutes
+Stress test	Increase gradually	Until bottleneck
+
+These are proposed test levels, not claims about your application's capacity.
+
+Simulate actual operations:
+
+Login.
+Search.
+Retrieve records.
+Submit forms.
+Update records.
+Generate reports.
+Record user activities.
+
+Include realistic think time between operations.
+
+What judges should see
+
+Run JMeter on another machine while displaying System Control Centre on a separate screen.
+
+As users increase:
+
+Requests per second should increase.
+CPU utilisation may increase.
+Database activity should increase.
+Response times may change.
+Memory consumption should be visible.
+
+If performance remains stable, you have measurable evidence of that stability.
+
+If performance degrades, you can identify where the bottleneck occurs.
+
+That is considerably more useful than simply claiming that the system is scalable.
+
+6. Phase 8: Security and deployment
+
+Before the demonstration, lock down the monitoring infrastructure.
+
+Your final Docker deployment could look like this:
+
+docker-compose.yml
+
+services:
+
+  backend:
+    # Existing backend
+
+  postgres:
+    # Existing PostgreSQL
+
+  admin-web:
+    # Existing admin
+
+  researcher-web:
+    # Existing researcher
+
+  monitoring-api:
+    # New monitoring API
+
+  monitoring-web:
+    # New React application
+
+  prometheus:
+    # Metrics collection
+
+  postgres-exporter:
+    # Database metrics
+
+  grafana:
+    # Optional internal troubleshooting
+
+Windows Exporter runs on the Windows host rather than as a normal Linux container.
+
+Access control
+
+I recommend:
+
+Application	Access
+Admin	Local network
+Researcher	Local network
+Mobile API	Ngrok
+System Control Centre	Local network only
+Prometheus	Internal Docker network only
+PostgreSQL	Internal Docker network only
+
+The monitoring dashboard should require administrator authentication.
+
+Do not expose:
+
+Prometheus directly through ngrok.
+PostgreSQL to the public internet.
+Detailed Actuator endpoints publicly.
+Environment variables or database credentials.
+User personal information.
+
+Also configure retention for Prometheus so monitoring data doesn't gradually consume all available disk space.
+
+7. Suggested development schedule
+
+I'd estimate approximately 2 weeks of focused development, depending on how much of your existing backend needs modification.
+
+Day	Work
+1	Architecture and project setup
+2	Spring Boot Actuator integration
+3	Custom application metrics
+4	Prometheus configuration
+5	PostgreSQL monitoring
+6	Windows and Docker monitoring
+7	Monitoring API
+8	Dashboard UI: Overview
+9	API and Database pages
+10	Infrastructure and Network pages
+11	Activity page and integration
+12	Docker integration and security
+13	JMeter testing
+14	Bug fixes and demonstration preparation
+
+This assumes the existing application is already working.
+
+8. What I want you to prioritise
+
+There is a temptation to build everything immediately. Resist it.
+
+For your first working version, I would prioritise these metrics:
+
+Priority	Metric
+Essential	CPU utilisation
+Essential	RAM utilisation
+Essential	API requests/sec
+Essential	Average API latency
+Essential	P95 API latency
+Essential	API error rate
+Essential	PostgreSQL connections
+Essential	Database transactions
+Essential	Docker container health
+Important	Active users
+Important	Ngrok connectivity
+Important	Network traffic
+Later	Slow query analysis
+Later	Historical comparisons
+Later	Automated alerts
+9. One feature I'd particularly like to add: Demonstration Mode
+
+Since judges will be interacting with your application, I'd introduce a dedicated demonstration mode.
+
+A button in the dashboard:
+
+START DEMONSTRATION
+
+When activated, it could:
+
+Record the starting system metrics.
+Begin a demonstration session.
+Track system performance during the session.
+Display live metrics.
+Record peak CPU and memory usage.
+Calculate average and P95 API latency.
+Generate a performance summary at the end.
+
+For example:
+
+DEMONSTRATION SUMMARY
+
+Duration:                 15 minutes
+Peak Concurrent Users:    24
+Total API Requests:       8,450
+Successful Requests:      8,420
+Failed Requests:          30
+Average API Latency:      132 ms
+P95 API Latency:          310 ms
+Peak CPU Usage:           58%
+Peak Memory Usage:        71%
+
+Overall Result:           COMPLETED
+
+These are illustrative values.
+
+This would be a useful feature because you could show judges a reproducible performance report rather than relying on whatever happens to be on the screen at that moment.
+
+Make sure the report clearly identifies the test conditions and distinguishes actual measurements from configured targets.
+
+10. Before we start coding: Three architectural decisions
+
+I want to settle three things before we begin implementation.
+
+1. Monitoring API
+
+I'd prefer another Spring Boot application, separate from your existing business backend.
+
+This means monitoring failures won't directly affect the business API.
+
+2. Dashboard authentication
+
+Should System Control Centre use your existing Admin login/authentication system, or should it have a separate administrator login?
+
+My recommendation is to reuse your existing authentication mechanism if it supports appropriate administrator roles, rather than maintaining another set of credentials.
+
+3. Historical monitoring data
+
+I'd use Prometheus for time-series metrics and retain them for approximately 15 days initially. Your PostgreSQL database should remain dedicated to application data rather than becoming a second metrics database.
+
+Final architecture decision
+
+This is the structure I'd aim to deliver:
+
+Application	Purpose
+Admin	Administrative operations
+Researcher	Research operations
+Mobile	Remote access
+System Control Centre	Infrastructure and application performance monitoring
