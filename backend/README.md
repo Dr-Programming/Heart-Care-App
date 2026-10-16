@@ -3,7 +3,8 @@
 Spring Boot REST API for the Heart-Care App. It serves three separate clients: the Flutter patient app,
 the admin panel (`admin-web`) and the research app (`research-web`). For patients it is the offline-first
 companion to the phone: the device is the source of truth, and this API persists synced records and
-handles auth.
+handles auth. The System Control Centre also reads metrics from it, on a separate internal port (see
+[Metrics](#metrics-management-port)).
 
 ## Tech Stack
 - Java 21 · Spring Boot 4.1.0 · Maven
@@ -46,6 +47,7 @@ Set in the repo-root `.env` (template: `.env.example`).
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | No (default `heartcare`) | Database credentials. |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | No | Creates the admin account on startup if it doesn't exist; never overwrites it. Password must be 12+ characters. |
 | `CORS_ALLOWED_ORIGINS` | No (default `http://localhost:*`) | Browser origins allowed to call the API. Native mobile clients are unaffected. |
+| `MANAGEMENT_PORT` | No (default `9081`) | Actuator port for Prometheus metrics and the SCC activity feed. docker-compose never publishes it. |
 
 ## API areas
 
@@ -57,6 +59,20 @@ All under `/api/v1`. Each area has its own principal type; a token for one can't
 | `/admin/**` | Admin panel | `/admin/auth/login`, 8-hour token |
 | `/research/**` | Research app | `/research/auth/login` |
 | `/health` | Anyone | — |
+
+### Metrics (management port)
+
+Actuator runs on its own port (`9081`), not on 8080, because ngrok forwards all of 8080.
+`/actuator/health`, `/actuator/prometheus`, `/actuator/metrics` and `/actuator/scc-activity` are open on
+that port and reachable only from the compose network, where Prometheus and the Monitoring API scrape them.
+On 8080, `/actuator/**` returns 401.
+
+- Every request metric is tagged `client` = `admin`, `researcher`, `mobile` or `public`, decided from the
+  route (`common/monitoring/ClientType`).
+- `common/monitoring/ActivityRecorder` keeps the last 200 requests as anonymised events (no user ids,
+  record ids or bodies) plus an in-memory count of users active in the last 5 minutes.
+
+Details: [`monitoring/README.md`](../monitoring/README.md).
 
 ## Build Progress
 
@@ -74,9 +90,11 @@ All under `/api/v1`. Each area has its own principal type; a token for one can't
 | 10 | Research API (researcher accounts and grants, per-researcher pseudonyms, minimum group size, cohorts and analytics in SQL, activity log, archive, `V10`–`V11`) | ✅ Done |
 | 11 | Test-report fixes (medication `deactivated_at`, one symptom check-in per local day via `X-Timezone`, `V12`–`V13`) | ✅ Done |
 | 12 | Sessions and PIN recovery (rotating refresh tokens, forgot PIN via security questions, offline-safe PIN change with `changeId`, `V14`–`V16`) | ✅ Done |
+| 13 | System Control Centre hooks (Actuator + Micrometer Prometheus on management port 9081, client-tagged request metrics, anonymised activity feed) | ✅ Done |
 
 ## Documentation
 - [API reference](docs/API.md) — patient-facing endpoints (auth, profile, medications, dose logs, vitals, symptoms, activity, sync)
 - [Database & migrations](docs/DATABASE.md)
 - [Development guide](docs/DEVELOPMENT.md)
 - [Security review](docs/SecurityReview.md)
+- [Monitoring (System Control Centre)](../monitoring/README.md)

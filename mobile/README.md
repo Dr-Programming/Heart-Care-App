@@ -62,7 +62,9 @@ flutter build apk --dart-define=API_BASE_URL=https://<host>
 flutter build ios --dart-define=API_BASE_URL=https://<host>
 ```
 
-Package `com.libucare.app`, minSdk 21, portrait only.
+Package `com.libucare.app`, minSdk is Flutter's default (`flutter.minSdkVersion`), portrait only.
+The version is `1.1.0+2`, set in `pubspec.yaml`. Bump it there, or override it for one build with
+`--build-name` / `--build-number`.
 
 ## Layout
 

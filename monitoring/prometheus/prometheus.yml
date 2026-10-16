@@ -1,0 +1,51 @@
+# Prometheus for the System Control Centre. Reached only from the compose network (and from
+# 127.0.0.1:9090 on the host, for debugging). Never expose it through ngrok.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Heart Care backend. Actuator is on the internal management port, not 8080.
+  - job_name: spring-boot
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['backend:9081']
+        labels:
+          service: backend
+
+  - job_name: postgresql
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: postgres
+
+  # windows_exporter runs on the Windows host itself (see monitoring/windows-exporter/).
+  # Reported DOWN until it is installed; the dashboard shows host metrics as unavailable.
+  - job_name: windows
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['host.docker.internal:9182']
+        labels:
+          service: host
+
+  # Per-container CPU and memory. Under Docker Desktop on Windows coverage varies, so the
+  # Monitoring API falls back to health probes when these series are missing.
+  - job_name: cadvisor
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: cadvisor
+
+  - job_name: monitoring-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['monitoring-api:8090']
+        labels:
+          service: monitoring-api
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: prometheus

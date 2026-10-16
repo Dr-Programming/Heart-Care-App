@@ -22,6 +22,7 @@
 10. [Database Design Overview](#10-database-design-overview)
 11. [API Design Principles](#11-api-design-principles)
 12. [Deployment Architecture](#12-deployment-architecture)
+13. [System Control Centre (monitoring)](#13-system-control-centre-monitoring)
 
 ---
 
@@ -640,6 +641,31 @@ Developer Machine
 - PostgreSQL credentials injected via Railway environment variables
 - HTTPS enforced on all API endpoints (Railway provides SSL by default)
 - `flutter_secure_storage` uses Android Keystore / iOS Keychain for token encryption on device
+
+---
+
+## 13. System Control Centre (monitoring)
+
+An optional, separate monitoring product, started with `docker-compose.monitoring.yml`. Full detail
+in [`monitoring/README.md`](monitoring/README.md).
+
+```
+backend :9081/actuator ──┐
+postgres-exporter ───────┼──► Prometheus ──► Monitoring API (Spring Boot) ──► SCC dashboard (React, :3002)
+windows_exporter, cAdvisor┘        ▲                 ▲
+                                   │                 └── backend :9081/actuator/scc-activity (anonymised feed)
+```
+
+- The backend exposes Micrometer metrics through Spring Boot Actuator on management port 9081, which
+  is never published to the host. ngrok forwards 8080, so metrics stay off the internet.
+- Request metrics carry a `client` tag (`admin`, `researcher`, `mobile`, `public`) derived from the
+  role-guarded route prefix, which separates local web traffic from mobile traffic.
+- Prometheus is the only metrics store (15-day retention). PostgreSQL stays dedicated to application
+  data; the Monitoring API never connects to it.
+- The Monitoring API has its own login and is the only consumer of PromQL; the dashboard receives
+  section-shaped JSON.
+- Monitoring failures do not affect the business API: the backend only serves metrics, and nothing
+  in the request path depends on Prometheus or the Monitoring API.
 
 ---
 

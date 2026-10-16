@@ -16,6 +16,8 @@ docker compose up -d --build
 ```
 
 Then open http://localhost:3001. nginx serves the build and proxies `/api` to the backend container.
+Other machines on the LAN can use `http://<server-ip>:3001`. nginx passes the browser's `Host` (with its
+port) to the backend, so these are same-origin requests and need no `CORS_ALLOWED_ORIGINS` change.
 
 Local development, with the backend on `localhost:8080`:
 

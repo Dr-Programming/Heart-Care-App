@@ -4,8 +4,10 @@ import com.heartcare.common.security.JwtAccessDeniedHandler;
 import com.heartcare.common.security.JwtAuthFilter;
 import com.heartcare.common.security.JwtAuthenticationEntryPoint;
 import com.heartcare.common.security.RateLimitFilter;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -35,6 +37,23 @@ public class SecurityConfig {
     }
 
     /**
+     * Actuator endpoints for the System Control Centre's Prometheus scraper. Actuator is served
+     * only on management.server.port, which docker-compose never publishes (ngrok forwards 8080),
+     * so these are reachable from the compose network alone. Without this chain they would fall
+     * into the PATIENT rule below.
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain actuatorFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        return http.build();
+    }
+
+    /**
      * Admin, researcher and patient routes are role-partitioned, not merely authenticated: each
      * token's subject is an id in a different table (admin_users, researchers, users), which would
      * be meaningless (or worse, collide) elsewhere, and neither patients nor researchers may reach
@@ -42,6 +61,7 @@ public class SecurityConfig {
      * the database on every call by ResearchAccessGuard.
      */
     @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)

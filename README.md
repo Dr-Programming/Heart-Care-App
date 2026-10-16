@@ -30,8 +30,12 @@ mobile/         Flutter app for patients              -> mobile/README.md
 backend/        Spring Boot REST API + Flyway schema  -> backend/README.md
 admin-web/      React admin panel                     -> admin-web/README.md
 research-web/   React research app                    -> research-web/README.md
+system-control-centre/  React monitoring dashboard    -> system-control-centre/README.md
+monitoring-api/ Spring Boot API behind the dashboard  -> monitoring/README.md
+monitoring/     Prometheus, exporters, JMeter plan    -> monitoring/README.md
 docs/           design specs and implementation plans
-docker-compose.yml  PostgreSQL + API + both web apps
+docker-compose.yml             PostgreSQL + API + both web apps
+docker-compose.monitoring.yml  System Control Centre overlay (optional)
 ```
 
 Other top-level documents: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`FUNCTIONAL_REQUIREMENTS.md`](FUNCTIONAL_REQUIREMENTS.md),
@@ -44,6 +48,8 @@ Other top-level documents: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`FUNCTIONAL_RE
 - **Backend:** Java 21, Spring Boot, Spring Security + JWT, Flyway
 - **Database:** PostgreSQL 16 (Docker locally; Railway is the planned host)
 - **Admin panel & research app:** React, Vite, TypeScript, TanStack Query, Tailwind CSS, Recharts, served by nginx
+- **Monitoring (optional):** Prometheus, postgres-exporter, windows_exporter, cAdvisor (opt-in), a Spring Boot
+  Monitoring API and a React dashboard (the System Control Centre)
 
 ## Quick start
 
@@ -71,10 +77,23 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 | Admin panel | http://localhost:3000 |
 | Research app | http://localhost:3001 |
 | PostgreSQL | `localhost:5432` |
+| System Control Centre | http://localhost:3002 (only with the monitoring overlay, below) |
 
 The mobile app's server URL is compiled in at build time. Without `--dart-define` it uses the default in
 `mobile/lib/core/config/env.dart` (currently an ngrok tunnel). See
 [`mobile/README.md`](mobile/README.md#server-url) for emulator, physical-phone and ngrok setups.
+
+### System Control Centre (optional)
+
+A separate monitoring console showing live performance while people use the platform, with a
+Demonstration Mode that produces a measured performance report. Set the `MONITORING_DB_PASSWORD` and
+`SCC_*` values in `.env`, then:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d --build
+```
+
+Open http://localhost:3002. Setup, security notes and load testing: [`monitoring/README.md`](monitoring/README.md).
 
 **"Container name already in use":** the containers have fixed names (`heartcare-postgres`, …). If they
 were first created under a different compose project name, `docker compose up` refuses to reuse them.
@@ -133,6 +152,8 @@ analyses and, when allowed, pseudonymised records and CSV downloads. See
   [`backend/README.md`](backend/README.md).
 - **Mobile:** feature-complete for the patient scope above. See [`mobile/README.md`](mobile/README.md).
 - **Admin panel** and **research app:** complete. See their READMEs.
+- **System Control Centre:** complete. Live API, database, infrastructure, network and activity monitoring,
+  plus Demonstration Mode reports. See [`monitoring/README.md`](monitoring/README.md).
 
 ## Testing
 
@@ -141,6 +162,8 @@ cd backend && mvn test          # requires Docker (Testcontainers)
 cd mobile && flutter analyze && flutter test
 cd admin-web && npm run build && npm run lint
 cd research-web && npm run build && npm run lint
+cd monitoring-api && mvn test   # no Docker needed
+cd system-control-centre && npm run build && npm run lint
 ```
 
 Test cases and results: [`TEST_SUITE.md`](TEST_SUITE.md), [`TEST_REPORT.md`](TEST_REPORT.md).
