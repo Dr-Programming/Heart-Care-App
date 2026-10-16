@@ -145,6 +145,18 @@ lost when it restarts, so export any you want to keep.
   (`/api/v1/admin/users/{id}`), the activity feed is anonymised, and pg_stat_statements text is
   normalised (`$1` placeholders, never values).
 
+## Development
+
+```bash
+cd monitoring-api
+mvn test                # no Docker or Testcontainers needed
+mvn spring-boot:run     # needs SCC_ADMIN_USERNAME, SCC_ADMIN_PASSWORD, SCC_JWT_SECRET;
+                        # PROMETHEUS_URL defaults to http://localhost:9090
+```
+
+The Monitoring API listens on port 8090. For the dashboard's dev server, see
+[`system-control-centre/README.md`](../system-control-centre/README.md).
+
 ## Removing it
 
 `docker compose -f docker-compose.yml -f docker-compose.monitoring.yml down`, then

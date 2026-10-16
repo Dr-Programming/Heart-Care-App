@@ -48,6 +48,8 @@ Other top-level documents: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`FUNCTIONAL_RE
 - **Backend:** Java 21, Spring Boot, Spring Security + JWT, Flyway
 - **Database:** PostgreSQL 16 (Docker locally; Railway is the planned host)
 - **Admin panel & research app:** React, Vite, TypeScript, TanStack Query, Tailwind CSS, Recharts, served by nginx
+- **Monitoring (optional):** Prometheus, postgres-exporter, windows_exporter, cAdvisor (opt-in), a Spring Boot
+  Monitoring API and a React dashboard (the System Control Centre)
 
 ## Quick start
 
@@ -75,6 +77,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 | Admin panel | http://localhost:3000 |
 | Research app | http://localhost:3001 |
 | PostgreSQL | `localhost:5432` |
+| System Control Centre | http://localhost:3002 (only with the monitoring overlay, below) |
 
 The mobile app's server URL is compiled in at build time. Without `--dart-define` it uses the default in
 `mobile/lib/core/config/env.dart` (currently an ngrok tunnel). See
@@ -149,6 +152,8 @@ analyses and, when allowed, pseudonymised records and CSV downloads. See
   [`backend/README.md`](backend/README.md).
 - **Mobile:** feature-complete for the patient scope above. See [`mobile/README.md`](mobile/README.md).
 - **Admin panel** and **research app:** complete. See their READMEs.
+- **System Control Centre:** complete. Live API, database, infrastructure, network and activity monitoring,
+  plus Demonstration Mode reports. See [`monitoring/README.md`](monitoring/README.md).
 
 ## Testing
 
@@ -157,6 +162,8 @@ cd backend && mvn test          # requires Docker (Testcontainers)
 cd mobile && flutter analyze && flutter test
 cd admin-web && npm run build && npm run lint
 cd research-web && npm run build && npm run lint
+cd monitoring-api && mvn test   # no Docker needed
+cd system-control-centre && npm run build && npm run lint
 ```
 
 Test cases and results: [`TEST_SUITE.md`](TEST_SUITE.md), [`TEST_REPORT.md`](TEST_REPORT.md).

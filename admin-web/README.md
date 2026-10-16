@@ -18,6 +18,9 @@ Stack: Vite, React, TypeScript, React Router, TanStack Query, TanStack Table, Ta
 
 nginx serves the build and proxies `/api` to the backend container.
 
+Other machines on the LAN can use `http://<server-ip>:3000`. nginx passes the browser's `Host` (with its
+port) to the backend, so these are same-origin requests and need no `CORS_ALLOWED_ORIGINS` change.
+
 ## Local development
 
 With the backend running on `localhost:8080`:
