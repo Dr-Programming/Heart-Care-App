@@ -39,6 +39,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
+  /// Brings the profile back from the server after a sign-in: sign-out
+  /// removes it from the phone, and a new phone or another patient's phone
+  /// never had it. A change still waiting to be sent is kept, not replaced.
+  Future<void> restoreFromServer(String userId) async {
+    if (userId.isEmpty || !await isOnline()) return;
+    if (await local.isDirty(userId)) return;
+    final PatientProfileModel server;
+    try {
+      server = await remote.getProfile();
+    } on DioException {
+      return; // No profile on the server yet, or offline after all.
+    }
+    await local.saveProfile(server.toDomain(userId));
+  }
+
   @override
   Future<bool> isDirty(String userId) => local.isDirty(userId);
 

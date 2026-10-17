@@ -10,6 +10,7 @@ class _Gate implements AuthGate {
     this.isResolved = true,
     this.isSignedIn = false,
     this.hasChosenLanguage = true,
+    this.hasAcceptedTerms = true,
     this.needsOnboarding = false,
   });
 
@@ -19,6 +20,8 @@ class _Gate implements AuthGate {
   final bool isSignedIn;
   @override
   final bool hasChosenLanguage;
+  @override
+  final bool hasAcceptedTerms;
   @override
   final bool needsOnboarding;
 }
@@ -45,6 +48,27 @@ void main() {
       const AuthGate gate = _Gate(hasChosenLanguage: false);
       expect(redirectFor(gate, AppRoutes.loginPath), AppRoutes.languagePath);
       expect(redirectFor(gate, AppRoutes.homePath), AppRoutes.languagePath);
+    });
+
+    test('the terms come after the language and before login', () {
+      const AuthGate gate = _Gate(hasAcceptedTerms: false);
+      expect(redirectFor(gate, AppRoutes.loginPath), AppRoutes.termsPath);
+      expect(redirectFor(gate, AppRoutes.registerPath), AppRoutes.termsPath);
+      expect(redirectFor(gate, AppRoutes.homePath), AppRoutes.termsPath);
+      expect(redirectFor(gate, AppRoutes.termsPath), isNull);
+    });
+
+    test('the language still comes before the terms', () {
+      const AuthGate gate = _Gate(
+        hasChosenLanguage: false,
+        hasAcceptedTerms: false,
+      );
+      expect(redirectFor(gate, AppRoutes.termsPath), AppRoutes.languagePath);
+    });
+
+    test('a signed-in patient who has not agreed yet sees the terms', () {
+      const AuthGate gate = _Gate(isSignedIn: true, hasAcceptedTerms: false);
+      expect(redirectFor(gate, AppRoutes.homePath), AppRoutes.termsPath);
     });
 
     test('the picker itself is reachable', () {

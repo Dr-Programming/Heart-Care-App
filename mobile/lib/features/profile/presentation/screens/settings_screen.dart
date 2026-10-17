@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/notifications/check_in_reminder.dart';
 import '../../../../core/db/tables.dart';
 import '../../../../core/localization/language.dart';
 import '../../../../core/caregiver/caregiver_contact.dart';
@@ -164,6 +165,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       PreferenceKeys.notificationsEnabled,
       value ? 'true' : 'false',
     );
+    await ref.read(checkInReminderProvider).reschedule();
     if (!mounted) return;
     setState(() => _notificationsEnabled = value);
   }
@@ -320,6 +322,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: _openSecurityQuestions,
+                ),
+                const Divider(height: 1, color: AppColors.border),
+                ListTile(
+                  key: const Key('settings_terms_row'),
+                  leading: const Icon(Icons.description_outlined),
+                  title: Text('legal.terms.settingsTitle'.tr()),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.pushNamed(AppRoutes.termsView),
                 ),
                 const Divider(height: 1, color: AppColors.border),
                 ListTile(

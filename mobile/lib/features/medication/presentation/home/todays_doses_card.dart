@@ -83,16 +83,21 @@ class _CardState extends ConsumerState<_Card> {
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                           child: DoseRow(
                             dose: dose,
-                            onLog: (DoseStatus status, {String? note}) => ref
-                                .read(medicationListControllerProvider.notifier)
-                                .logDose(
+                            onLog: (DoseStatus status, {String? note}) async {
+                              final bool texted = await ref
+                                  .read(medicationListControllerProvider.notifier)
+                                  .logDose(
                                   medicationClientRecordId:
                                       dose.medicationClientRecordId,
                                   status: status,
                                   scheduledDate: dose.scheduledDate,
                                   scheduledTime: dose.scheduledTime,
                                   note: note,
-                                ),
+                                  );
+                              if (texted && context.mounted) {
+                                showAppToast(context, 'meds.caregiverSms.sent'.tr());
+                              }
+                            },
                           ),
                         ),
                     ],

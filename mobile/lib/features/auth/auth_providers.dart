@@ -120,6 +120,7 @@ class RealAuthGate implements AuthGate {
     required this.isResolved,
     required this.isSignedIn,
     required this.hasChosenLanguage,
+    required this.hasAcceptedTerms,
     required this.needsOnboarding,
   });
 
@@ -127,6 +128,7 @@ class RealAuthGate implements AuthGate {
     : isResolved = false,
       isSignedIn = false,
       hasChosenLanguage = false,
+      hasAcceptedTerms = false,
       needsOnboarding = false;
 
   @override
@@ -137,6 +139,9 @@ class RealAuthGate implements AuthGate {
 
   @override
   final bool hasChosenLanguage;
+
+  @override
+  final bool hasAcceptedTerms;
 
   @override
   final bool needsOnboarding;
@@ -158,6 +163,9 @@ class RealAuthGateNotifier extends Notifier<AuthGate> {
       final bool hasChosenLanguage = await ref
           .read(languageStoreProvider)
           .hasChosen();
+      final bool hasAcceptedTerms = await ref
+          .read(termsStoreProvider)
+          .hasAccepted();
       final bool needsOnboarding = signedIn
           ? await repo.needsOnboarding()
           : false;
@@ -169,6 +177,7 @@ class RealAuthGateNotifier extends Notifier<AuthGate> {
         isResolved: true,
         isSignedIn: signedIn,
         hasChosenLanguage: hasChosenLanguage,
+        hasAcceptedTerms: hasAcceptedTerms,
         needsOnboarding: needsOnboarding,
       );
     } on Object {
@@ -177,6 +186,7 @@ class RealAuthGateNotifier extends Notifier<AuthGate> {
         isResolved: true,
         isSignedIn: false,
         hasChosenLanguage: false,
+        hasAcceptedTerms: false,
         needsOnboarding: false,
       );
     }

@@ -5,6 +5,12 @@ abstract final class AppRoutes {
   static const String language = 'language';
   static const String languagePath = '/language';
 
+  static const String terms = 'terms';
+  static const String termsPath = '/terms';
+
+  static const String termsView = 'termsView';
+  static const String termsViewPath = '/settings/terms';
+
   static const String login = 'login';
   static const String loginPath = '/login';
 
@@ -86,6 +92,10 @@ abstract final class AppRoutes {
   static const String symptomHistory = 'symptomHistory';
   static const String symptomHistoryPath = '/check-in/symptoms/history';
 
+  static const String symptomCheckInDetail = 'symptomCheckInDetail';
+  static const String symptomCheckInDetailPath =
+      '/check-in/symptoms/history/:id';
+
   static const String activity = 'activity';
   static const String activityPath = '/check-in/activity';
 
@@ -98,6 +108,11 @@ abstract final class AppRoutes {
   static const String learnTopic = 'learnTopic';
   static const String learnTopicPath = '/learn/:topic';
 
+  /// A Learn topic opened from another tab: shown over that tab, so Back
+  /// returns to it instead of the Learn tab.
+  static const String topicView = 'topicView';
+  static const String topicViewPath = '/topic/:topic';
+
   static const String eatWell = 'eatWell';
   static const String eatWellPath = '/learn/eat-well';
 
@@ -107,6 +122,7 @@ abstract final class AppRoutes {
   static const Set<String> publicPaths = <String>{
     splashPath,
     languagePath,
+    termsPath,
     loginPath,
     registerPath,
     forgotPinPath,

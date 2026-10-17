@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../../../core/db/app_database.dart' hide Medication;
 import '../../../core/db/daos/preferences_dao.dart';
@@ -39,10 +40,79 @@ class MedicationNotifications {
         body: 'meds.notifications.followUpBody'.tr(
           namedArgs: <String, String>{'name': medication.name},
         ),
-        when: first.add(followUpDelay),
+        when: await _nextFollowUp(medication.clientRecordId, time),
         payload: _payloadFor(medication.clientRecordId, time, isFollowUp: true),
       );
     }
+  }
+
+  /// A dose was marked taken, missed or skipped: today's "you have not
+  /// logged it yet" follow-up for that time is no longer true, so it starts
+  /// again tomorrow. Remembered, so reopening the app doesn't bring it back.
+  Future<void> doseLogged(
+    Medication medication, {
+    required String time,
+    required String scheduledDate,
+    DateTime? now,
+  }) async {
+    final DateTime today = now ?? DateTime.now();
+    if (scheduledDate != _date(today)) return;
+    await markLogged(
+      medication.clientRecordId,
+      time: time,
+      scheduledDate: scheduledDate,
+    );
+    await scheduleFor(medication);
+  }
+
+  /// Notes that the dose at [time] on [scheduledDate] is logged, so the next
+  /// [scheduleFor] leaves out that day's follow-up.
+  Future<void> markLogged(
+    String medicationClientRecordId, {
+    required String time,
+    required String scheduledDate,
+  }) => _prefs.set(_loggedKey(medicationClientRecordId, time), scheduledDate);
+
+  /// When the next follow-up for [time] fires; for tests.
+  @visibleForTesting
+  Future<DateTime> nextFollowUpFor(
+    String medicationClientRecordId,
+    String time, {
+    DateTime? now,
+  }) => _nextFollowUp(medicationClientRecordId, time, now: now);
+
+  String _loggedKey(String medicationClientRecordId, String time) =>
+      'dose_logged_${medicationClientRecordId}_$time';
+
+  static String _date(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  /// One hour after the dose time, the next time that is still to come and
+  /// whose dose hasn't been logged yet.
+  Future<DateTime> _nextFollowUp(
+    String medicationClientRecordId,
+    String time, {
+    DateTime? now,
+  }) async {
+    final DateTime current = now ?? DateTime.now();
+    final List<String> parts = time.split(':');
+    DateTime dose = DateTime(
+      current.year,
+      current.month,
+      current.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+    final String? logged = await _prefs.get(
+      _loggedKey(medicationClientRecordId, time),
+    );
+    while (!dose.add(followUpDelay).isAfter(current) ||
+        _date(dose) == logged) {
+      dose = DateTime(dose.year, dose.month, dose.day + 1, dose.hour, dose.minute);
+    }
+    return dose.add(followUpDelay);
   }
 
   Future<void> cancelFor(String medicationClientRecordId) async {

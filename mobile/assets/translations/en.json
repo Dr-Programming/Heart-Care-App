@@ -502,6 +502,10 @@
       "instructionsNotSet": "Not set",
       "noFixedSchedule": "No fixed schedule",
       "reminderSchedulingFailed": "Saved. Reminders may not work until notification permission is granted."
+    },
+    "caregiverSms": {
+      "message": "Libu Care: {name} has missed {medicine} {dose} mg (due at {time}). Please check on them.",
+      "sent": "Your caregiver has been sent a text about the missed dose"
     }
   },
   "vitals": {
@@ -652,11 +656,18 @@
         "heartRate": "Heart rate",
         "swelling": "Leg/ankle swelling",
         "energyLevel": "Energy level"
-      }
+      },
+      "yourAnswers": "Your answers"
     },
     "history": {
       "title": "Check-in history",
-      "empty": "No check-ins yet"
+      "empty": "No check-ins yet",
+      "detailTitle": "Check-in details",
+      "notFound": "This check-in is no longer on this phone"
+    },
+    "reminder": {
+      "title": "Time for your daily check-in",
+      "body": "It takes about a minute. Tap to tell us how you feel today."
     }
   },
   "activity": {
@@ -1044,6 +1055,48 @@
         "title": "Clinic visit today",
         "body": "{place} at {time}. Bring your medicines and show your visit summary."
       }
+    }
+  },
+  "legal": {
+    "terms": {
+      "title": "Before you start",
+      "subtitle": "How Libu Care works and how your information is used",
+      "settingsTitle": "Terms and privacy",
+      "intro": "Libu Care helps you look after your heart between clinic visits. Please read how the app works and how your information is used.",
+      "notDoctor": {
+        "title": "This app does not replace your doctor",
+        "p1": "Libu Care helps you track your medicines, readings and symptoms. It does not diagnose illness or replace advice from your doctor or nurse.",
+        "p2": "The app is not an emergency service. If you have severe chest pain or trouble breathing, call for help or go to the nearest health facility straight away."
+      },
+      "whatWeKeep": {
+        "title": "What the app keeps",
+        "p1": "The information you enter: your name, phone number, profile, medicines, doses, readings, daily check-ins and activity.",
+        "p2": "It is saved on your phone first, so the app works without internet, and sent to the Libu Care server when you are online.",
+        "p3": "Your PIN and security answers are kept only as a scrambled code. Nobody can read them, not even the clinic."
+      },
+      "whoSees": {
+        "title": "Who can see your information",
+        "p1": "Your clinic team can see your name, phone number and records so they can follow up on your care, for example after an urgent result. Every time they look, it is recorded.",
+        "p2": "Approved researchers can study some of the data to learn how to improve heart care. They never see your name, phone number or notes. They see only coded records and general details such as your age group. Results about very small groups are hidden, so no one can be picked out.",
+        "p3": "Your information is not sold or shared with advertising or other companies."
+      },
+      "phoneOnly": {
+        "title": "What stays only on your phone",
+        "p1": "Your appointments, your clinic and caregiver contacts, and your own security question are never sent to the server."
+      },
+      "safety": {
+        "title": "Keeping your information safe",
+        "p1": "Keep your PIN private and do not share your phone with people you don't trust.",
+        "p2": "If another person signs in on your phone, your records are removed from the phone once they are safely on the server."
+      },
+      "choices": {
+        "title": "Your choices",
+        "p1": "You can stop using the app at any time.",
+        "p2": "For questions about your information, contact your clinic."
+      },
+      "agree": "I have read this and I agree to how my information is used.",
+      "continue": "Continue",
+      "readLater": "You can read this again later in Settings."
     }
   }
 }
