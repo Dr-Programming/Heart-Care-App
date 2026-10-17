@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 
+import '../../../../core/notifications/check_in_reminder.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/router/routes.dart';
 import '../../../../core/shell/home_card.dart';
@@ -29,6 +32,15 @@ class _Card extends ConsumerWidget {
       checkInHubControllerProvider,
     );
     final TextTheme text = Theme.of(context).textTheme;
+    // Keeps the daily check-in reminder up to date each time Home loads.
+    ref.listen(checkInHubControllerProvider, (_, AsyncValue<SymptomCheckIn?> next) {
+      final CheckInReminder reminder = ref.read(checkInReminderProvider);
+      next.whenData(
+        (SymptomCheckIn? today) => unawaited(
+          today == null ? reminder.reschedule() : reminder.checkedIn(),
+        ),
+      );
+    });
 
     return AccentCard(
       accent: AppColors.success,

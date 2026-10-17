@@ -23,10 +23,18 @@ abstract final class PreferenceKeys {
   static const String language = 'language';
   static const String languageChosen = 'language_chosen';
 
+  /// Version of the "Before you start" terms this phone agreed to.
+  static const String termsAcceptedVersion = 'terms_accepted_version';
+
   static const String notificationsEnabled = 'notifications_enabled';
   static const String securityQuestionsPromptDismissed =
       'security_questions_prompt_dismissed';
   static const String symptomPromptTime = 'symptom_prompt_time';
+  static const String symptomReminderEnabled =
+      'profile_symptom_reminder_enabled';
+
+  /// The day of the last saved check-in, so its reminder is skipped.
+  static const String lastCheckInDate = 'last_check_in_date';
 
   static const String lastSyncAt = 'last_sync_at';
 
@@ -35,7 +43,11 @@ abstract final class PreferenceKeys {
   static const String dataOwnerUserId = 'data_owner_user_id';
 
   /// Settings that belong to the phone, not the patient; kept on a switch.
-  static const Set<String> deviceScoped = <String>{language, languageChosen};
+  static const Set<String> deviceScoped = <String>{
+    language,
+    languageChosen,
+    termsAcceptedVersion,
+  };
 }
 
 class PatientProfiles extends Table {

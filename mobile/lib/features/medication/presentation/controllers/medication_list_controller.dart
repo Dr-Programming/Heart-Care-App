@@ -7,6 +7,7 @@ import '../../domain/entities/dose_log.dart';
 import '../../domain/entities/medication.dart';
 import '../../domain/entities/scheduled_dose.dart';
 import '../../medication_providers.dart';
+import '../../notifications/caregiver_missed_dose_alert.dart';
 
 class MedicationListState {
   const MedicationListState({
@@ -68,7 +69,8 @@ class MedicationListController extends AsyncNotifier<MedicationListState> {
         .toList();
   }
 
-  Future<void> logDose({
+  /// Saves the dose. True when the caregiver was texted about a missed one.
+  Future<bool> logDose({
     required String medicationClientRecordId,
     required DoseStatus status,
     required String scheduledDate,
@@ -84,7 +86,37 @@ class MedicationListController extends AsyncNotifier<MedicationListState> {
           scheduledTime: scheduledTime,
           note: note,
         );
+    bool texted = false;
+    final Medication? medication = await _find(medicationClientRecordId);
+    if (medication != null && scheduledTime != null) {
+      try {
+        await ref
+            .read(medicationNotificationsProvider)
+            .doseLogged(
+              medication,
+              time: scheduledTime.substring(0, 5),
+              scheduledDate: scheduledDate,
+            );
+      } on Object {
+        // Reminders are best effort; the dose is already saved.
+      }
+      if (status == DoseStatus.missed) {
+        texted = await ref
+            .read(caregiverMissedDoseAlertProvider)
+            .send(medication, time: scheduledTime.substring(0, 5));
+      }
+    }
     ref.invalidateSelf();
+    return texted;
+  }
+
+  Future<Medication?> _find(String clientRecordId) async {
+    for (final Medication m in await ref
+        .read(medicationRepositoryProvider)
+        .allMedications(includeInactive: true)) {
+      if (m.clientRecordId == clientRecordId) return m;
+    }
+    return null;
   }
 
   Future<void> deactivate(String clientRecordId) async {

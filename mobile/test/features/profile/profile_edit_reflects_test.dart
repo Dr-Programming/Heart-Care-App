@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
 import 'package:libu_care/core/db/app_database.dart';
+import 'package:libu_care/core/legal/terms_store.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/theme/app_theme.dart';
@@ -50,6 +51,7 @@ void main() {
       ),
     );
     await LanguageStore(db.preferencesDao).write(AppLanguage.en);
+    await TermsStore(db.preferencesDao).accept();
   });
 
   tearDown(() => db.close());

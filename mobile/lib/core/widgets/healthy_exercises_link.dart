@@ -7,8 +7,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import 'cards.dart';
 
-/// Opens the "Staying physically active" topic in Learn, so the patient does
-/// not have to find it there themselves.
+/// Opens the "Staying physically active" topic on top of the current screen,
+/// so the patient does not have to find it in Learn, and Back returns to the
+/// tab they came from.
 class HealthyExercisesLink extends StatelessWidget {
   const HealthyExercisesLink({super.key});
 
@@ -20,8 +21,8 @@ class HealthyExercisesLink extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
     return SectionCard(
       key: const Key('healthyExercisesLink'),
-      onTap: () => context.goNamed(
-        AppRoutes.learnTopic,
+      onTap: () => context.pushNamed(
+        AppRoutes.topicView,
         pathParameters: <String, String>{'topic': topicId},
       ),
       child: Row(

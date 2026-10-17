@@ -9,6 +9,7 @@ import '../caregiver/caregiver_contact.dart';
 import '../clinic/clinic_contact.dart';
 import '../config/env.dart';
 import '../db/app_database.dart';
+import '../legal/terms_store.dart';
 import '../localization/language.dart';
 import '../network/dio_client.dart';
 import '../network/server_reachability.dart';
@@ -135,6 +136,10 @@ serverReachabilityProvider =
 
 final Provider<LanguageStore> languageStoreProvider = Provider<LanguageStore>(
   (Ref ref) => LanguageStore(ref.watch(appDatabaseProvider).preferencesDao),
+);
+
+final Provider<TermsStore> termsStoreProvider = Provider<TermsStore>(
+  (Ref ref) => TermsStore(ref.watch(appDatabaseProvider).preferencesDao),
 );
 
 final StreamProvider<CachedUser?> cachedUserProvider =

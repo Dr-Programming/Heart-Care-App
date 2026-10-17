@@ -126,6 +126,11 @@ String? _redirect(AuthGate gate, String location) {
     return location == AppRoutes.languagePath ? null : AppRoutes.languagePath;
   }
 
+  // The terms come right after the language and before any account screen.
+  if (!gate.hasAcceptedTerms) {
+    return location == AppRoutes.termsPath ? null : AppRoutes.termsPath;
+  }
+
   final bool isPublic = AppRoutes.publicPaths.contains(location);
 
   final bool isPublicForLocalTesting =

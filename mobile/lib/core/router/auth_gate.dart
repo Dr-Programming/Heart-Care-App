@@ -7,6 +7,9 @@ abstract interface class AuthGate {
 
   bool get hasChosenLanguage;
 
+  /// Agreed to the "Before you start" terms and privacy notice on this phone.
+  bool get hasAcceptedTerms;
+
   bool get needsOnboarding;
 }
 
@@ -21,6 +24,9 @@ class OpenAuthGate implements AuthGate {
 
   @override
   bool get hasChosenLanguage => true;
+
+  @override
+  bool get hasAcceptedTerms => true;
 
   @override
   bool get needsOnboarding => false;

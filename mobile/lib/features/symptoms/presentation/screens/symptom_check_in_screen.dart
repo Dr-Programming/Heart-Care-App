@@ -1,19 +1,22 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/notifications/check_in_reminder.dart';
 import '../../../../core/clinic/clinic_call.dart';
-import '../../../../core/clinical/activity_guidance.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/entities/symptom_check_in.dart';
-import '../widgets/activity_guidance_card.dart';
+import '../widgets/check_in_result_view.dart';
 import '../controllers/check_in_hub_controller.dart';
 import '../controllers/symptom_form_controller.dart';
+import 'symptom_history_screen.dart';
 
 class SymptomCheckInScreen extends ConsumerWidget {
   const SymptomCheckInScreen({super.key});
@@ -35,7 +38,10 @@ class SymptomCheckInScreen extends ConsumerWidget {
           subtitle: 'symptoms.checkIn.subtitle'.tr(),
         ),
         body: state.result != null
-            ? _ResultView(result: state.result!)
+            ? CheckInResultView(
+                result: state.result!,
+                onDone: () => Navigator.of(context).pop(),
+              )
             : _FormView(state: state, controller: controller, ref: ref),
       ),
     );
@@ -208,6 +214,10 @@ class _FormView extends StatelessWidget {
           onPressed: () async {
             await controller.submit();
             ref.invalidate(checkInHubControllerProvider);
+            ref.invalidate(symptomHistoryProvider);
+            if (ref.read(symptomFormControllerProvider).result != null) {
+              unawaited(ref.read(checkInReminderProvider).checkedIn());
+            }
             final SymptomCheckIn? result = ref
                 .read(symptomFormControllerProvider)
                 .result;
@@ -224,77 +234,6 @@ class _FormView extends StatelessWidget {
               );
             }
           },
-        ),
-      ],
-    );
-  }
-}
-
-class _ResultView extends StatelessWidget {
-  const _ResultView({required this.result});
-
-  final SymptomCheckIn result;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme text = Theme.of(context).textTheme;
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      children: <Widget>[
-        Text('symptoms.summary.title'.tr(), style: text.headlineMedium),
-        const SizedBox(height: AppSpacing.xs),
-        Text('symptoms.summary.subtitle'.tr(), style: text.bodyMedium),
-        const SizedBox(height: AppSpacing.lg),
-        SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Text(
-                    'symptoms.summary.overall'.tr(),
-                    style: text.titleMedium,
-                  ),
-                  StatusChip(severity: result.overall),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(actionKeyFor(result.overall).tr(), style: text.bodyMedium),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        // Told straight away what activity suits today.
-        ActivityGuidanceCard(
-          guidance: activityGuidanceFor(
-            overall: result.overall,
-            perSymptom: result.perSymptom,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        for (final MapEntry<String, Severity> entry
-            in result.perSymptom.entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: SectionCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Text(
-                    'symptoms.summary.field.${entry.key}'.tr(),
-                    style: text.bodyLarge,
-                  ),
-                  StatusChip(severity: entry.value),
-                ],
-              ),
-            ),
-          ),
-        const SizedBox(height: AppSpacing.lg),
-        AppButton(
-          label: 'symptoms.summary.done'.tr(),
-          onPressed: () => Navigator.of(context).pop(),
         ),
       ],
     );
