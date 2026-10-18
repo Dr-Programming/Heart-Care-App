@@ -204,4 +204,61 @@ void main() {
     expect(result.heightCm, 172);
     expect(fake.requests, isEmpty);
   });
+
+  group('restoreFromServer (after a sign-in)', () {
+    ProfileRepositoryImpl repoFor(
+      FakeDio fake,
+      db, {
+      bool online = true,
+    }) => ProfileRepositoryImpl(
+      remote: ProfileRemoteDataSource(fake.dio),
+      local: ProfileLocalDataSource(db: db, preferencesDao: db.preferencesDao),
+      isOnline: () async => online,
+    );
+
+    test('brings back the profile the server has', () async {
+      final db = testDatabase();
+      addTearDown(db.close);
+      final fake = FakeDio()
+        ..stub('/api/v1/patients/me', FakeResponse.ok(_validJson));
+      final repo = repoFor(fake, db);
+
+      await repo.restoreFromServer('u1');
+
+      final PatientProfile restored = await repo.getProfile('u1');
+      expect(restored.birthYear, 1968);
+      expect(restored.comorbidities, <String>['diabetes']);
+      expect(await repo.isDirty('u1'), isFalse);
+      expect(fake.requests.single.method, 'GET');
+    });
+
+    test('keeps a change that has not been sent yet', () async {
+      final db = testDatabase();
+      addTearDown(db.close);
+      final fake = FakeDio()
+        ..stub('/api/v1/patients/me', FakeResponse.ok(_validJson));
+      final offline = repoFor(fake, db, online: false);
+      await offline.saveProfile(
+        PatientProfile.empty('u1').copyWith(birthYear: 1990),
+      );
+
+      await repoFor(fake, db).restoreFromServer('u1');
+
+      expect((await offline.getProfile('u1')).birthYear, 1990);
+      expect(fake.requests, isEmpty);
+    });
+
+    test('does nothing offline or without a profile on the server', () async {
+      final db = testDatabase();
+      addTearDown(db.close);
+      final fake = FakeDio()
+        ..stub('/api/v1/patients/me', FakeResponse.error(404, 'Not found'));
+
+      await repoFor(fake, db, online: false).restoreFromServer('u1');
+      expect(fake.requests, isEmpty);
+
+      await repoFor(fake, db).restoreFromServer('u1');
+      expect((await repoFor(fake, db).getProfile('u1')).birthYear, isNull);
+    });
+  });
 }

@@ -12,6 +12,9 @@
          14+ this is not auto-granted — the user may need to enable it via
          Settings > Apps > Libu Care > Alarms & reminders. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Texts the caregiver when a dose is marked missed. -->
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-feature android:name="android.hardware.telephony" android:required="false"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application

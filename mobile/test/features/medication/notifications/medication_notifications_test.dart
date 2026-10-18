@@ -123,4 +123,48 @@ void main() {
     await notifications.scheduleFor(_medication());
     expect(await scheduler.pending(), isEmpty);
   });
+
+  group('follow-up after a dose is logged', () {
+    final DateTime morning = DateTime(2026, 8, 25, 7);
+
+    test('is due an hour after the dose while nothing is logged', () async {
+      expect(
+        await notifications.nextFollowUpFor('m1', '08:00', now: morning),
+        DateTime(2026, 8, 25, 9),
+      );
+    });
+
+    test('skips today once the dose is logged, then carries on', () async {
+      await notifications.doseLogged(
+        _medication(),
+        time: '08:00',
+        scheduledDate: '2026-08-25',
+        now: morning,
+      );
+
+      expect(
+        await notifications.nextFollowUpFor('m1', '08:00', now: morning),
+        DateTime(2026, 8, 26, 9),
+      );
+      expect(
+        await notifications.nextFollowUpFor('m1', '20:00', now: morning),
+        DateTime(2026, 8, 25, 21),
+        reason: 'the evening dose was not logged',
+      );
+    });
+
+    test('logging an older day does not move the follow-up for today', () async {
+      await notifications.doseLogged(
+        _medication(),
+        time: '08:00',
+        scheduledDate: '2026-08-24',
+        now: morning,
+      );
+
+      expect(
+        await notifications.nextFollowUpFor('m1', '08:00', now: morning),
+        DateTime(2026, 8, 25, 9),
+      );
+    });
+  });
 }

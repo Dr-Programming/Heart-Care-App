@@ -25,6 +25,7 @@ import '../features/auth/auth_providers.dart';
 import '../features/auth/presentation/screens/change_pin_screen.dart';
 import '../features/auth/presentation/screens/forgot_pin_screen.dart';
 import '../features/auth/presentation/screens/language_screen.dart';
+import '../features/auth/presentation/screens/terms_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/security_questions_screen.dart';
@@ -50,7 +51,10 @@ import '../features/medication/presentation/screens/dose_history_screen.dart';
 import '../features/medication/presentation/screens/medication_form_screen.dart';
 import '../features/medication/presentation/screens/medications_screen.dart';
 import '../features/medication/presentation/screens/reminder_settings_screen.dart';
+import '../features/profile/data/repositories/profile_repository_impl.dart';
+import '../features/profile/domain/repositories/profile_repository.dart';
 import '../features/profile/presentation/controllers/onboarding_controller.dart';
+import '../features/profile/profile_providers.dart';
 import '../features/profile/presentation/controllers/profile_controller.dart';
 import '../features/profile/presentation/home/profile_home_card.dart';
 import '../features/profile/presentation/screens/onboarding_screen.dart';
@@ -92,6 +96,17 @@ FeatureRoutes buildFeatureRoutes() {
         path: AppRoutes.languagePath,
         name: AppRoutes.language,
         builder: (context, state) => const LanguageScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.topicViewPath,
+        name: AppRoutes.topicView,
+        builder: (context, state) =>
+            TopicScreen(topicId: TopicScreen.topicIdFromRoute(state)),
+      ),
+      GoRoute(
+        path: AppRoutes.termsPath,
+        name: AppRoutes.terms,
+        builder: (context, state) => const TermsScreen(),
       ),
       GoRoute(
         path: AppRoutes.loginPath,
@@ -160,6 +175,11 @@ FeatureRoutes buildFeatureRoutes() {
         path: AppRoutes.securityQuestionsPath,
         name: AppRoutes.securityQuestions,
         builder: (context, state) => const SecurityQuestionsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.termsViewPath,
+        name: AppRoutes.termsView,
+        builder: (context, state) => const TermsScreen(readOnly: true),
       ),
     ],
 
@@ -255,6 +275,15 @@ FeatureRoutes buildFeatureRoutes() {
           name: AppRoutes.symptomHistory,
           builder: (BuildContext context, GoRouterState state) =>
               const SymptomHistoryScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.symptomCheckInDetailPath.replaceFirst(
+            '/check-in/',
+            '',
+          ),
+          name: AppRoutes.symptomCheckInDetail,
+          builder: (BuildContext context, GoRouterState state) =>
+              CheckInDetailScreen(id: state.pathParameters['id']!),
         ),
       ],
     ),
@@ -375,6 +404,15 @@ Future<void> _restoreFromServer(Ref ref) async {
     safely(() => ref.read(vitalsRepositoryImplProvider).restoreFromServer()),
     safely(() => ref.read(symptomRepositoryImplProvider).restoreFromServer()),
     safely(() => ref.read(activityRepositoryImplProvider).restoreFromServer()),
+    safely(() async {
+      final ProfileRepository profile = ref.read(profileRepositoryProvider);
+      final String userId =
+          (await ref.read(appDatabaseProvider).cachedUserDao.current())?.id ??
+          '';
+      if (profile is ProfileRepositoryImpl) {
+        await profile.restoreFromServer(userId);
+      }
+    }),
   ]);
   _resetPatientState(ref);
   // Restored medications need their reminders on this phone.

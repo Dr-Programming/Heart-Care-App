@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/notifications/sms_sender.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -399,7 +400,11 @@ class _FormBody extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
               title: Text('meds.form.notifyCaregiver'.tr()),
               value: caregiverEnabled,
-              onChanged: onCaregiverEnabledChanged,
+              onChanged: (bool on) {
+                // Ask for the SMS permission now, not at the first missed dose.
+                if (on) unawaited(const SmsSender().requestPermission());
+                onCaregiverEnabledChanged(on);
+              },
             ),
             if (caregiverEnabled) ...<Widget>[
               const SizedBox(height: AppSpacing.sm),

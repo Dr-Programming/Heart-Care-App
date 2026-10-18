@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:libu_care/app/app_wiring.dart';
 import 'package:libu_care/core/db/app_database.dart';
+import 'package:libu_care/core/legal/terms_store.dart';
 import 'package:libu_care/core/localization/language.dart';
 import 'package:libu_care/core/providers/core_providers.dart';
 import 'package:libu_care/core/router/routes.dart';
@@ -62,6 +63,7 @@ void main() {
       ),
     );
     await LanguageStore(db.preferencesDao).write(AppLanguage.en);
+    await TermsStore(db.preferencesDao).accept();
   });
 
   tearDown(() => db.close());
@@ -221,6 +223,46 @@ void main() {
 
       expect(find.byType(QuizScreen), findsOneWidget);
       expect(find.byType(TopicScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'the exercise shortcut opens over the Activity page, and Back returns '
+    'there instead of to the Learn tab',
+    (WidgetTester tester) async {
+      final GoRouter router = await bootApp(tester);
+      Future<void> settle() => tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 10),
+      );
+
+      router.go(AppRoutes.activityPath);
+      await settle();
+
+      final Finder link = find.byKey(const Key('healthyExercisesLink'));
+      await tester.scrollUntilVisible(link, 100);
+      await tester.tap(link);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      // Fixed pumps: the topic loads its text from a bundled file, and its
+      // spinner would keep pumpAndSettle waiting. Only the route matters here.
+      await tester.pump(const Duration(milliseconds: 300));
+      // Pushed on top: the top of the stack is the topic, and the page under
+      // it is still Activity, so the Learn tab was not opened.
+      expect(
+        router.routerDelegate.currentConfiguration.last.matchedLocation,
+        '/topic/exercise',
+      );
+      expect(find.byType(TopicScreen), findsOneWidget);
+
+      router.pop();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        router.routerDelegate.currentConfiguration.uri.path,
+        AppRoutes.activityPath,
+      );
     },
   );
 

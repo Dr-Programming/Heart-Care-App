@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/notifications/check_in_reminder.dart';
 import '../../../../core/db/app_database.dart' hide Medication;
 import '../../../../core/error/failure.dart';
 import '../../../../core/providers/core_providers.dart';
@@ -36,6 +37,7 @@ class _NotificationsEnabledController extends AsyncNotifier<bool> {
     } else {
       await bootstrap.cancelAll();
     }
+    await ref.read(checkInReminderProvider).reschedule();
 
     ref.invalidateSelf();
   }

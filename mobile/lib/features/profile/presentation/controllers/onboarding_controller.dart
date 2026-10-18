@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/notifications/check_in_reminder.dart';
 import '../../../../core/db/tables.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../domain/entities/health_goals.dart';
@@ -91,7 +92,7 @@ class OnboardingController extends Notifier<OnboardingState> {
   static const String _vitalsReminderEnabledKey =
       'profile_vitals_reminder_enabled';
   static const String _symptomReminderEnabledKey =
-      'profile_symptom_reminder_enabled';
+      PreferenceKeys.symptomReminderEnabled;
 
   @override
   OnboardingState build() => const OnboardingState();
@@ -187,6 +188,7 @@ class OnboardingController extends Notifier<OnboardingState> {
       _symptomReminderEnabledKey,
       state.symptomReminderOn.toString(),
     );
+    await ref.read(checkInReminderProvider).reschedule();
   }
 
   Future<void> _clearNeedsOnboarding() async {
