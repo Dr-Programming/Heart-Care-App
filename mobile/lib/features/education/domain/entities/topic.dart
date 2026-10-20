@@ -24,7 +24,6 @@ const Map<String, IconData> _topicIcons = <String, IconData>{
   'chd-basics': Iconsax.heart,
   'symptoms': Iconsax.warning_2,
   'heart-attack': Iconsax.flash_1,
-  'diet': Iconsax.reserve,
   'exercise': Iconsax.activity,
   'medication-adherence': Iconsax.calendar_tick,
   'psychosocial': Iconsax.emoji_happy,

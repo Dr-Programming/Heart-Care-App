@@ -1,13 +1,32 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../domain/eat_well.dart';
+import '../../domain/entities/content_block.dart';
+import '../widgets/block_renderer.dart';
 
 /// Heart-healthy eating with local foods: what to eat more of, what to limit.
-/// Static content, so it works fully offline.
+/// Static content, so it works fully offline (the source links need internet).
+///
+/// The eating quiz lives here too: it belonged to the old "Eating well for
+/// your heart" topic, which this screen replaced.
+const String eatWellQuizTopicId = 'diet';
+
+const List<(String, String)> eatWellSources = <(String, String)>[
+  (
+    'education.eatWell.sourceHeartFoundation',
+    'https://www.heartfoundation.org.au/healthy-living/healthy-eating/heart-healthy-eating-pattern',
+  ),
+  (
+    'education.eatWell.sourceEphi',
+    'https://ephi.gov.et/wp-content/uploads/2021/02/Booklet_web.pdf',
+  ),
+];
 class EatWellScreen extends StatefulWidget {
   const EatWellScreen({super.key});
 
@@ -58,6 +77,16 @@ class _EatWellScreenState extends State<EatWellScreen> {
             const SizedBox(height: AppSpacing.md),
             const _PatternCard(),
           ],
+          const SizedBox(height: AppSpacing.lg),
+          const _SourcesCard(),
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: 'education.quiz.cta'.tr(),
+            onPressed: () => context.pushNamed(
+              AppRoutes.quiz,
+              queryParameters: <String, String>{'topic': eatWellQuizTopicId},
+            ),
+          ),
           const SizedBox(height: AppSpacing.lg),
           Center(
             child: Text(
@@ -137,6 +166,34 @@ class _GroupCard extends StatelessWidget {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SourcesCard extends StatelessWidget {
+  const _SourcesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'education.eatWell.sourcesTitle'.tr(),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final (String labelKey, String url) in eatWellSources)
+            BlockRenderer(
+              block: ReferenceLinkBlock(
+                label: labelKey.tr(),
+                url: url,
+                kind: ReferenceKind.article,
+              ),
+            ),
         ],
       ),
     );

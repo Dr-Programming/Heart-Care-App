@@ -12,7 +12,10 @@ void main() {
         File('assets/content/topics_$lang.json').readAsStringSync(),
       ) as List<dynamic>;
       final Topic topic = Topic.fromJson(
-        (json[4] as Map<Object?, Object?>).cast(),
+        (json.firstWhere(
+          (dynamic e) => (e as Map<Object?, Object?>)['id'] == 'exercise',
+        ) as Map<Object?, Object?>)
+            .cast(),
       );
       expect(topic.id, 'exercise');
       expect(topic.sections, isNotEmpty);

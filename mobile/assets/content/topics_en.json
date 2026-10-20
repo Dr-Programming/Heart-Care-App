@@ -186,59 +186,6 @@
     ]
   },
   {
-    "id": "diet",
-    "title": "Eating well for your heart",
-    "summary": "A 5-step Ethiopian heart-healthy eating pattern - not a strict diet.",
-    "sections": [
-      {
-        "title": "It's a pattern, not a restriction",
-        "blocks": [
-          {
-            "type": "paragraph",
-            "text": "A heart-healthy way of eating is not about cutting everything out. It is a pattern of foods you choose regularly, over time, that is naturally lower in unhealthy fat, salt, and added sugar, and rich in fibre, healthy fats, and protein."
-          }
-        ]
-      },
-      {
-        "title": "Your 5-step pattern",
-        "blocks": [
-          {
-            "type": "bulletList",
-            "items": [
-              "1. Plenty of vegetables, fruit, and whole grains - gomen, ye'abesha gomen, timatim salata, and whole-grain teff injera or kita instead of refined grains",
-              "2. A variety of protein-rich foods - shiro, misir, and kik (legumes) most days, with fish, and smaller amounts of eggs and lean meat",
-              "3. Milk, yogurt, and cheese - ergo (Ethiopian yogurt) and other dairy in moderation; unflavoured, lower-fat options are the healthiest choice if you have heart disease or high cholesterol",
-              "4. Healthy fats and oils - niger seed (nug) oil in place of butter or fatty meat drippings; fish 2-3 times a week if you eat it",
-              "5. Flavour with herbs and spices instead of salt - garlic, ginger, koseret, and rue add real flavour without the salt in heavy berbere or added table salt"
-            ]
-          },
-          {
-            "type": "callout",
-            "style": "info",
-            "text": "Too much salt is a real risk factor for high blood pressure. Cutting back on processed and packaged foods, and flavouring meals with herbs and spices instead, is the easiest way to reduce it."
-          }
-        ]
-      },
-      {
-        "title": "Where this comes from",
-        "blocks": [
-          {
-            "type": "referenceLink",
-            "label": "Heart Foundation's heart-healthy eating pattern",
-            "url": "https://www.heartfoundation.org.au/healthy-living/healthy-eating/heart-healthy-eating-pattern",
-            "kind": "article"
-          },
-          {
-            "type": "referenceLink",
-            "label": "Ethiopian Public Health Institute booklet",
-            "url": "https://ephi.gov.et/wp-content/uploads/2021/02/Booklet_web.pdf",
-            "kind": "article"
-          }
-        ]
-      }
-    ]
-  },
-  {
     "id": "exercise",
     "title": "Staying physically active",
     "summary": "Why moving more helps your heart, and simple ways to do it.",

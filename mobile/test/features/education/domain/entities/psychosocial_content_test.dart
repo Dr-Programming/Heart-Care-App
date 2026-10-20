@@ -12,14 +12,14 @@ void main() {
         File('assets/content/topics_$lang.json').readAsStringSync(),
       ) as List<dynamic>;
       final Topic topic = Topic.fromJson(
-        (json[6] as Map<Object?, Object?>).cast(),
+        (json[5] as Map<Object?, Object?>).cast(),
       );
       expect(topic.id, 'psychosocial');
     }
   });
 
   test(
-    'all 7 topics exist in both languages with the same ids, in the same order',
+    'all 6 topics exist in both languages with the same ids, in the same order',
     () {
       final List<dynamic> en = jsonDecode(
         File('assets/content/topics_en.json').readAsStringSync(),
@@ -28,8 +28,8 @@ void main() {
         File('assets/content/topics_am.json').readAsStringSync(),
       ) as List<dynamic>;
 
-      expect(en.length, 7);
-      expect(am.length, 7);
+      expect(en.length, 6);
+      expect(am.length, 6);
 
       final List<String> enIds = en
           .map((dynamic e) => (e as Map<Object?, Object?>)['id'] as String)
@@ -42,7 +42,6 @@ void main() {
         'chd-basics',
         'symptoms',
         'heart-attack',
-        'diet',
         'exercise',
         'medication-adherence',
         'psychosocial',
@@ -50,7 +49,7 @@ void main() {
     },
   );
 
-  test('all 7 quizzes exist in both languages, one per topic, every question has exactly one correct option', () {
+  test('all 7 quizzes exist in both languages (one per topic, plus Eat well), every question has exactly one correct option', () {
     for (final String lang in <String>['en', 'am']) {
       final List<dynamic> json = jsonDecode(
         File('assets/content/quiz_$lang.json').readAsStringSync(),
