@@ -41,6 +41,8 @@ void main() {
         ],
         for (final String step in eatingPatternSteps)
           'education.eatWell.pattern.$step',
+        'education.eatWell.sourcesTitle',
+        for (final (String labelKey, String _) in eatWellSources) labelKey,
       ];
 
       for (final String key in keys) {
@@ -86,6 +88,34 @@ void main() {
           ),
           findsNothing,
         );
+      },
+    );
+
+    testWidgets(
+      'the source links and the quiz from the old diet topic are on Eat well (${language.code})',
+      (tester) async {
+        final AppDatabase db = testDatabase();
+        addTearDown(db.close);
+        await pumpApp(
+          tester,
+          const EatWellScreen(),
+          language: language,
+          overrides: <Override>[
+            appDatabaseProvider.overrideWithValue(db),
+            onlineStatusProvider.overrideWith(
+              (ref) => Stream<bool>.value(true),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+
+        final Finder quiz = find.text('education.quiz.cta'.tr());
+        await tester.scrollUntilVisible(quiz, 300);
+        expect(find.text('education.eatWell.sourcesTitle'.tr()), findsOneWidget);
+        for (final (String labelKey, String _) in eatWellSources) {
+          expect(find.text(labelKey.tr()), findsOneWidget);
+        }
+        expect(quiz, findsOneWidget);
       },
     );
   }

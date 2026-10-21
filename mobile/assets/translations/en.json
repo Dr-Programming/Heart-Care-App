@@ -753,6 +753,9 @@
       "limitIntro": "Eat these less often. They raise blood pressure or cholesterol.",
       "footer": "Available in English · Amharic · Offline",
       "patternTitle": "The heart-healthy eating pattern",
+      "sourcesTitle": "Where this comes from",
+      "sourceHeartFoundation": "Heart Foundation's heart-healthy eating pattern",
+      "sourceEphi": "Ethiopian Public Health Institute booklet",
       "pattern": {
         "plants": "Eat plenty of vegetables, fruit and whole grains.",
         "protein": "Choose legumes, nuts, seeds and fish. Have eggs and lean chicken in smaller amounts, and red meat only 1–3 times a week.",
