@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:async';
 
 import 'package:easy_localization/easy_localization.dart';

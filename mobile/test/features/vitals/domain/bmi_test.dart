@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/vitals/domain/bmi.dart';
 

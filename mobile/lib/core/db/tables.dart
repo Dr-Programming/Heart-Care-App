@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:drift/drift.dart';
 
 class CachedUsers extends Table {

@@ -1,3 +1,7 @@
+// Author: Jacqueline Tran
+// Contributors: Jacqueline Tran, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../../../core/sync/history_window.dart';
 import '../../../../core/clinical/alert_evaluator.dart';
 import '../../../../core/db/app_database.dart' show SyncEntityType;

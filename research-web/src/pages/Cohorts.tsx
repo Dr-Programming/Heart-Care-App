@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type ReactNode } from 'react'
 import { researchApi } from '../api/research'

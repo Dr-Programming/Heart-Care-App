@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';

@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 // Mirrors the Monitoring API DTOs (monitoring-api/src/main/java/com/heartcare/monitoring/dto).
 // Every metric is nullable: null means the source had no data, and the UI shows a dash.
 

@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../entities/activity_entry.dart';
 
 abstract interface class ActivityRepository {

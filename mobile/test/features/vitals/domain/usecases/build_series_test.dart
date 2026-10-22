@@ -1,3 +1,7 @@
+// Author: Jacqueline Tran
+// Contributors: Jacqueline Tran, Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/core/utils/date_formatter.dart';
 import 'package:libu_care/features/vitals/domain/entities/vital_reading.dart';

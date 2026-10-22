@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { MetricCard } from '../components/MetricCard'
 import { Panel, PageTitle } from '../components/Panel'
 import { PulseTrace } from '../components/PulseTrace'

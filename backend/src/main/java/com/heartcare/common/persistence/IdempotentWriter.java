@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.common.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;

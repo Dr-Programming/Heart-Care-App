@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../../../core/clinical/alert_evaluator.dart';
 
 sealed class ContentBlock {

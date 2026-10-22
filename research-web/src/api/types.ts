@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 // Mirrors com.heartcare.research DTOs. Dates arrive as ISO strings.
 
 export interface ApiEnvelope<T> {

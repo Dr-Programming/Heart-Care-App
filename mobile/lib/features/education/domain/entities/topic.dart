@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter/widgets.dart';
 import 'package:iconsax/iconsax.dart';
 

@@ -1,3 +1,7 @@
+// Author: Jacqueline Tran
+// Contributors: Jacqueline Tran, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart';

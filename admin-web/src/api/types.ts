@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 // Mirrors the backend DTOs in com.heartcare.admin.dto. Dates arrive as ISO strings.
 
 export interface ApiEnvelope<T> {

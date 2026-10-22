@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { Sidebar } from '../components/Sidebar'

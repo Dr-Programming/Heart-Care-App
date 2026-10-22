@@ -1,3 +1,7 @@
+// Author: Ihab Al-Nasheei
+// Contributors: Ihab Al-Nasheei, Lachlan Smith
+// Last updated by: Lachlan Smith
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

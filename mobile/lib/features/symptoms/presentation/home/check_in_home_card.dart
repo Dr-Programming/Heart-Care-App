@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:async';
 
 import 'package:easy_localization/easy_localization.dart';

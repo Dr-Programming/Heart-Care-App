@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/adherence.dart';

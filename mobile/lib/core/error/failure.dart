@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 sealed class Failure implements Exception {
   const Failure(this.message);
   final String message;

@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 import 'vital_type.dart';
 
 class VitalReading {

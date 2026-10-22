@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../db/daos/preferences_dao.dart';
 import '../caregiver/caregiver_contact.dart';
 

@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 class DoseLog {
   const DoseLog({
     required this.clientRecordId,

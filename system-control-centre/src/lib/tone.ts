@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { isNum } from './format'
 
 export type Tone = 'ok' | 'warn' | 'crit' | 'neutral'

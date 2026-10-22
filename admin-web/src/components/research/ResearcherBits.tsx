@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useState, type ReactNode } from 'react'
 import type { ResearchActivity, Researcher } from '../../api/types'
 import { fmtDateTime } from '../../lib/format'

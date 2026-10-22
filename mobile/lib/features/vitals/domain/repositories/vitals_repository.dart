@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 import 'package:libu_care/features/vitals/domain/entities/vital_reading.dart';
 import 'package:libu_care/features/vitals/domain/entities/vital_type.dart';
 

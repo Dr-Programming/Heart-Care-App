@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:convert';
 
 import 'package:drift/drift.dart';

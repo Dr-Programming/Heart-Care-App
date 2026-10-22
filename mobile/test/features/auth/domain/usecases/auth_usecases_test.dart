@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';

@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../domain/entities/quiz.dart';
 import '../../domain/entities/topic.dart';
 import '../../domain/repositories/education_repository.dart';

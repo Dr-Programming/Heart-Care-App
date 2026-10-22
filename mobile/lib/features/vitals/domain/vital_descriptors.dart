@@ -1,3 +1,7 @@
+// Author: Jacqueline Tran
+// Contributors: Jacqueline Tran, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter/widgets.dart';
 

@@ -1,3 +1,7 @@
+// Author: Ihab Al-Nasheei
+// Contributors: Ihab Al-Nasheei, Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/language.dart';

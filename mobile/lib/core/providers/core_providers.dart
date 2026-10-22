@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';

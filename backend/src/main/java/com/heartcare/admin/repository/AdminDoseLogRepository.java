@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.admin.repository;
 
 import com.heartcare.medication.model.DoseLog;

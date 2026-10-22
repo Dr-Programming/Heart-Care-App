@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 /// The server's ActivityType values. Each has an EN/AM label under
 /// `activity.type.<wire>`.
 enum ActivityType {

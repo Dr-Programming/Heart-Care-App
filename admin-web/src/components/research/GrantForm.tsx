@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { AccessLevel, Dataset, Grant } from '../../api/types'
 
 export const DATASET_LABEL: Record<Dataset, { label: string; hint: string }> = {

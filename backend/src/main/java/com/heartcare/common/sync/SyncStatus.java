@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.common.sync;
 
 /** The verdict for one synced record, as reported back to the client. */

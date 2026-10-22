@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 enum VitalType {
   bloodPressure('BLOOD_PRESSURE'),
   glucose('GLUCOSE'),

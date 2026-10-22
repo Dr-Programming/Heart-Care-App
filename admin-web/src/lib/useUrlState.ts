@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
 

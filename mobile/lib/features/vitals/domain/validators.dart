@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 import 'entities/vital_type.dart';
 import 'vital_descriptors.dart';
 

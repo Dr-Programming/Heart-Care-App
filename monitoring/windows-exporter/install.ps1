@@ -1,3 +1,6 @@
+# Author: Prince Jiteshbhai Khakhariya
+# Last updated by: Prince Jiteshbhai Khakhariya
+
 <#
 .SYNOPSIS
     Installs windows_exporter on this Windows host so the System Control Centre can show host

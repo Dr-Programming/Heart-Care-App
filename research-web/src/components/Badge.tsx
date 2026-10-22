@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { ReactNode } from 'react'
 import type { DoseStatus, Severity } from '../api/types'
 

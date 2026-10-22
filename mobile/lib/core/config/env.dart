@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 abstract final class Env {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',

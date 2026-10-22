@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.medication.dto;
 
 import com.heartcare.medication.model.Frequency;

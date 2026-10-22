@@ -1,3 +1,7 @@
+// Author: Jacqueline Tran
+// Contributors: Jacqueline Tran, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/vitals/domain/entities/vital_type.dart';
 import 'package:libu_care/features/vitals/domain/validators.dart';

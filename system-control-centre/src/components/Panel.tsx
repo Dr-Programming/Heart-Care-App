@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { ReactNode } from 'react'
 
 /** A titled region of a page. The title says what the numbers inside are, in plain words. */

@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import '../entities/auth_user.dart';
 import '../security_question.dart';
 

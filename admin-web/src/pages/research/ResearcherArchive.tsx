@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router'
 import { adminApi } from '../../api/admin'

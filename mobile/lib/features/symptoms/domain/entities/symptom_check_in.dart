@@ -1,3 +1,6 @@
+// Author: Saif Abdulsattar
+// Last updated by: Saif Abdulsattar
+
 import '../../../../core/clinical/alert_evaluator.dart';
 
 class SymptomCheckIn {

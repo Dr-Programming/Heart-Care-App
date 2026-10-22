@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.sync.dto;
 
 import tools.jackson.databind.JsonNode;

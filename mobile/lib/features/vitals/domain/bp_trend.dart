@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../../core/utils/date_formatter.dart';
 import 'entities/vital_reading.dart';
 

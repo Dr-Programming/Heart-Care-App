@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../domain/entities/medication.dart';
 import '../domain/entities/scheduled_dose.dart';
 import '../domain/repositories/medication_repository.dart';

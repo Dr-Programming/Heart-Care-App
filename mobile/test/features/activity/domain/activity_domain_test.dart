@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/activity/domain/activity_summary.dart';
 import 'package:libu_care/features/activity/domain/entities/activity_entry.dart';

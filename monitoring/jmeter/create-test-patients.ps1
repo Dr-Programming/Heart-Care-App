@@ -1,3 +1,6 @@
+# Author: Prince Jiteshbhai Khakhariya
+# Last updated by: Prince Jiteshbhai Khakhariya
+
 <#
 .SYNOPSIS
     Registers test patient accounts for the JMeter mobile users and writes them to patients.csv.

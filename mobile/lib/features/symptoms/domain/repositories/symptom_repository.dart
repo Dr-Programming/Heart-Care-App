@@ -1,3 +1,6 @@
+// Author: Saif Abdulsattar
+// Last updated by: Saif Abdulsattar
+
 import '../entities/symptom_check_in.dart';
 
 abstract interface class SymptomRepository {

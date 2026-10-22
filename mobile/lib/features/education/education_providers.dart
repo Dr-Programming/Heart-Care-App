@@ -1,3 +1,7 @@
+// Author: Saif Abdulsattar
+// Contributors: Saif Abdulsattar, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/datasources/content_local_datasource.dart';

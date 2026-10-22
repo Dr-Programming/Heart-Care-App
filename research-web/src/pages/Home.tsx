@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { Link } from 'react-router'
 import type { Dataset } from '../api/types'
 import { useAuth } from '../auth/AuthContext'

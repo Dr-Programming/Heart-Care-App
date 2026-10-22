@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { Link } from 'react-router'
 import type { Activity, Dose, Symptom, Vital } from '../api/types'
 import { fmtDateTime, fmtLocalDate, humanizeEnum, VITAL_LABEL, vitalReading } from '../lib/format'

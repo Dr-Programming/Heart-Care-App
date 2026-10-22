@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 class AuthUser {
   const AuthUser({
     required this.id,

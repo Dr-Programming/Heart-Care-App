@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dose_log.dart';
 
 enum ScheduledDoseStatus { pending, overdue, logged }

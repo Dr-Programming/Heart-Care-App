@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'alert_evaluator.dart';
 
 /// How active the patient can be today, from their daily check-in.

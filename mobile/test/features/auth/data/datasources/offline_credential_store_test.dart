@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/auth/data/datasources/offline_credential_store.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';

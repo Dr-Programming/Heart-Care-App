@@ -1,3 +1,6 @@
+// Author: Saif Abdulsattar
+// Last updated by: Saif Abdulsattar
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/symptom_check_in.dart';

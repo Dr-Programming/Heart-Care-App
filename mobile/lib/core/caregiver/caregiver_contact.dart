@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:convert';
 
 import '../db/daos/preferences_dao.dart';

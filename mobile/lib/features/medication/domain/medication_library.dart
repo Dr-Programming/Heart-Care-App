@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 class MedicationLibraryEntry {
   const MedicationLibraryEntry({
     required this.name,

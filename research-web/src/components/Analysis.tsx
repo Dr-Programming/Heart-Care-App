@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useState, type ReactNode } from 'react'
 import { researchApi } from '../api/research'
 import { ApiError } from '../api/client'

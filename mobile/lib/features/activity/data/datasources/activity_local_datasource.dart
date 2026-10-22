@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:drift/drift.dart';
 
 import '../../../../core/db/app_database.dart' as drift_db;

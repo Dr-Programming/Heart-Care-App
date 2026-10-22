@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 /// Bounds the server enforces (ActivityService), checked here so the patient
 /// sees the problem in the form instead of the record being rejected at sync.
 const int minDurationMinutes = 1;

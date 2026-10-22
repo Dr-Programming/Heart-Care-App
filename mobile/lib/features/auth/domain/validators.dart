@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 final RegExp _phonePattern = RegExp(r'^\+251\d{9}$');
 final RegExp _pinPattern = RegExp(r'^\d{4}$');
 

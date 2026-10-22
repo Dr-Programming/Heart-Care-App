@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:dio/dio.dart';
 
 import '../../constants/api_endpoints.dart';

@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'entities/medication.dart';
 
 /// The server's limit (MedicationRequest `@DecimalMax`).

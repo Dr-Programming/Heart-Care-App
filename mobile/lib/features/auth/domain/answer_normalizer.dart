@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 /// Puts a security answer into one canonical form before it is hashed or
 /// compared, so "Bole Primary", " bole  primary " and "BOLE PRIMARY" are the
 /// same answer.

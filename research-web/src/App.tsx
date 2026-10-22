@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, Route, Routes } from 'react-router'
 import { RequireAuth } from './auth/AuthContext'

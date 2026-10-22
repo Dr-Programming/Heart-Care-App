@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 const DASH = '—'
 
 const integer = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 })

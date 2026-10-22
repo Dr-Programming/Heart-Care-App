@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../../../core/sync/history_window.dart';
 import '../../../../core/db/app_database.dart' show SyncEntityType;
 import '../../../../core/sync/sync_queue_dao.dart';

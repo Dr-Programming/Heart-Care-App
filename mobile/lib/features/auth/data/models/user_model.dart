@@ -1,3 +1,6 @@
+// Author: Lachlan Smith
+// Last updated by: Lachlan Smith
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../domain/entities/auth_user.dart';

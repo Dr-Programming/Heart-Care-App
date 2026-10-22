@@ -1,3 +1,6 @@
+// Author: Lachlan Smith
+// Last updated by: Lachlan Smith
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 

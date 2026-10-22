@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { PageHeader } from '../components/Layout'

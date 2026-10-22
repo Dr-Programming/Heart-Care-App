@@ -1,3 +1,7 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Contributors: Prince Jiteshbhai Khakhariya, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:libu_care/core/error/failure.dart';
 import 'package:libu_care/features/auth/domain/entities/auth_user.dart';
 import 'package:libu_care/features/auth/domain/repositories/auth_repository.dart';

@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { ApiEnvelope } from './types'
 
 // Same request/session pattern as admin-web/src/api/client.ts, pointed at the Monitoring API.

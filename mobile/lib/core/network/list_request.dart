@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:dio/dio.dart';
 
 /// GETs [path] and returns the `data` list of the API envelope as JSON maps.

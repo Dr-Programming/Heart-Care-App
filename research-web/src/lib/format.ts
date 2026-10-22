@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 const dateTime = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
   month: 'short',

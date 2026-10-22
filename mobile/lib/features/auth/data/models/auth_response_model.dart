@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'user_model.dart';

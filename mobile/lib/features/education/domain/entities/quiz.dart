@@ -1,3 +1,6 @@
+// Author: Saif Abdulsattar
+// Last updated by: Saif Abdulsattar
+
 class QuizOption {
   const QuizOption({
     required this.text,

@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import { useMemo } from 'react'
 import { fmtRate, isNum } from '../lib/format'
 import type { ChartSeries } from '../services/types'

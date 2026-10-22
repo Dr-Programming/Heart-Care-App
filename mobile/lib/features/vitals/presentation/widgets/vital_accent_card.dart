@@ -1,3 +1,6 @@
+// Author: Jacqueline Tran
+// Last updated by: Jacqueline Tran
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';

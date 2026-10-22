@@ -1,3 +1,7 @@
+// Author: Lachlan Smith
+// Contributors: Lachlan Smith, Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:libu_care/features/auth/data/datasources/auth_remote_datasource.dart';

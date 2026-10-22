@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import 'package:dio/dio.dart';
 
 import '../constants/api_endpoints.dart';

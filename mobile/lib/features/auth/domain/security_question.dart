@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 /// The recovery questions a patient can choose from. Mirrors the backend's
 /// `SecurityQuestion` enum: the server only knows the [id]s; the question text
 /// lives in the translation files under `auth.securityQuestions.items.<id>`.

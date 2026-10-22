@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 /// The "Eat well" guide: food groups to eat more of and to limit.
 ///
 /// Sources, so the content can be traced and reviewed:

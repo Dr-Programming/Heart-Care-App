@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 import type { Frequency, VitalType } from '../api/types'
 
 const dateTime = new Intl.DateTimeFormat(undefined, {

@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import '../../core/clinical/alert_evaluator.dart';
 import '../../features/medication/domain/entities/adherence.dart';
 import '../../features/symptoms/domain/entities/symptom_check_in.dart';

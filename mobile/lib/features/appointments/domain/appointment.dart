@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 /// When, before the visit, the patient is reminded.
 enum ReminderTiming {
   twoDaysBefore('2d'),

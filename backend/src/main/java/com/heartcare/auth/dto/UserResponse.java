@@ -1,3 +1,6 @@
+// Author: Prince Jiteshbhai Khakhariya
+// Last updated by: Prince Jiteshbhai Khakhariya
+
 package com.heartcare.auth.dto;
 
 /** The user as the mobile app caches it. Never carries the PIN hash. */

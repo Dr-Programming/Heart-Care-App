@@ -1,3 +1,6 @@
+// Author: Ihab Al-Nasheei
+// Last updated by: Ihab Al-Nasheei
+
 import 'dart:async';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
